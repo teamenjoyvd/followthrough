@@ -4,4 +4,4 @@ Read in full during SHAPE and GATHER. Add new entries here immediately when a sh
 
 | Topic | Rule |
 |---|---|
-| Supabase `setAll` type | `cookiesToSet` must be explicitly typed as `CookieToSet[]` — derive via `Parameters<CookieMethodsServer['setAll']>[0][number]`. Without it, `tsc --noEmit` fails with implicit `any`. |
+| Supabase `setAll` type | Do NOT derive from `CookieMethodsServer['setAll']` — `setAll` is optional so `Parameters<>` breaks. Use inline type: `{ name: string; value: string; options?: Record<string, unknown> }`. |
