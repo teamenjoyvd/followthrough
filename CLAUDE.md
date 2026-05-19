@@ -16,7 +16,7 @@ Followthrough is a contact follow-up tool. It supports the follow-through proces
 | Repo | `teamenjoyvd/followthrough` |
 | Branch | `main` |
 | Supabase project | `pyeccxjwbjfrigcyyvar` |
-| Production URL | `https://followthrough.teamenjoyvd.com` |
+| Production URL | `https://followthrough-blond.vercel.app` |
 
 Never ask the user to confirm these.
 
