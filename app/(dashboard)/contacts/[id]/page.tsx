@@ -25,12 +25,16 @@ export default async function ContactDetailPage({ params }: Props) {
 
   if (!profile) redirect('/sign-in')
 
+  // Supabase type inference can collapse .select('id').single() data to null-only;
+  // cast explicitly after the null guard to avoid 'never' narrowing.
+  const profileId = (profile as { id: string }).id
+
   // Fetch contact — RLS enforces ownership
   const { data: contact } = await supabase
     .from('contacts')
     .select('id, first_name, last_name, company, job_title, email, last_contacted_at, pipeline_status')
     .eq('id', id)
-    .eq('profile_id', profile.id)
+    .eq('profile_id', profileId)
     .single()
 
   if (!contact) redirect('/dashboard')
@@ -45,13 +49,13 @@ export default async function ContactDetailPage({ params }: Props) {
       note_details ( body )
     `)
     .eq('contact_id', id)
-    .eq('profile_id', profile.id)
+    .eq('profile_id', profileId)
     .order('occurred_at', { ascending: false })
 
   const props = {
     contact,
     interactions: interactions ?? [],
-    profileId: profile.id,
+    profileId,
   }
 
   return (
