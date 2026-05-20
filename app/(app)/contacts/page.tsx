@@ -21,6 +21,8 @@ interface SearchParams {
   dir?: string
 }
 
+export const dynamic = 'force-dynamic'
+
 export const metadata = {
   title: 'Contacts — Followthrough',
   description: 'Manage your contacts and track pipeline status.',
@@ -65,8 +67,9 @@ export default async function ContactsPage({
   }
 
   if (query) {
+    const safeQuery = query.replace(/"/g, '""')
     dbQuery = dbQuery.or(
-      `first_name.ilike.%${query}%,last_name.ilike.%${query}%,email.ilike.%${query}%,company.ilike.%${query}%`
+      `first_name.ilike."%${safeQuery}%",last_name.ilike."%${safeQuery}%",email.ilike."%${safeQuery}%",company.ilike."%${safeQuery}%"`
     )
   }
 

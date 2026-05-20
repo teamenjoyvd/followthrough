@@ -2,22 +2,27 @@ import { auth } from '@clerk/nextjs/server'
 import { redirect, notFound } from 'next/navigation'
 import Link from 'next/link'
 import { ArrowLeft } from 'lucide-react'
-import { createSupabaseServerClient } from '@/lib/supabase/server'
 import ContactDetailDesktop from './components/ContactDetailDesktop'
 import ContactDetailMobile from './components/ContactDetailMobile'
 import DeleteContactButton from './components/DeleteContactButton'
+import { getContactForUser } from '@/lib/contacts-data'
 
 interface Props {
   params: Promise<{ id: string }>
 }
 
+export const dynamic = 'force-dynamic'
+
 export async function generateMetadata({ params }: Props) {
   const { id } = await params
-  const supabase = await createSupabaseServerClient()
-  const { data } = await (supabase as any).from('contacts').select('first_name, last_name').eq('id', id).maybeSingle() as { data: { first_name: string; last_name: string | null } | null }
-  if (!data) return { title: 'Contact — Followthrough' }
+  const { userId } = await auth()
+  if (!userId) return { title: 'Contact — Followthrough' }
+
+  const contact = await getContactForUser(id, userId)
+  if (!contact) return { title: 'Contact — Followthrough' }
+
   return {
-    title: `${data.first_name} ${data.last_name ?? ''} — Followthrough`.trim(),
+    title: `${contact.first_name} ${contact.last_name ?? ''} — Followthrough`.trim(),
   }
 }
 
@@ -26,24 +31,7 @@ export default async function ContactDetailPage({ params }: Props) {
   if (!userId) redirect('/sign-in')
 
   const { id } = await params
-  const supabase = await createSupabaseServerClient()
-
-  // Resolve profile
-  const { data: profile } = await (supabase as any)
-    .from('profiles')
-    .select('id')
-    .eq('clerk_id', userId)
-    .maybeSingle() as { data: { id: string } | null }
-
-  if (!profile) redirect('/sign-in')
-
-  // Fetch contact (RLS will restrict to current user)
-  const { data: contact } = await (supabase as any)
-    .from('contacts')
-    .select('*')
-    .eq('id', id)
-    .eq('profile_id', profile.id)
-    .maybeSingle() as { data: import('@/types/supabase').Database['public']['Tables']['contacts']['Row'] | null }
+  const contact = await getContactForUser(id, userId)
 
   if (!contact) notFound()
 
