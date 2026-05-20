@@ -40,7 +40,7 @@ export default async function AppLayout({
   // Fallback to currentUser() API fetch only if claims are not populated/customized
   if (!email || !displayName) {
     const user = await currentUser()
-    email = email || user?.emailAddresses?.[0]?.emailAddress ?? ''
+    email = email || (user?.emailAddresses?.[0]?.emailAddress ?? '')
     displayName =
       displayName ||
       [user?.firstName, user?.lastName].filter(Boolean).join(' ') ||
