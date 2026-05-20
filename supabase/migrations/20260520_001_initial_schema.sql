@@ -39,7 +39,7 @@ CREATE TABLE profiles (
   email                 text NOT NULL,
   display_name          text,
   confirmation_enabled  boolean NOT NULL DEFAULT true,
-  pipeline_view         text NOT NULL DEFAULT 'kanban', -- 'kanban' | 'list'
+  pipeline_view         text NOT NULL DEFAULT 'kanban' CHECK (pipeline_view IN ('kanban', 'list')), -- 'kanban' | 'list'
   created_at            timestamptz NOT NULL DEFAULT now(),
   updated_at            timestamptz NOT NULL DEFAULT now()
 );
@@ -93,6 +93,7 @@ CREATE TABLE phone_numbers (
 );
 
 CREATE INDEX phone_numbers_contact_id_idx ON phone_numbers (contact_id);
+CREATE INDEX phone_numbers_profile_id_idx ON phone_numbers (profile_id);
 
 -- ──────────────────────────────────────────
 -- SOCIAL LINKS
@@ -108,6 +109,7 @@ CREATE TABLE social_links (
 );
 
 CREATE INDEX social_links_contact_id_idx ON social_links (contact_id);
+CREATE INDEX social_links_profile_id_idx ON social_links (profile_id);
 
 -- ──────────────────────────────────────────
 -- INTERACTIONS

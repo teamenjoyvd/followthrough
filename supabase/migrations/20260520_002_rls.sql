@@ -17,8 +17,10 @@ AS $$ SELECT auth.jwt() ->> 'sub' $$;
 CREATE OR REPLACE FUNCTION get_my_profile_id()
 RETURNS uuid
 LANGUAGE sql STABLE
+SECURITY DEFINER
+SET search_path = public
 AS $$
-  SELECT id FROM profiles WHERE clerk_id = get_my_clerk_id()
+  SELECT id FROM profiles WHERE clerk_id = auth.jwt() ->> 'sub'
 $$;
 
 -- ──────────────────────────────────────────

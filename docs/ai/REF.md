@@ -20,7 +20,7 @@
 - `auth()` from `@clerk/nextjs/server` — always `await auth()`, never sync.
 - Protected routes: check `userId` from `auth()` at the top of every server action and route handler. Return 401 if null.
 - `proxy.ts` (not `middleware.ts`) handles route protection at the edge.
-- User identity in Supabase: Clerk native integration — domain `https://legal-swine-86.clerk.accounts.dev`. RLS helpers read `auth.jwt() ->> 'sub'` via `get_my_clerk_id()`.
+- User identity in Supabase: Clerk native integration — domain `<your-clerk-instance>.clerk.accounts.dev`. RLS helpers read `auth.jwt() ->> 'sub'` via `get_my_clerk_id()`.
 
 ---
 
