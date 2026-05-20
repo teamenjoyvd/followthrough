@@ -2,7 +2,8 @@ import { auth } from '@clerk/nextjs/server'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { ArrowLeft } from 'lucide-react'
-import NewContactForm from '../components/NewContactForm'
+import NewContactDesktop from './components/NewContactDesktop'
+import NewContactMobile from './components/NewContactMobile'
 
 export const dynamic = 'force-dynamic'
 
@@ -29,9 +30,10 @@ export default async function NewContactPage() {
         <h1 className="text-lg font-semibold text-gray-900">New contact</h1>
       </div>
 
-      {/* Form Wrapper */}
-      <div className="flex-1 overflow-y-auto px-4 md:px-6 py-6 bg-white">
-        <NewContactForm />
+      {/* Dual layout */}
+      <div className="flex-1 overflow-hidden">
+        <NewContactDesktop />
+        <NewContactMobile />
       </div>
     </div>
   )

@@ -2,7 +2,8 @@ import { auth } from '@clerk/nextjs/server'
 import { redirect, notFound } from 'next/navigation'
 import Link from 'next/link'
 import { ArrowLeft } from 'lucide-react'
-import EditContactForm from '../../components/EditContactForm'
+import EditContactDesktop from './components/EditContactDesktop'
+import EditContactMobile from './components/EditContactMobile'
 import { getContactForUser } from '@/lib/contacts-data'
 
 interface Props {
@@ -49,9 +50,10 @@ export default async function EditContactPage({ params }: Props) {
         </h1>
       </div>
 
-      {/* Form Wrapper */}
-      <div className="flex-1 overflow-y-auto px-4 md:px-6 py-6 bg-white">
-        <EditContactForm contact={contact} />
+      {/* Dual layout */}
+      <div className="flex-1 overflow-hidden">
+        <EditContactDesktop contact={contact} />
+        <EditContactMobile contact={contact} />
       </div>
     </div>
   )
