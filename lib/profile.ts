@@ -1,4 +1,6 @@
-import { createSupabaseServiceClient } from '@/lib/supabase/server'
+import { createSupabaseServiceClient } from './supabase/server'
+import { SupabaseClient } from '@supabase/supabase-js'
+import type { Database } from '../types/supabase'
 
 /**
  * Ensures a profile row exists for the given Clerk user.
@@ -14,21 +16,29 @@ export async function ensureProfile(
 ): Promise<void> {
   const supabase = await createSupabaseServiceClient()
 
-  const { error } = await supabase.from('profiles').upsert(
-    {
+  // Optimize performance and avoid write-locking the database on every layout render:
+  // check if a profile already exists before inserting a new one.
+  const { data: existing, error: selectError } = await supabase
+    .from('profiles')
+    .select('id')
+    .eq('clerk_id', clerkId)
+    .maybeSingle()
+
+  if (selectError) {
+    console.error('[ensureProfile] select error:', selectError.message)
+    return
+  }
+
+  // If no profile exists, provision a new one.
+  if (!existing) {
+    const { error: insertError } = await (supabase.from('profiles') as any).insert({
       clerk_id: clerkId,
       email,
       display_name: displayName,
-    },
-    {
-      onConflict: 'clerk_id',
-      ignoreDuplicates: true, // no-op if the row already exists
-    },
-  )
+    })
 
-  if (error) {
-    // Non-fatal: log and continue — a missing profile means RLS will block
-    // data reads, which surfaces naturally rather than crashing layout.
-    console.error('[ensureProfile] upsert error:', error.message)
+    if (insertError) {
+      console.error('[ensureProfile] insert error:', insertError.message)
+    }
   }
 }

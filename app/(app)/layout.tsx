@@ -29,61 +29,59 @@ export default async function AppLayout({
 }: {
   children: React.ReactNode
 }) {
-  const { userId } = await auth()
+  const { userId, sessionClaims } = await auth()
   if (!userId) redirect('/sign-in')
 
-  // Ensure profile row exists — uses service client, bypasses RLS.
-  const user = await currentUser()
-  const email = user?.emailAddresses?.[0]?.emailAddress ?? ''
-  const displayName =
-    [user?.firstName, user?.lastName].filter(Boolean).join(' ') ||
-    email ||
-    userId
+  // Optimize TTFB and avoid Clerk API network requests on every layout load:
+  // Try extracting email and name from session claims (JWT) first.
+  let email = (sessionClaims?.email as string) || (sessionClaims?.primary_email as string) || ''
+  let displayName = (sessionClaims?.name as string) || (sessionClaims?.full_name as string) || ''
+
+  // Fallback to currentUser() API fetch only if claims are not populated/customized
+  if (!email || !displayName) {
+    const user = await currentUser()
+    email = email || user?.emailAddresses?.[0]?.emailAddress ?? ''
+    displayName =
+      displayName ||
+      [user?.firstName, user?.lastName].filter(Boolean).join(' ') ||
+      email ||
+      userId
+  }
 
   await ensureProfile(userId, email, displayName)
 
   return (
-    <>
-      {/* ------------------------------------------------------------------ */}
-      {/* Desktop layout — sidebar + content                                  */}
-      {/* ------------------------------------------------------------------ */}
-      <div className="hidden md:flex h-screen overflow-hidden">
-        {/* Sidebar */}
-        <nav
-          aria-label="Desktop navigation"
-          className="flex flex-col w-56 shrink-0 border-r border-gray-200 bg-white px-3 py-6 gap-1"
-        >
-          <span className="px-3 mb-4 text-lg font-semibold tracking-tight text-gray-900">
-            Followthrough
-          </span>
+    <div className="flex h-screen overflow-hidden">
+      {/* Desktop Sidebar — hidden on mobile */}
+      <nav
+        aria-label="Desktop navigation"
+        className="hidden md:flex flex-col w-56 shrink-0 border-r border-gray-200 bg-white px-3 py-6 gap-1"
+      >
+        <span className="px-3 mb-4 text-lg font-semibold tracking-tight text-gray-900">
+          Followthrough
+        </span>
 
-          {NAV_ITEMS.map(({ href, label, icon: Icon }) => (
-            <Link
-              key={href}
-              href={href}
-              className="flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 hover:text-gray-900 transition-colors"
-            >
-              <Icon className="h-4 w-4 shrink-0" aria-hidden="true" />
-              {label}
-            </Link>
-          ))}
-        </nav>
+        {NAV_ITEMS.map(({ href, label, icon: Icon }) => (
+          <Link
+            key={href}
+            href={href}
+            className="flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 hover:text-gray-900 transition-colors"
+          >
+            <Icon className="h-4 w-4 shrink-0" aria-hidden="true" />
+            {label}
+          </Link>
+        ))}
+      </nav>
 
-        {/* Main content */}
-        <main className="flex-1 overflow-y-auto bg-gray-50">{children}</main>
-      </div>
-
-      {/* ------------------------------------------------------------------ */}
-      {/* Mobile layout — full-screen content + bottom nav                    */}
-      {/* ------------------------------------------------------------------ */}
-      <div className="flex flex-col h-screen md:hidden">
-        {/* Main content */}
+      {/* Main Content Area (shared between desktop and mobile) */}
+      <div className="flex flex-col flex-1 min-w-0">
+        {/* Main Content Area */}
         <main className="flex-1 overflow-y-auto bg-gray-50">{children}</main>
 
-        {/* Bottom nav */}
+        {/* Mobile Bottom Nav — hidden on desktop */}
         <nav
           aria-label="Mobile navigation"
-          className="flex items-center justify-around border-t border-gray-200 bg-white pb-safe"
+          className="md:hidden flex items-center justify-around border-t border-gray-200 bg-white pb-safe"
         >
           {NAV_ITEMS.map(({ href, label, icon: Icon }) => (
             <Link
@@ -97,6 +95,6 @@ export default async function AppLayout({
           ))}
         </nav>
       </div>
-    </>
+    </div>
   )
 }
