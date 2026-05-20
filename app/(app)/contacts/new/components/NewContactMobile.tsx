@@ -47,7 +47,6 @@ export default function NewContactMobile() {
             name="first_name"
             type="text"
             required
-            autoFocus
             disabled={isPending}
             autoComplete="given-name"
             className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent disabled:bg-gray-100 disabled:text-gray-500"

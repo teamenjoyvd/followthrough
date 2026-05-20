@@ -29,7 +29,6 @@ export default function EditContactMobile({ contact }: Props) {
           setError(res.error)
         } else {
           router.push(`/contacts/${contact.id}`)
-          router.refresh()
         }
       } catch (err: any) {
         setError(err.message || 'An unexpected error occurred')
@@ -55,7 +54,6 @@ export default function EditContactMobile({ contact }: Props) {
             name="first_name"
             type="text"
             required
-            autoFocus
             disabled={isPending}
             autoComplete="given-name"
             defaultValue={contact.first_name}

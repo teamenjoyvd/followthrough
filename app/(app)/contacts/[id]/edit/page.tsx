@@ -51,7 +51,7 @@ export default async function EditContactPage({ params }: Props) {
       </div>
 
       {/* Dual layout */}
-      <div className="flex-1 overflow-hidden">
+      <div className="flex-1 flex flex-col overflow-hidden">
         <EditContactDesktop contact={contact} />
         <EditContactMobile contact={contact} />
       </div>
