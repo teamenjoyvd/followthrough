@@ -30,7 +30,7 @@ export default function DeleteContactButton({ contactId, contactName }: Props) {
     startTransition(async () => {
       const res = await deleteContact(contactId)
       if (res && 'error' in res) {
-        setError(res.error as string)
+        setError(typeof res.error === 'string' ? res.error : 'An unexpected error occurred')
         // Keep dialog open on error — do not call setOpen(false)
       }
       // On success, revalidatePath in the action triggers navigation away;
@@ -47,7 +47,7 @@ export default function DeleteContactButton({ contactId, contactName }: Props) {
     }}>
       <AlertDialogTrigger asChild>
         <button
-          id="delete-contact-btn"
+          id={`delete-contact-btn-${contactId}`}
           className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm text-red-600 border border-red-200 hover:bg-red-50 transition-colors"
           aria-label={`Delete ${contactName}`}
         >
@@ -80,7 +80,7 @@ export default function DeleteContactButton({ contactId, contactName }: Props) {
 
         <AlertDialogFooter className="gap-2 sm:gap-0">
           <AlertDialogAction
-            id="delete-confirm-btn"
+            id={`delete-confirm-btn-${contactId}`}
             onClick={(e) => {
               e.preventDefault()
               handleDelete()
@@ -90,7 +90,7 @@ export default function DeleteContactButton({ contactId, contactName }: Props) {
             {isPending ? 'Deleting…' : 'Delete'}
           </AlertDialogAction>
           <AlertDialogCancel
-            id="delete-cancel-btn"
+            id={`delete-cancel-btn-${contactId}`}
             disabled={isPending}
           >
             Cancel
