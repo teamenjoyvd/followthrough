@@ -11,6 +11,10 @@
   },
   "dependencies": {
     "@clerk/nextjs": "^6",
+    "@radix-ui/react-dialog": "^1.1.4",
+    "@radix-ui/react-separator": "^1.1.1",
+    "@radix-ui/react-slot": "^1.1.1",
+    "@radix-ui/react-tabs": "^1.1.2",
     "@supabase/ssr": "^0.5",
     "@supabase/supabase-js": "^2",
     "class-variance-authority": "^0.7",
@@ -28,6 +32,7 @@
     "eslint": "^9",
     "eslint-config-next": "16.2.6",
     "tailwindcss": "^3",
+    "tailwindcss-animate": "^1.0.7",
     "typescript": "^5"
   }
 }
