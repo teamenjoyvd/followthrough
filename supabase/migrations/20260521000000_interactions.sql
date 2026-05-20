@@ -1,1 +1,14 @@
--- TODO: implement interactions schema
+-- Schema already applied via migrations 20260520_001_initial_schema and 20260520_002_rls.
+-- This file documents the tables relevant to the interactions feature for reference.
+--
+-- Tables used by this feature:
+--   interactions     (id, contact_id, profile_id, type::interaction_type, occurred_at, created_at)
+--   call_details     (id, interaction_id, outcome::call_outcome, duration_seconds, summary)
+--   email_details    (id, interaction_id, subject, body)
+--   note_details     (id, interaction_id, body)
+--
+-- Enums:
+--   interaction_type: call | email | note
+--   call_outcome:     connected | no_answer | voicemail
+--
+-- All tables have RLS enabled. Detail rows cascade-delete from interactions FK.
