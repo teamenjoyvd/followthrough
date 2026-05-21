@@ -6,6 +6,7 @@ import { createSupabaseServerClient } from '@/lib/supabase/server'
 import type { Database } from '@/types/supabase'
 
 type CallOutcome = Database['public']['Enums']['call_outcome']
+type InteractionInsert = Database['public']['Tables']['interactions']['Insert']
 
 type LogCallInput = {
   contactId: string
@@ -55,8 +56,8 @@ export async function logCall(input: LogCallInput): Promise<{ error?: string }> 
     .insert({
       contact_id: input.contactId,
       profile_id: input.profileId,
-      type: 'call' as const,
-    })
+      type: 'call',
+    } satisfies InteractionInsert)
     .select('id')
     .single()
 
@@ -97,8 +98,8 @@ export async function logEmail(input: LogEmailInput): Promise<{ error?: string }
     .insert({
       contact_id: input.contactId,
       profile_id: input.profileId,
-      type: 'email' as const,
-    })
+      type: 'email',
+    } satisfies InteractionInsert)
     .select('id')
     .single()
 
@@ -138,8 +139,8 @@ export async function logNote(input: LogNoteInput): Promise<{ error?: string }> 
     .insert({
       contact_id: input.contactId,
       profile_id: input.profileId,
-      type: 'note' as const,
-    })
+      type: 'note',
+    } satisfies InteractionInsert)
     .select('id')
     .single()
 
