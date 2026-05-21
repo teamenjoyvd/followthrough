@@ -4,6 +4,7 @@ import { createSupabaseServerClient } from '@/lib/supabase/server'
 import ContactDetailDesktop from './components/ContactDetailDesktop'
 import ContactDetailMobile from './components/ContactDetailMobile'
 import DeleteContactButton from './components/DeleteContactButton'
+import type { ContactSummary, InteractionWithDetails } from './components/types'
 
 interface Props {
   params: Promise<{ id: string }>
@@ -32,8 +33,9 @@ export async function generateMetadata({ params }: Props) {
     .single()
   if (!contact) return { title: 'Contact — Followthrough' }
 
+  const c = contact as { first_name: string; last_name: string | null }
   return {
-    title: `${contact.first_name} ${contact.last_name ?? ''} — Followthrough`.trim(),
+    title: `${c.first_name} ${c.last_name ?? ''} — Followthrough`.trim(),
   }
 }
 
@@ -77,8 +79,8 @@ export default async function ContactDetailPage({ params }: Props) {
     .order('occurred_at', { ascending: false })
 
   const props = {
-    contact,
-    interactions: interactions ?? [],
+    contact: contact as ContactSummary,
+    interactions: (interactions ?? []) as InteractionWithDetails[],
     profileId,
   }
 
@@ -86,11 +88,11 @@ export default async function ContactDetailPage({ params }: Props) {
     <div className="flex flex-col h-full">
       <div className="flex items-center justify-between px-4 md:px-6 py-4 border-b border-gray-200 bg-white">
         <h1 className="text-base font-semibold text-gray-900 truncate">
-          {contact.first_name} {contact.last_name}
+          {props.contact.first_name} {props.contact.last_name}
         </h1>
         <DeleteContactButton
-          contactId={contact.id}
-          contactName={`${contact.first_name} ${contact.last_name ?? ''}`.trim()}
+          contactId={props.contact.id}
+          contactName={`${props.contact.first_name} ${props.contact.last_name ?? ''}`.trim()}
         />
       </div>
 
