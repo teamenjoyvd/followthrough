@@ -24,17 +24,15 @@ async function getProfileId(clerkUserId: string): Promise<string | null> {
 
 export async function addPhoneNumber(
   contactId: string,
-  profileId: string,
   number: string,
   type: PhoneType,
   makePrimary: boolean,
-): Promise<{ error?: string }> {
+): Promise<{ success: true; id: string } | { error: string }> {
   const { userId } = await auth()
   if (!userId) return { error: 'Unauthorized' }
 
-  const resolvedProfileId = await getProfileId(userId)
-  if (!resolvedProfileId) return { error: 'Profile not found' }
-  if (resolvedProfileId !== profileId) return { error: 'Forbidden' }
+  const profileId = await getProfileId(userId)
+  if (!profileId) return { error: 'Profile not found' }
 
   const supabase = await createSupabaseServerClient()
 
@@ -47,18 +45,18 @@ export async function addPhoneNumber(
       .eq('profile_id', profileId)
   }
 
-  const { error } = await (supabase as any).from('phone_numbers').insert({
+  const { data, error } = await (supabase as any).from('phone_numbers').insert({
     contact_id: contactId,
     profile_id: profileId,
     number: number.trim(),
     type,
     is_primary: makePrimary,
-  })
+  }).select('id').single() as { data: { id: string } | null; error: { message: string } | null }
 
-  if (error) return { error: error.message }
+  if (error || !data) return { error: error?.message ?? 'Failed to add phone number' }
 
   revalidatePath(`/contacts/${contactId}`)
-  return {}
+  return { success: true, id: data.id }
 }
 
 // ---------------------------------------------------------------------------
@@ -70,7 +68,7 @@ export async function updatePhoneNumber(
   contactId: string,
   number: string,
   type: PhoneType,
-): Promise<{ error?: string }> {
+): Promise<{ success: true } | { error: string }> {
   const { userId } = await auth()
   if (!userId) return { error: 'Unauthorized' }
 
@@ -88,7 +86,7 @@ export async function updatePhoneNumber(
   if (error) return { error: error.message }
 
   revalidatePath(`/contacts/${contactId}`)
-  return {}
+  return { success: true }
 }
 
 // ---------------------------------------------------------------------------
@@ -98,7 +96,7 @@ export async function updatePhoneNumber(
 export async function deletePhoneNumber(
   phoneId: string,
   contactId: string,
-): Promise<{ error?: string }> {
+): Promise<{ success: true } | { error: string }> {
   const { userId } = await auth()
   if (!userId) return { error: 'Unauthorized' }
 
@@ -116,7 +114,7 @@ export async function deletePhoneNumber(
   if (error) return { error: error.message }
 
   revalidatePath(`/contacts/${contactId}`)
-  return {}
+  return { success: true }
 }
 
 // ---------------------------------------------------------------------------
@@ -126,18 +124,17 @@ export async function deletePhoneNumber(
 /**
  * Clears is_primary on all phone numbers for the contact, then sets the target
  * row to is_primary = true. Enforced here in the server action — not a DB constraint.
+ * profileId is resolved from the session — never trusted from the client.
  */
 export async function setPrimary(
   phoneId: string,
   contactId: string,
-  profileId: string,
-): Promise<{ error?: string }> {
+): Promise<{ success: true } | { error: string }> {
   const { userId } = await auth()
   if (!userId) return { error: 'Unauthorized' }
 
-  const resolvedProfileId = await getProfileId(userId)
-  if (!resolvedProfileId) return { error: 'Profile not found' }
-  if (resolvedProfileId !== profileId) return { error: 'Forbidden' }
+  const profileId = await getProfileId(userId)
+  if (!profileId) return { error: 'Profile not found' }
 
   const supabase = await createSupabaseServerClient()
 
@@ -160,5 +157,5 @@ export async function setPrimary(
   if (setError) return { error: setError.message }
 
   revalidatePath(`/contacts/${contactId}`)
-  return {}
+  return { success: true }
 }

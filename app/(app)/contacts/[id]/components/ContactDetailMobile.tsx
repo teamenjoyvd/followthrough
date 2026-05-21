@@ -69,7 +69,7 @@ function PhoneNumbersMobile({
   const handleAdd = () => {
     if (!newNumber.trim()) return
     startTransition(async () => {
-      await addPhoneNumber(contactId, profileId, newNumber, newType, newPrimary)
+      await addPhoneNumber(contactId, newNumber, newType, newPrimary)
       setAddOpen(false)
       setNewNumber('')
       setNewType('mobile')
@@ -93,7 +93,7 @@ function PhoneNumbersMobile({
 
   const handleSetPrimary = (phoneId: string) => {
     startTransition(async () => {
-      await setPrimary(phoneId, contactId, profileId)
+      await setPrimary(phoneId, contactId)
     })
   }
 
@@ -279,7 +279,7 @@ function SocialLinksMobile({
   const handleAdd = () => {
     if (!newUrl.trim()) return
     startTransition(async () => {
-      await addSocialLink(contactId, profileId, newPlatform, newUrl)
+      await addSocialLink(contactId, newPlatform, newUrl)
       setAddOpen(false)
       setNewUrl('')
       setNewPlatform('linkedin')

@@ -24,30 +24,28 @@ async function getProfileId(clerkUserId: string): Promise<string | null> {
 
 export async function addSocialLink(
   contactId: string,
-  profileId: string,
   platform: SocialPlatform,
   url: string,
-): Promise<{ error?: string }> {
+): Promise<{ success: true; id: string } | { error: string }> {
   const { userId } = await auth()
   if (!userId) return { error: 'Unauthorized' }
 
-  const resolvedProfileId = await getProfileId(userId)
-  if (!resolvedProfileId) return { error: 'Profile not found' }
-  if (resolvedProfileId !== profileId) return { error: 'Forbidden' }
+  const profileId = await getProfileId(userId)
+  if (!profileId) return { error: 'Profile not found' }
 
   const supabase = await createSupabaseServerClient()
 
-  const { error } = await (supabase as any).from('social_links').insert({
+  const { data, error } = await (supabase as any).from('social_links').insert({
     contact_id: contactId,
     profile_id: profileId,
     platform,
     url: url.trim(),
-  })
+  }).select('id').single() as { data: { id: string } | null; error: { message: string } | null }
 
-  if (error) return { error: error.message }
+  if (error || !data) return { error: error?.message ?? 'Failed to add social link' }
 
   revalidatePath(`/contacts/${contactId}`)
-  return {}
+  return { success: true, id: data.id }
 }
 
 // ---------------------------------------------------------------------------
@@ -59,7 +57,7 @@ export async function updateSocialLink(
   contactId: string,
   platform: SocialPlatform,
   url: string,
-): Promise<{ error?: string }> {
+): Promise<{ success: true } | { error: string }> {
   const { userId } = await auth()
   if (!userId) return { error: 'Unauthorized' }
 
@@ -77,7 +75,7 @@ export async function updateSocialLink(
   if (error) return { error: error.message }
 
   revalidatePath(`/contacts/${contactId}`)
-  return {}
+  return { success: true }
 }
 
 // ---------------------------------------------------------------------------
@@ -87,7 +85,7 @@ export async function updateSocialLink(
 export async function deleteSocialLink(
   linkId: string,
   contactId: string,
-): Promise<{ error?: string }> {
+): Promise<{ success: true } | { error: string }> {
   const { userId } = await auth()
   if (!userId) return { error: 'Unauthorized' }
 
@@ -105,5 +103,5 @@ export async function deleteSocialLink(
   if (error) return { error: error.message }
 
   revalidatePath(`/contacts/${contactId}`)
-  return {}
+  return { success: true }
 }
