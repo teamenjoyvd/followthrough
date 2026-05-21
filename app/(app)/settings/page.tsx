@@ -23,15 +23,14 @@ export default async function SettingsPage({
   const params = await searchParams
   const supabase = await createSupabaseServerClient()
 
-  const { data: profile } = await supabase
+  const { data: profile } = await (supabase as any)
     .from('profiles')
     .select('id, email, display_name')
     .eq('clerk_id', userId)
-    .maybeSingle()
+    .maybeSingle() as { data: { id: string; email: string; display_name: string | null } | null }
 
   if (!profile) redirect('/sign-in')
 
-  // google_sync_state: cast because access_token/refresh_token predate generated types
   const { data: syncState } = await (supabase as any)
     .from('google_sync_state')
     .select('last_synced_at, access_token')
@@ -40,7 +39,6 @@ export default async function SettingsPage({
 
   const isConnected = !!syncState?.access_token
 
-  // Use explicit type cast to avoid Row & { contacts } intersection collapsing to never
   const { data: conflicts = [] } = await (supabase as any)
     .from('sync_conflicts')
     .select('*, contacts(first_name, last_name)')
@@ -122,7 +120,6 @@ function SettingsContent({
       <section className="space-y-4">
         <h2 className="text-base font-semibold text-gray-900">Google Contacts</h2>
 
-        {/* Flash messages */}
         {flashConnected && (
           <div className="rounded-md bg-green-50 border border-green-200 px-4 py-2 text-sm text-green-800">
             Google Contacts connected successfully.
@@ -170,7 +167,6 @@ function SettingsContent({
           </div>
         </div>
 
-        {/* Conflict resolution */}
         {isConnected && (
           <div className="space-y-3">
             <div className="flex items-center justify-between">
