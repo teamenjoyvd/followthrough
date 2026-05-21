@@ -2,10 +2,14 @@
 
 import { auth } from '@clerk/nextjs/server'
 import { revalidatePath } from 'next/cache'
-import { createSupabaseServerClient } from '@/lib/supabase/server'
+import { createClient } from '@supabase/supabase-js'
 import type { Database } from '@/types/supabase'
 
 type CallOutcome = Database['public']['Enums']['call_outcome']
+type InteractionInsert = Database['public']['Tables']['interactions']['Insert']
+type CallDetailInsert = Database['public']['Tables']['call_details']['Insert']
+type EmailDetailInsert = Database['public']['Tables']['email_details']['Insert']
+type NoteDetailInsert = Database['public']['Tables']['note_details']['Insert']
 
 type LogCallInput = {
   contactId: string
@@ -28,16 +32,23 @@ type LogNoteInput = {
   body: string
 }
 
+function getServiceClient() {
+  return createClient<Database>(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  )
+}
+
 /** Resolves the profile row for the authenticated Clerk user. */
 async function resolveProfile(clerkUserId: string): Promise<{ id: string } | null> {
-  const supabase = await createSupabaseServerClient()
+  const supabase = getServiceClient()
   const { data, error } = await supabase
     .from('profiles')
     .select('id')
     .eq('clerk_id', clerkUserId)
     .single()
   if (error || !data) return null
-  return data as { id: string }
+  return data
 }
 
 export async function logCall(input: LogCallInput): Promise<{ error?: string }> {
@@ -48,15 +59,17 @@ export async function logCall(input: LogCallInput): Promise<{ error?: string }> 
   if (!profile) return { error: 'Profile not found' }
   if (profile.id !== input.profileId) return { error: 'Forbidden' }
 
-  const supabase = await createSupabaseServerClient()
+  const supabase = getServiceClient()
+
+  const interactionRow: InteractionInsert = {
+    contact_id: input.contactId,
+    profile_id: input.profileId,
+    type: 'call',
+  }
 
   const { data: interaction, error: interactionError } = await supabase
     .from('interactions')
-    .insert({
-      contact_id: input.contactId,
-      profile_id: input.profileId,
-      type: 'call',
-    })
+    .insert(interactionRow)
     .select('id')
     .single()
 
@@ -64,16 +77,15 @@ export async function logCall(input: LogCallInput): Promise<{ error?: string }> 
     return { error: interactionError?.message ?? 'Failed to log interaction' }
   }
 
-  const { error: detailError } = await supabase.from('call_details').insert({
-    interaction_id: (interaction as { id: string }).id,
+  const callRow: CallDetailInsert = {
+    interaction_id: interaction.id,
     outcome: input.outcome,
     duration_seconds: input.durationSeconds ?? null,
     summary: input.summary ?? null,
-  })
-
-  if (detailError) {
-    return { error: detailError.message }
   }
+
+  const { error: detailError } = await supabase.from('call_details').insert(callRow)
+  if (detailError) return { error: detailError.message }
 
   await supabase
     .from('contacts')
@@ -93,31 +105,32 @@ export async function logEmail(input: LogEmailInput): Promise<{ error?: string }
   if (!profile) return { error: 'Profile not found' }
   if (profile.id !== input.profileId) return { error: 'Forbidden' }
 
-  const supabase = await createSupabaseServerClient()
+  const supabase = getServiceClient()
+
+  const interactionRow: InteractionInsert = {
+    contact_id: input.contactId,
+    profile_id: input.profileId,
+    type: 'email',
+  }
 
   const { data: interaction, error: interactionError } = await supabase
     .from('interactions')
-    .insert({
-      contact_id: input.contactId,
-      profile_id: input.profileId,
-      type: 'email',
-    })
+    .insert(interactionRow)
     .select('id')
     .single()
 
   if (interactionError || !interaction) {
-    return { error: interactionError?.message ?? 'Failed to log interaction' }
+    return { error: interactionError?.message ?? 'Failed to log interaction' }\
   }
 
-  const { error: detailError } = await supabase.from('email_details').insert({
-    interaction_id: (interaction as { id: string }).id,
+  const emailRow: EmailDetailInsert = {
+    interaction_id: interaction.id,
     subject: input.subject ?? null,
     body: input.body ?? null,
-  })
-
-  if (detailError) {
-    return { error: detailError.message }
   }
+
+  const { error: detailError } = await supabase.from('email_details').insert(emailRow)
+  if (detailError) return { error: detailError.message }
 
   await supabase
     .from('contacts')
@@ -137,15 +150,17 @@ export async function logNote(input: LogNoteInput): Promise<{ error?: string }> 
   if (!profile) return { error: 'Profile not found' }
   if (profile.id !== input.profileId) return { error: 'Forbidden' }
 
-  const supabase = await createSupabaseServerClient()
+  const supabase = getServiceClient()
+
+  const interactionRow: InteractionInsert = {
+    contact_id: input.contactId,
+    profile_id: input.profileId,
+    type: 'note',
+  }
 
   const { data: interaction, error: interactionError } = await supabase
     .from('interactions')
-    .insert({
-      contact_id: input.contactId,
-      profile_id: input.profileId,
-      type: 'note',
-    })
+    .insert(interactionRow)
     .select('id')
     .single()
 
@@ -153,14 +168,13 @@ export async function logNote(input: LogNoteInput): Promise<{ error?: string }> 
     return { error: interactionError?.message ?? 'Failed to log interaction' }
   }
 
-  const { error: detailError } = await supabase.from('note_details').insert({
-    interaction_id: (interaction as { id: string }).id,
+  const noteRow: NoteDetailInsert = {
+    interaction_id: interaction.id,
     body: input.body,
-  })
-
-  if (detailError) {
-    return { error: detailError.message }
   }
+
+  const { error: detailError } = await supabase.from('note_details').insert(noteRow)
+  if (detailError) return { error: detailError.message }
 
   revalidatePath(`/contacts/${input.contactId}`)
   return {}
@@ -173,7 +187,7 @@ export async function deleteInteraction(
   const { userId } = await auth()
   if (!userId) return { error: 'Unauthorized' }
 
-  const supabase = await createSupabaseServerClient()
+  const supabase = getServiceClient()
 
   // RLS enforces ownership — delete will silently no-op if not owner
   const { error } = await supabase
