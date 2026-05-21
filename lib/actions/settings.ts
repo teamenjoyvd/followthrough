@@ -32,7 +32,7 @@ export async function updateProfile(
   const profileId = await getProfileId(supabase, userId)
   if (!profileId) return { error: 'Profile not found' }
 
-  const { error } = await supabase
+  const { error } = await (supabase as any)
     .from('profiles')
     .update({ display_name: trimmed })
     .eq('id', profileId)
@@ -59,7 +59,7 @@ export async function updatePreferences({
   const profileId = await getProfileId(supabase, userId)
   if (!profileId) return { error: 'Profile not found' }
 
-  const { error } = await supabase
+  const { error } = await (supabase as any)
     .from('profiles')
     .update({
       confirmation_enabled: confirmationEnabled,
