@@ -6,10 +6,6 @@ import { createSupabaseServerClient } from '@/lib/supabase/server'
 import type { Database } from '@/types/supabase'
 
 type CallOutcome = Database['public']['Enums']['call_outcome']
-type InteractionInsert = Database['public']['Tables']['interactions']['Insert']
-type CallDetailInsert = Database['public']['Tables']['call_details']['Insert']
-type EmailDetailInsert = Database['public']['Tables']['email_details']['Insert']
-type NoteDetailInsert = Database['public']['Tables']['note_details']['Insert']
 
 type LogCallInput = {
   contactId: string
@@ -54,15 +50,13 @@ export async function logCall(input: LogCallInput): Promise<{ error?: string }> 
 
   const supabase = await createSupabaseServerClient()
 
-  const interactionRow: InteractionInsert = {
-    contact_id: input.contactId,
-    profile_id: input.profileId,
-    type: 'call',
-  }
-
   const { data: interaction, error: interactionError } = await supabase
     .from('interactions')
-    .insert(interactionRow)
+    .insert({
+      contact_id: input.contactId,
+      profile_id: input.profileId,
+      type: 'call' as const,
+    })
     .select('id')
     .single()
 
@@ -70,14 +64,12 @@ export async function logCall(input: LogCallInput): Promise<{ error?: string }> 
     return { error: interactionError?.message ?? 'Failed to log interaction' }
   }
 
-  const callRow: CallDetailInsert = {
+  const { error: detailError } = await supabase.from('call_details').insert({
     interaction_id: (interaction as { id: string }).id,
     outcome: input.outcome,
     duration_seconds: input.durationSeconds ?? null,
     summary: input.summary ?? null,
-  }
-
-  const { error: detailError } = await supabase.from('call_details').insert(callRow)
+  })
   if (detailError) return { error: detailError.message }
 
   await supabase
@@ -100,15 +92,13 @@ export async function logEmail(input: LogEmailInput): Promise<{ error?: string }
 
   const supabase = await createSupabaseServerClient()
 
-  const interactionRow: InteractionInsert = {
-    contact_id: input.contactId,
-    profile_id: input.profileId,
-    type: 'email',
-  }
-
   const { data: interaction, error: interactionError } = await supabase
     .from('interactions')
-    .insert(interactionRow)
+    .insert({
+      contact_id: input.contactId,
+      profile_id: input.profileId,
+      type: 'email' as const,
+    })
     .select('id')
     .single()
 
@@ -116,13 +106,11 @@ export async function logEmail(input: LogEmailInput): Promise<{ error?: string }
     return { error: interactionError?.message ?? 'Failed to log interaction' }
   }
 
-  const emailRow: EmailDetailInsert = {
+  const { error: detailError } = await supabase.from('email_details').insert({
     interaction_id: (interaction as { id: string }).id,
     subject: input.subject ?? null,
     body: input.body ?? null,
-  }
-
-  const { error: detailError } = await supabase.from('email_details').insert(emailRow)
+  })
   if (detailError) return { error: detailError.message }
 
   await supabase
@@ -145,15 +133,13 @@ export async function logNote(input: LogNoteInput): Promise<{ error?: string }> 
 
   const supabase = await createSupabaseServerClient()
 
-  const interactionRow: InteractionInsert = {
-    contact_id: input.contactId,
-    profile_id: input.profileId,
-    type: 'note',
-  }
-
   const { data: interaction, error: interactionError } = await supabase
     .from('interactions')
-    .insert(interactionRow)
+    .insert({
+      contact_id: input.contactId,
+      profile_id: input.profileId,
+      type: 'note' as const,
+    })
     .select('id')
     .single()
 
@@ -161,12 +147,10 @@ export async function logNote(input: LogNoteInput): Promise<{ error?: string }> 
     return { error: interactionError?.message ?? 'Failed to log interaction' }
   }
 
-  const noteRow: NoteDetailInsert = {
+  const { error: detailError } = await supabase.from('note_details').insert({
     interaction_id: (interaction as { id: string }).id,
     body: input.body,
-  }
-
-  const { error: detailError } = await supabase.from('note_details').insert(noteRow)
+  })
   if (detailError) return { error: detailError.message }
 
   revalidatePath(`/contacts/${input.contactId}`)
