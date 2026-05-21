@@ -2,11 +2,12 @@ import { auth } from '@clerk/nextjs/server'
 import { redirect, notFound } from 'next/navigation'
 import Link from 'next/link'
 import { ArrowLeft } from 'lucide-react'
+import { createSupabaseServerClient } from '@/lib/supabase/server'
 import ContactDetailDesktop from './components/ContactDetailDesktop'
 import ContactDetailMobile from './components/ContactDetailMobile'
 import DeleteContactButton from './components/DeleteContactButton'
 import { getContactForUser } from '@/lib/contacts-data'
-import { createSupabaseServerClient } from '@/lib/supabase/server'
+import type { InteractionWithDetails } from './components/types'
 
 interface Props {
   params: Promise<{ id: string }>
@@ -46,10 +47,28 @@ export default async function ContactDetailPage({ params }: Props) {
 
   const profileId = profile?.id ?? ''
 
+  const { data: interactions } = await (supabase as any)
+    .from('interactions')
+    .select(`
+      id, type, occurred_at,
+      call_details ( outcome, duration_seconds, summary ),
+      email_details ( subject, body ),
+      note_details ( body )
+    `)
+    .eq('contact_id', id)
+    .eq('profile_id', profileId)
+    .order('occurred_at', { ascending: false })
+
+  const props = {
+    contact,
+    interactions: (interactions ?? []) as InteractionWithDetails[],
+    profileId,
+  }
+
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full bg-slate-50">
       {/* Header */}
-      <div className="flex items-center justify-between px-4 md:px-6 py-4 border-b border-gray-200 bg-white">
+      <div className="flex items-center justify-between px-4 md:px-6 py-4 border-b border-gray-200 bg-white shadow-sm shrink-0">
         <div className="flex items-center gap-3">
           <Link
             href="/contacts"
@@ -62,13 +81,20 @@ export default async function ContactDetailPage({ params }: Props) {
             {contact.first_name} {contact.last_name}
           </h1>
         </div>
-        <DeleteContactButton contactId={contact.id} contactName={`${contact.first_name} ${contact.last_name ?? ''}`.trim()} />
+        <DeleteContactButton
+          contactId={contact.id}
+          contactName={`${contact.first_name} ${contact.last_name ?? ''}`.trim()}
+        />
       </div>
 
       {/* Dual layout */}
       <div className="flex-1 overflow-hidden">
-        <ContactDetailDesktop contact={contact} profileId={profileId} />
-        <ContactDetailMobile contact={contact} profileId={profileId} />
+        <div className="hidden md:block h-full">
+          <ContactDetailDesktop {...props} />
+        </div>
+        <div className="block md:hidden h-full">
+          <ContactDetailMobile {...props} />
+        </div>
       </div>
     </div>
   )

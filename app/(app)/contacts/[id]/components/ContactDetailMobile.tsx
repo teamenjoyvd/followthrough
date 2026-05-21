@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { useState, useTransition } from 'react'
 import { Pencil, Mail, Phone, Globe, Plus, Star, Trash2 } from 'lucide-react'
 import { PipelineStatusControl } from '../../components/PipelineStatusControl'
-import { Sheet, SheetTrigger, SheetContent, SheetHeader, SheetTitle, SheetClose } from '@/components/ui/sheet'
+import { Sheet, SheetTrigger, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet'
 import type { Database } from '@/types/supabase'
 import type { ContactDetail } from '@/lib/contacts-data'
 import {
@@ -14,16 +14,14 @@ import {
   setPrimary,
 } from '@/lib/actions/phone-numbers'
 import { addSocialLink, updateSocialLink, deleteSocialLink } from '@/lib/actions/social-links'
+import InteractionTimeline from './InteractionTimeline'
+import LogInteractionSheet from '@/components/LogInteractionSheet'
+import type { ContactDetailProps } from './types'
 
 type PhoneType = Database['public']['Enums']['phone_type']
 type SocialPlatform = Database['public']['Enums']['social_platform']
 type PhoneRow = Database['public']['Tables']['phone_numbers']['Row']
 type SocialRow = Database['public']['Tables']['social_links']['Row']
-
-interface Props {
-  contact: ContactDetail
-  profileId: string
-}
 
 const PHONE_TYPES: PhoneType[] = ['mobile', 'work', 'home']
 const PLATFORMS: SocialPlatform[] = ['linkedin', 'twitter', 'instagram', 'other']
@@ -47,7 +45,6 @@ function initials(c: ContactDetail) {
 // ---------------------------------------------------------------------------
 // Phone numbers section (mobile)
 // ---------------------------------------------------------------------------
-
 function PhoneNumbersMobile({
   phones,
   contactId,
@@ -105,39 +102,38 @@ function PhoneNumbersMobile({
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-2">
-        <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide flex items-center gap-1.5">
+      <div className="flex items-center justify-between mb-3">
+        <p className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
           <Phone className="h-3.5 w-3.5" />
           Phone numbers
         </p>
-        {/* Add sheet */}
         <Sheet open={addOpen} onOpenChange={setAddOpen}>
           <SheetTrigger asChild>
             <button
               id="add-phone-mobile"
-              className="inline-flex items-center gap-1 text-xs text-indigo-600"
+              className="inline-flex items-center gap-1 text-xs font-bold text-indigo-600 cursor-pointer"
             >
-              <Plus className="h-3 w-3" />
+              <Plus className="h-3.5 w-3.5" />
               Add
             </button>
           </SheetTrigger>
-          <SheetContent side="bottom">
+          <SheetContent side="bottom" className="rounded-t-2xl px-6 pb-8 pt-4">
             <SheetHeader>
               <SheetTitle>Add phone number</SheetTitle>
             </SheetHeader>
-            <div className="mt-4 space-y-3">
+            <div className="mt-4 space-y-4">
               <input
                 id="add-phone-number-mobile"
                 value={newNumber}
                 onChange={(e) => setNewNumber(e.target.value)}
                 placeholder="Phone number"
-                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300"
+                className="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
               />
               <select
                 id="add-phone-type-mobile"
                 value={newType}
                 onChange={(e) => setNewType(e.target.value as PhoneType)}
-                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300 bg-white"
+                className="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white"
               >
                 {PHONE_TYPES.map((t) => (
                   <option key={t} value={t}>
@@ -145,12 +141,12 @@ function PhoneNumbersMobile({
                   </option>
                 ))}
               </select>
-              <label className="flex items-center gap-2 text-sm text-gray-600 cursor-pointer">
+              <label className="flex items-center gap-2 text-sm text-slate-600 cursor-pointer font-medium">
                 <input
                   type="checkbox"
                   checked={newPrimary}
                   onChange={(e) => setNewPrimary(e.target.checked)}
-                  className="rounded"
+                  className="rounded text-indigo-600 focus:ring-indigo-500"
                 />
                 Set as primary
               </label>
@@ -158,7 +154,7 @@ function PhoneNumbersMobile({
                 id="save-phone-mobile"
                 onClick={handleAdd}
                 disabled={isPending || !newNumber.trim()}
-                className="w-full py-2.5 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700 transition-colors disabled:opacity-50"
+                className="w-full py-3 bg-indigo-600 text-white rounded-xl text-sm font-semibold hover:bg-indigo-700 transition-colors disabled:opacity-50 cursor-pointer"
               >
                 Save
               </button>
@@ -167,25 +163,24 @@ function PhoneNumbersMobile({
         </Sheet>
       </div>
 
-      {/* Edit sheet */}
       <Sheet open={!!editTarget} onOpenChange={(open) => !open && setEditTarget(null)}>
-        <SheetContent side="bottom">
+        <SheetContent side="bottom" className="rounded-t-2xl px-6 pb-8 pt-4">
           <SheetHeader>
             <SheetTitle>Edit phone number</SheetTitle>
           </SheetHeader>
-          <div className="mt-4 space-y-3">
+          <div className="mt-4 space-y-4">
             <input
               id="edit-phone-number-mobile"
               value={editNumber}
               onChange={(e) => setEditNumber(e.target.value)}
               placeholder="Phone number"
-              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300"
+              className="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
             />
             <select
               id="edit-phone-type-mobile"
               value={editType}
               onChange={(e) => setEditType(e.target.value as PhoneType)}
-              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300 bg-white"
+              className="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white"
             >
               {PHONE_TYPES.map((t) => (
                 <option key={t} value={t}>
@@ -197,7 +192,7 @@ function PhoneNumbersMobile({
               id="save-edit-phone-mobile"
               onClick={handleUpdate}
               disabled={isPending || !editNumber.trim()}
-              className="w-full py-2.5 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700 transition-colors disabled:opacity-50"
+              className="w-full py-3 bg-indigo-600 text-white rounded-xl text-sm font-semibold hover:bg-indigo-700 transition-colors disabled:opacity-50 cursor-pointer"
             >
               Save changes
             </button>
@@ -206,45 +201,45 @@ function PhoneNumbersMobile({
       </Sheet>
 
       {phones.length === 0 ? (
-        <p className="text-sm text-gray-300">No phone numbers yet</p>
+        <p className="text-sm text-slate-300 italic">No phone numbers yet</p>
       ) : (
-        <ul className="space-y-2">
+        <ul className="space-y-2.5">
           {phones.map((p) => (
-            <li key={p.id} className="flex items-center justify-between py-1">
+            <li key={p.id} className="flex items-center justify-between py-1.5 px-2 rounded-xl hover:bg-slate-50 transition-colors">
               <div>
-                <span className="text-sm text-gray-800">{p.number}</span>
-                <span className="ml-2 text-xs text-gray-400 capitalize">{p.type}</span>
+                <span className="text-sm font-medium text-slate-800">{p.number}</span>
+                <span className="ml-2 text-xs text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded capitalize">{p.type}</span>
                 {p.is_primary && (
-                  <span className="ml-2 text-xs px-1.5 py-0.5 rounded-full bg-indigo-50 text-indigo-600 font-medium">
+                  <span className="ml-2 text-[10px] px-1.5 py-0.5 rounded-full bg-indigo-50 text-indigo-600 font-bold uppercase tracking-wider">
                     Primary
                   </span>
                 )}
               </div>
-              <div className="flex items-center gap-1">
+              <div className="flex items-center gap-1.5">
                 {!p.is_primary && (
                   <button
                     id={`set-primary-mobile-${p.id}`}
                     onClick={() => handleSetPrimary(p.id)}
                     disabled={isPending}
-                    className="p-1.5 text-gray-300 hover:text-amber-500 transition-colors"
+                    className="p-1.5 text-slate-300 hover:text-amber-500 transition-colors cursor-pointer"
                   >
-                    <Star className="h-4 w-4" />
+                    <Star className="h-4.5 w-4.5" />
                   </button>
                 )}
                 <button
                   id={`edit-phone-mobile-${p.id}`}
                   onClick={() => openEdit(p)}
-                  className="p-1.5 text-gray-300 hover:text-gray-600 transition-colors"
+                  className="p-1.5 text-slate-300 hover:text-slate-600 transition-colors cursor-pointer"
                 >
-                  <Pencil className="h-4 w-4" />
+                  <Pencil className="h-4.5 w-4.5" />
                 </button>
                 <button
                   id={`delete-phone-mobile-${p.id}`}
                   onClick={() => handleDelete(p.id)}
                   disabled={isPending}
-                  className="p-1.5 text-gray-300 hover:text-red-500 transition-colors"
+                  className="p-1.5 text-slate-300 hover:text-red-500 transition-colors cursor-pointer"
                 >
-                  <Trash2 className="h-4 w-4" />
+                  <Trash2 className="h-4.5 w-4.5" />
                 </button>
               </div>
             </li>
@@ -258,7 +253,6 @@ function PhoneNumbersMobile({
 // ---------------------------------------------------------------------------
 // Social links section (mobile)
 // ---------------------------------------------------------------------------
-
 function SocialLinksMobile({
   links,
   contactId,
@@ -308,28 +302,28 @@ function SocialLinksMobile({
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-2">
-        <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide flex items-center gap-1.5">
+      <div className="flex items-center justify-between mb-3">
+        <p className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
           <Globe className="h-3.5 w-3.5" />
           Social links
         </p>
         <Sheet open={addOpen} onOpenChange={setAddOpen}>
           <SheetTrigger asChild>
-            <button id="add-social-mobile" className="inline-flex items-center gap-1 text-xs text-indigo-600">
-              <Plus className="h-3 w-3" />
+            <button id="add-social-mobile" className="inline-flex items-center gap-1 text-xs font-bold text-indigo-600 cursor-pointer">
+              <Plus className="h-3.5 w-3.5" />
               Add
             </button>
           </SheetTrigger>
-          <SheetContent side="bottom">
+          <SheetContent side="bottom" className="rounded-t-2xl px-6 pb-8 pt-4">
             <SheetHeader>
               <SheetTitle>Add social link</SheetTitle>
             </SheetHeader>
-            <div className="mt-4 space-y-3">
+            <div className="mt-4 space-y-4">
               <select
                 id="add-social-platform-mobile"
                 value={newPlatform}
                 onChange={(e) => setNewPlatform(e.target.value as SocialPlatform)}
-                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300 bg-white"
+                className="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white"
               >
                 {PLATFORMS.map((p) => (
                   <option key={p} value={p}>
@@ -342,13 +336,13 @@ function SocialLinksMobile({
                 value={newUrl}
                 onChange={(e) => setNewUrl(e.target.value)}
                 placeholder="https://..."
-                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300"
+                className="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
               />
               <button
                 id="save-social-mobile"
                 onClick={handleAdd}
                 disabled={isPending || !newUrl.trim()}
-                className="w-full py-2.5 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700 transition-colors disabled:opacity-50"
+                className="w-full py-3 bg-indigo-600 text-white rounded-xl text-sm font-semibold hover:bg-indigo-700 transition-colors disabled:opacity-50 cursor-pointer"
               >
                 Save
               </button>
@@ -357,18 +351,17 @@ function SocialLinksMobile({
         </Sheet>
       </div>
 
-      {/* Edit sheet */}
       <Sheet open={!!editTarget} onOpenChange={(open) => !open && setEditTarget(null)}>
-        <SheetContent side="bottom">
+        <SheetContent side="bottom" className="rounded-t-2xl px-6 pb-8 pt-4">
           <SheetHeader>
             <SheetTitle>Edit social link</SheetTitle>
           </SheetHeader>
-          <div className="mt-4 space-y-3">
+          <div className="mt-4 space-y-4">
             <select
               id="edit-social-platform-mobile"
               value={editPlatform}
               onChange={(e) => setEditPlatform(e.target.value as SocialPlatform)}
-              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300 bg-white"
+              className="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white"
             >
               {PLATFORMS.map((p) => (
                 <option key={p} value={p}>
@@ -381,13 +374,13 @@ function SocialLinksMobile({
               value={editUrl}
               onChange={(e) => setEditUrl(e.target.value)}
               placeholder="https://..."
-              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300"
+              className="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
             />
             <button
               id="save-edit-social-mobile"
               onClick={handleUpdate}
               disabled={isPending || !editUrl.trim()}
-              className="w-full py-2.5 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700 transition-colors disabled:opacity-50"
+              className="w-full py-3 bg-indigo-600 text-white rounded-xl text-sm font-semibold hover:bg-indigo-700 transition-colors disabled:opacity-50 cursor-pointer"
             >
               Save changes
             </button>
@@ -396,37 +389,37 @@ function SocialLinksMobile({
       </Sheet>
 
       {links.length === 0 ? (
-        <p className="text-sm text-gray-300">No social links yet</p>
+        <p className="text-sm text-slate-300 italic">No social links yet</p>
       ) : (
-        <ul className="space-y-2">
+        <ul className="space-y-2.5">
           {links.map((l) => (
-            <li key={l.id} className="flex items-center justify-between py-1">
+            <li key={l.id} className="flex items-center justify-between py-1.5 px-2 rounded-xl hover:bg-slate-50 transition-colors">
               <div className="min-w-0 mr-2">
-                <span className="text-xs text-gray-400 capitalize">{l.platform}</span>
+                <span className="text-xs text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded capitalize">{l.platform}</span>
                 <a
                   href={l.url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="block text-sm text-indigo-600 truncate hover:underline"
+                  className="block text-sm font-medium text-indigo-600 truncate hover:underline"
                 >
                   {l.url}
                 </a>
               </div>
-              <div className="flex items-center gap-1 shrink-0">
+              <div className="flex items-center gap-1.5 shrink-0">
                 <button
                   id={`edit-social-mobile-${l.id}`}
                   onClick={() => openEdit(l)}
-                  className="p-1.5 text-gray-300 hover:text-gray-600 transition-colors"
+                  className="p-1.5 text-slate-300 hover:text-slate-600 transition-colors cursor-pointer"
                 >
-                  <Pencil className="h-4 w-4" />
+                  <Pencil className="h-4.5 w-4.5" />
                 </button>
                 <button
                   id={`delete-social-mobile-${l.id}`}
                   onClick={() => handleDelete(l.id)}
                   disabled={isPending}
-                  className="p-1.5 text-gray-300 hover:text-red-500 transition-colors"
+                  className="p-1.5 text-slate-300 hover:text-red-500 transition-colors cursor-pointer"
                 >
-                  <Trash2 className="h-4 w-4" />
+                  <Trash2 className="h-4.5 w-4.5" />
                 </button>
               </div>
             </li>
@@ -440,85 +433,114 @@ function SocialLinksMobile({
 // ---------------------------------------------------------------------------
 // Main mobile component
 // ---------------------------------------------------------------------------
+export default function ContactDetailMobile({
+  contact,
+  interactions,
+  profileId,
+}: ContactDetailProps) {
+  const displayName = [contact.first_name, contact.last_name].filter(Boolean).join(' ')
 
-export default function ContactDetailMobile({ contact, profileId }: Props) {
   return (
-    <div className="md:hidden flex flex-col h-full overflow-y-auto">
-      {/* Hero */}
-      <div className="flex flex-col items-center py-8 px-4 bg-white border-b border-gray-100">
-        <div className="h-16 w-16 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center text-xl font-bold mb-3">
+    <div className="md:hidden flex flex-col h-full overflow-y-auto bg-slate-50 pb-24">
+      {/* Hero card */}
+      <div className="flex flex-col items-center py-6 px-4 bg-white border-b border-slate-100 shadow-sm shrink-0">
+        <div className="h-16 w-16 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center text-xl font-bold mb-3 shadow-inner">
           {initials(contact)}
         </div>
-        <h2 className="text-xl font-bold text-gray-900 text-center">
-          {contact.first_name} {contact.last_name}
+        <h2 className="text-xl font-bold text-slate-800 text-center">
+          {displayName}
         </h2>
         {(contact.job_title || contact.company) && (
-          <p className="mt-1 text-sm text-gray-500 text-center">
+          <p className="mt-1 text-sm font-medium text-slate-400 text-center">
             {[contact.job_title, contact.company].filter(Boolean).join(' at ')}
           </p>
         )}
 
-        {/* Quick actions */}
+        {/* Quick actions row */}
         <div className="mt-4 flex gap-3">
           {contact.email && (
             <a
               href={`mailto:${contact.email}`}
               id="email-contact-mobile"
-              className="flex flex-col items-center gap-1 px-4 py-2 rounded-xl bg-gray-50 border border-gray-100 text-gray-600 hover:bg-gray-100 transition-colors"
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-50 border border-slate-100 text-slate-600 hover:bg-slate-100 transition-colors text-xs font-semibold"
             >
-              <Mail className="h-4 w-4" />
-              <span className="text-[10px] font-medium">Email</span>
+              <Mail className="h-4 w-4 text-slate-500" />
+              Email
             </a>
           )}
           <Link
             href={`/contacts/${contact.id}/edit`}
             id="edit-contact-mobile"
-            className="flex flex-col items-center gap-1 px-4 py-2 rounded-xl bg-gray-50 border border-gray-100 text-gray-600 hover:bg-gray-100 transition-colors"
+            className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-50 border border-slate-100 text-slate-600 hover:bg-slate-100 transition-colors text-xs font-semibold"
           >
-            <Pencil className="h-4 w-4" />
-            <span className="text-[10px] font-medium">Edit</span>
+            <Pencil className="h-4 w-4 text-slate-500" />
+            Edit Profile
           </Link>
         </div>
       </div>
 
-      {/* Pipeline status */}
-      <div className="px-4 py-4 border-b border-gray-100">
-        <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Pipeline status</p>
-        <PipelineStatusControl contact={contact} />
+      {/* Content stream */}
+      <div className="p-4 space-y-4">
+        {/* Pipeline status card */}
+        <div className="p-4 bg-white rounded-2xl border border-slate-100 shadow-sm">
+          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2.5">Pipeline status</p>
+          <PipelineStatusControl contact={contact} />
+        </div>
+
+        {/* Details list card */}
+        <div className="p-4 bg-white rounded-2xl border border-slate-100 shadow-sm space-y-3.5">
+          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Contact details</p>
+          <dl className="grid grid-cols-2 gap-y-3.5 gap-x-2">
+            {[
+              { label: 'Email Address', value: contact.email },
+              { label: 'Company Name', value: contact.company },
+              { label: 'Job Title', value: contact.job_title },
+              { label: 'Last Contacted', value: formatDate(contact.last_contacted_at) },
+              { label: 'Added Date', value: formatDate(contact.created_at) },
+            ].map(({ label, value }) => (
+              <div key={label} className="flex flex-col gap-0.5">
+                <dt className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">{label}</dt>
+                <dd className="text-sm font-medium text-slate-700">{value || <span className="text-slate-300">—</span>}</dd>
+              </div>
+            ))}
+          </dl>
+        </div>
+
+        {/* Phone numbers card */}
+        <div className="p-4 bg-white rounded-2xl border border-slate-100 shadow-sm">
+          <PhoneNumbersMobile
+            phones={contact.phoneNumbers}
+            contactId={contact.id}
+            profileId={profileId}
+          />
+        </div>
+
+        {/* Social links card */}
+        <div className="p-4 bg-white rounded-2xl border border-slate-100 shadow-sm">
+          <SocialLinksMobile
+            links={contact.socialLinks}
+            contactId={contact.id}
+            profileId={profileId}
+          />
+        </div>
+
+        {/* Timeline feed card */}
+        <div className="p-4 bg-white rounded-2xl border border-slate-100 shadow-sm">
+          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-4">Interactions Timeline</p>
+          <InteractionTimeline
+            interactions={interactions}
+            contactId={contact.id}
+          />
+        </div>
       </div>
 
-      {/* Details */}
-      <div className="px-4 py-4 space-y-4 border-b border-gray-100">
-        <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Contact details</p>
-        {[
-          { label: 'Email', value: contact.email },
-          { label: 'Company', value: contact.company },
-          { label: 'Job title', value: contact.job_title },
-          { label: 'Last contacted', value: formatDate(contact.last_contacted_at) },
-          { label: 'Added', value: formatDate(contact.created_at) },
-        ].map(({ label, value }) => (
-          <div key={label}>
-            <dt className="text-xs text-gray-400">{label}</dt>
-            <dd className="mt-0.5 text-sm text-gray-800">{value || <span className="text-gray-300">—</span>}</dd>
-          </div>
-        ))}
-      </div>
-
-      {/* Phone numbers */}
-      <div className="px-4 py-4 border-b border-gray-100">
-        <PhoneNumbersMobile
-          phones={contact.phoneNumbers}
+      {/* Floating Action Button for Logging Interactions */}
+      <div className="fixed bottom-6 right-4 z-50">
+        <LogInteractionSheet
           contactId={contact.id}
           profileId={profileId}
-        />
-      </div>
-
-      {/* Social links */}
-      <div className="px-4 py-4">
-        <SocialLinksMobile
-          links={contact.socialLinks}
-          contactId={contact.id}
-          profileId={profileId}
+          triggerLabel="+ Log"
+          triggerClassName="h-12 px-5 rounded-full shadow-lg bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-sm cursor-pointer border-none"
         />
       </div>
     </div>
