@@ -23,6 +23,7 @@ export async function addToWorkingList(
     .update({ on_working_list: true, working_list_added_at: new Date().toISOString() })
     .eq('id', contactId)
     .eq('profile_id', profileId)
+    .select()
 
   if (error) return { error: error.message || 'Failed to add to working list' }
 
@@ -59,6 +60,7 @@ export async function removeFromWorkingList(
     .update({ on_working_list: false, working_list_added_at: null })
     .eq('id', contactId)
     .eq('profile_id', profileId)
+    .select()
 
   if (error) return { error: error.message || 'Failed to remove from working list' }
 
@@ -101,6 +103,7 @@ export async function markDone(
     .update({ on_working_list: false, working_list_added_at: null })
     .eq('id', contactId)
     .eq('profile_id', profileId)
+    .select()
 
   revalidatePath('/dashboard')
   revalidatePath(`/contacts/${contactId}`)

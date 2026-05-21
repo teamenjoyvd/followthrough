@@ -24,6 +24,7 @@ export async function markInboxItemRead(
     .update({ read: true })
     .eq('id', itemId)
     .eq('profile_id', profileId) // RLS enforcement in-query
+    .select()
 
   if (error) return { error: error.message || 'Failed to mark read' }
 

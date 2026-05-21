@@ -42,6 +42,7 @@ export async function snoozeContact(
     })
     .eq('id', contactId)
     .eq('profile_id', profileId)
+    .select()
 
   if (error) return { error: error.message || 'Failed to snooze contact' }
 
@@ -96,6 +97,7 @@ export async function checkResurfaced(): Promise<{ success: true; count: number 
       })
       .eq('id', contact.id)
       .eq('profile_id', profileId)
+      .select()
 
     if (updateError) {
       console.error(`Failed to resurface contact ${contact.id}:`, updateError.message)
