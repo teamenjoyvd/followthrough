@@ -10,9 +10,11 @@ const REDIRECT_URI = `${process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:300
 // AES-GCM encryption using Web Crypto API (available in Next.js edge + Node runtimes)
 async function getCryptoKey(secret: string): Promise<CryptoKey> {
   const encoder = new TextEncoder()
+  const secretBuffer = encoder.encode(secret)
+  const hashBuffer = await crypto.subtle.digest('SHA-256', secretBuffer)
   const keyMaterial = await crypto.subtle.importKey(
     'raw',
-    encoder.encode(secret).slice(0, 32), // AES-256 needs 32 bytes
+    hashBuffer,
     { name: 'AES-GCM' },
     false,
     ['encrypt', 'decrypt'],

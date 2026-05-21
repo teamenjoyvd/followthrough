@@ -61,71 +61,145 @@ export async function syncPeople(
   let upserted = 0
   let conflictsCreated = 0
 
-  for (const person of people) {
-    const mapped = mapPersonToContact(person, profileId)
-
-    // Check if contact already exists for this google_contact_id
-    const { data: existing } = await (supabase as any)
-      .from('contacts')
-      .select('*')
+  if (people.length === 0) {
+    const syncStateUpdate: any = {
+      last_synced_at: new Date().toISOString(),
+    }
+    if (newSyncToken !== null) {
+      syncStateUpdate.sync_token = newSyncToken
+    }
+    await (supabase as any)
+      .from('google_sync_state')
+      .update(syncStateUpdate)
       .eq('profile_id', profileId)
-      .eq('google_contact_id', person.resourceName)
-      .maybeSingle()
+
+    return { upserted: 0, conflictsCreated: 0, newSyncToken }
+  }
+
+  // 1. Map all Google contacts and collect google_contact_ids
+  const mappedPeople = people.map(person => ({
+    person,
+    mapped: mapPersonToContact(person, profileId)
+  }))
+  const googleContactIds = mappedPeople.map(m => m.mapped.google_contact_id)
+
+  // 2. Fetch existing contacts in bulk (1 select query)
+  const { data: existingContacts } = await (supabase as any)
+    .from('contacts')
+    .select('*')
+    .eq('profile_id', profileId)
+    .in('google_contact_id', googleContactIds)
+
+  // Create an O(1) lookup map matching google_contact_id -> existing ContactRow
+  const existingMap = new Map<string, any>()
+  if (existingContacts) {
+    for (const c of existingContacts) {
+      if (c.google_contact_id) {
+        existingMap.set(c.google_contact_id, c)
+      }
+    }
+  }
+
+  const newContactsToInsert: any[] = []
+  const conflictsToInsert: any[] = []
+  const inboxItemsToInsert: any[] = []
+  const updatesToRun: Promise<any>[] = []
+
+  // 3. Process each incoming contact
+  for (const { person, mapped } of mappedPeople) {
+    const existing = existingMap.get(mapped.google_contact_id)
 
     if (existing) {
-      const conflicts = detectConflicts(existing as Partial<ContactRow>, mapped as Partial<ContactRow>)
+      const conflicts = detectConflicts(existing, mapped)
 
       if (conflicts.length > 0) {
-        // Write conflicts — do NOT overwrite our values
-        const conflictRows = conflicts.map((c) => ({
-          profile_id: profileId,
-          contact_id: existing.id,
-          field_name: c.field_name,
-          our_value: c.our_value,
-          google_value: c.google_value,
-          resolved: false,
-        }))
+        // Collect conflicts for batch insert
+        for (const c of conflicts) {
+          conflictsToInsert.push({
+            profile_id: profileId,
+            contact_id: existing.id,
+            field_name: c.field_name,
+            our_value: c.our_value,
+            google_value: c.google_value,
+            resolved: false,
+          })
+        }
 
-        await (supabase as any).from('sync_conflicts').insert(conflictRows)
-
-        // Write one inbox item per conflicted contact (not per field)
-        const inboxRow: any = {
+        // Collect inbox item to insert in batch (one per conflicted contact)
+        inboxItemsToInsert.push({
           profile_id: profileId,
           contact_id: existing.id,
           type: 'sync_conflict',
           payload: { conflict_count: conflicts.length, fields: conflicts.map((c) => c.field_name) },
           read: false,
-        }
-        await (supabase as any).from('inbox_items').insert(inboxRow)
+        })
 
         conflictsCreated += conflicts.length
       } else {
-        // No conflicts — safe to update non-null incoming fields
+        // No conflicts — safe to update non-null incoming fields (additive)
         const update: any = {}
-        if (mapped.first_name) update.first_name = mapped.first_name
-        if (mapped.last_name !== undefined) update.last_name = mapped.last_name
-        if (mapped.email !== undefined) update.email = mapped.email
-        if (mapped.company !== undefined) update.company = mapped.company
-        if (mapped.job_title !== undefined) update.job_title = mapped.job_title
+        if (mapped.first_name !== null) update.first_name = mapped.first_name
+        if (mapped.last_name !== null) update.last_name = mapped.last_name
+        if (mapped.email !== null) update.email = mapped.email
+        if (mapped.company !== null) update.company = mapped.company
+        if (mapped.job_title !== null) update.job_title = mapped.job_title
 
-        await (supabase as any)
-          .from('contacts')
-          .update(update)
-          .eq('id', existing.id)
-          .eq('profile_id', profileId)
+        // Only run update if there is actually a field to update
+        if (Object.keys(update).length > 0) {
+          updatesToRun.push(
+            (supabase as any)
+              .from('contacts')
+              .update(update)
+              .eq('id', existing.id)
+              .eq('profile_id', profileId)
+          )
+        }
       }
     } else {
-      // New contact from Google — insert
-      await (supabase as any).from('contacts').insert(mapped)
+      // New contact from Google — collect for batch insert
+      newContactsToInsert.push(mapped)
     }
 
     upserted++
   }
 
-  // Update sync state
+  // 4. Perform database writes in batch
+  if (newContactsToInsert.length > 0) {
+    const { error } = await (supabase as any)
+      .from('contacts')
+      .insert(newContactsToInsert)
+    if (error) throw error
+  }
+
+  if (conflictsToInsert.length > 0) {
+    const { error } = await (supabase as any)
+      .from('sync_conflicts')
+      .insert(conflictsToInsert)
+    if (error) throw error
+  }
+
+  if (inboxItemsToInsert.length > 0) {
+    const { error } = await (supabase as any)
+      .from('inbox_items')
+      .insert(inboxItemsToInsert)
+    if (error) throw error
+  }
+
+  if (updatesToRun.length > 0) {
+    await Promise.all(updatesToRun)
+  }
+
+  // 5. Update sync state — conditionally set sync_token only if non-null
+  const syncStateUpdate: any = {
+    last_synced_at: new Date().toISOString(),
+  }
+  if (newSyncToken !== null) {
+    syncStateUpdate.sync_token = newSyncToken
+  }
+
   await (supabase as any)
     .from('google_sync_state')
-    .update({ last_synced_at: new Date().toISOString(), sync_token: newSyncToken })
+    .update(syncStateUpdate)
     .eq('profile_id', profileId)
 
   return { upserted, conflictsCreated, newSyncToken }

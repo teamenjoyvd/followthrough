@@ -2,7 +2,7 @@ import { auth } from '@clerk/nextjs/server'
 import { NextResponse } from 'next/server'
 import { createSupabaseServerClient, getProfileId } from '@/lib/supabase/server'
 import { syncPeople } from '@/lib/google/sync'
-import { decryptToken } from '@/app/api/google/callback/route'
+import { decryptToken, encryptToken } from '@/app/api/google/callback/route'
 import type { GooglePerson } from '@/lib/google/sync'
 
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID!
@@ -54,54 +54,80 @@ export async function POST() {
   let accessToken = await decryptToken(syncState.access_token, GOOGLE_TOKEN_SECRET)
 
   // Fetch contacts from Google People API
-  const buildUrl = (token: string | null) => {
+  const buildUrl = (syncToken: string | null, pageToken?: string) => {
     const params = new URLSearchParams({
       personFields: 'names,emailAddresses,organizations',
       pageSize: '1000',
     })
-    if (token) params.set('syncToken', token)
+    if (syncToken) params.set('syncToken', syncToken)
+    if (pageToken) params.set('pageToken', pageToken)
     return `https://people.googleapis.com/v1/people/me/connections?${params}`
   }
 
-  let peopleRes = await fetch(buildUrl(syncState.sync_token), {
-    headers: { Authorization: `Bearer ${accessToken}` },
-  })
-
-  // 401 → try to refresh
-  if (peopleRes.status === 401 && syncState.refresh_token) {
-    const decryptedRefresh = await decryptToken(syncState.refresh_token, GOOGLE_TOKEN_SECRET)
-    const newAccess = await refreshAccessToken(decryptedRefresh)
-    if (!newAccess) {
-      return NextResponse.json({ error: 'Token refresh failed — reconnect Google' }, { status: 400 })
-    }
-    // Persist new encrypted access token
-    const { encryptToken } = await import('@/app/api/google/callback/route')
-    const newEncrypted = await encryptToken(newAccess, GOOGLE_TOKEN_SECRET)
-    await (supabase as any)
-      .from('google_sync_state')
-      .update({ access_token: newEncrypted })
-      .eq('profile_id', profileId)
-
-    accessToken = newAccess
-    peopleRes = await fetch(buildUrl(syncState.sync_token), {
+  const fetchConnections = async (
+    syncToken: string | null,
+    pageToken?: string,
+  ): Promise<{ connections?: GooglePerson[]; nextSyncToken?: string; nextPageToken?: string }> => {
+    const url = buildUrl(syncToken, pageToken)
+    let res = await fetch(url, {
       headers: { Authorization: `Bearer ${accessToken}` },
     })
+
+    if (res.status === 401 && syncState.refresh_token) {
+      const decryptedRefresh = await decryptToken(syncState.refresh_token, GOOGLE_TOKEN_SECRET)
+      const newAccess = await refreshAccessToken(decryptedRefresh)
+      if (newAccess) {
+        // Persist new encrypted access token
+        const newEncrypted = await encryptToken(newAccess, GOOGLE_TOKEN_SECRET)
+        await (supabase as any)
+          .from('google_sync_state')
+          .update({ access_token: newEncrypted })
+          .eq('profile_id', profileId)
+
+        accessToken = newAccess
+        res = await fetch(url, {
+          headers: { Authorization: `Bearer ${accessToken}` },
+        })
+      }
+    }
+
+    if (!res.ok) {
+      const body = await res.text()
+      throw new Error(`Google API error: ${body}`)
+    }
+
+    return await res.json() as {
+      connections?: GooglePerson[]
+      nextPageToken?: string
+      nextSyncToken?: string
+    }
   }
 
-  if (!peopleRes.ok) {
-    const body = await peopleRes.text()
-    return NextResponse.json({ error: `Google API error: ${body}` }, { status: 502 })
+  let allPeople: GooglePerson[] = []
+  let pageToken: string | undefined = undefined
+  let newSyncToken: string | null = null
+  let hasMore = true
+
+  try {
+    while (hasMore) {
+      const data = await fetchConnections(syncState.sync_token, pageToken)
+      if (data.connections) {
+        allPeople.push(...data.connections)
+      }
+      if (data.nextSyncToken) {
+        newSyncToken = data.nextSyncToken
+      }
+      if (data.nextPageToken) {
+        pageToken = data.nextPageToken
+      } else {
+        hasMore = false
+      }
+    }
+  } catch (error: any) {
+    return NextResponse.json({ error: error.message }, { status: 502 })
   }
 
-  const peopleData = await peopleRes.json() as {
-    connections?: GooglePerson[]
-    nextSyncToken?: string
-  }
-
-  const people = peopleData.connections ?? []
-  const newSyncToken = peopleData.nextSyncToken ?? null
-
-  const result = await syncPeople(supabase, profileId, people, newSyncToken)
+  const result = await syncPeople(supabase, profileId, allPeople, newSyncToken)
 
   return NextResponse.json(result)
 }
