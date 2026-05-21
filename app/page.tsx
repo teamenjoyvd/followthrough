@@ -1,6 +1,13 @@
+import { auth } from '@clerk/nextjs/server'
+import { redirect } from 'next/navigation'
 import Link from 'next/link'
 
-export default function HomePage() {
+export default async function HomePage() {
+  const { userId } = await auth()
+  if (userId) {
+    redirect('/dashboard')
+  }
+
   return (
     <main className="flex min-h-screen flex-col items-center justify-center p-8">
       <h1 className="text-3xl font-bold mb-4">Followthrough</h1>
