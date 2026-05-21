@@ -51,3 +51,15 @@ export async function createSupabaseServiceClient() {
     }
   )
 }
+
+export async function getProfileId(
+  supabase: any,
+  userId: string,
+): Promise<string | null> {
+  const { data } = await supabase
+    .from('profiles')
+    .select('id')
+    .eq('clerk_id', userId)
+    .maybeSingle()
+  return data?.id ?? null
+}

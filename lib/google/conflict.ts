@@ -35,7 +35,7 @@ export function detectConflicts(
 
     // Only a conflict when both sides have a value and they differ
     if (ourValue !== null && googleValue !== null && ourValue !== googleValue) {
-      conflicts.push({ field_name: field, our_value: ourValue, google_value: googleValue })
+      conflicts.push({ field_name: field as string, our_value: ourValue, google_value: googleValue })
     }
   }
 

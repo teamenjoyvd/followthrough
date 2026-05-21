@@ -19,7 +19,7 @@ export interface GooglePerson {
 export function mapPersonToContact(
   person: GooglePerson,
   profileId: string,
-): Omit<ContactInsert, 'id' | 'created_at' | 'updated_at'> {
+): any {
   const name = person.names?.[0]
   const email = person.emailAddresses?.[0]?.value ?? null
   const org = person.organizations?.[0]
@@ -65,7 +65,7 @@ export async function syncPeople(
     const mapped = mapPersonToContact(person, profileId)
 
     // Check if contact already exists for this google_contact_id
-    const { data: existing } = await supabase
+    const { data: existing } = await (supabase as any)
       .from('contacts')
       .select('*')
       .eq('profile_id', profileId)
@@ -77,7 +77,7 @@ export async function syncPeople(
 
       if (conflicts.length > 0) {
         // Write conflicts — do NOT overwrite our values
-        const conflictRows: SyncConflictInsert[] = conflicts.map((c) => ({
+        const conflictRows = conflicts.map((c) => ({
           profile_id: profileId,
           contact_id: existing.id,
           field_name: c.field_name,
@@ -86,29 +86,29 @@ export async function syncPeople(
           resolved: false,
         }))
 
-        await supabase.from('sync_conflicts').insert(conflictRows)
+        await (supabase as any).from('sync_conflicts').insert(conflictRows)
 
         // Write one inbox item per conflicted contact (not per field)
-        const inboxRow: InboxItemInsert = {
+        const inboxRow: any = {
           profile_id: profileId,
           contact_id: existing.id,
           type: 'sync_conflict',
           payload: { conflict_count: conflicts.length, fields: conflicts.map((c) => c.field_name) },
           read: false,
         }
-        await supabase.from('inbox_items').insert(inboxRow)
+        await (supabase as any).from('inbox_items').insert(inboxRow)
 
         conflictsCreated += conflicts.length
       } else {
         // No conflicts — safe to update non-null incoming fields
-        const update: ContactUpdate = {}
+        const update: any = {}
         if (mapped.first_name) update.first_name = mapped.first_name
         if (mapped.last_name !== undefined) update.last_name = mapped.last_name
         if (mapped.email !== undefined) update.email = mapped.email
         if (mapped.company !== undefined) update.company = mapped.company
         if (mapped.job_title !== undefined) update.job_title = mapped.job_title
 
-        await supabase
+        await (supabase as any)
           .from('contacts')
           .update(update)
           .eq('id', existing.id)
@@ -116,14 +116,14 @@ export async function syncPeople(
       }
     } else {
       // New contact from Google — insert
-      await supabase.from('contacts').insert(mapped as ContactInsert)
+      await (supabase as any).from('contacts').insert(mapped)
     }
 
     upserted++
   }
 
   // Update sync state
-  await supabase
+  await (supabase as any)
     .from('google_sync_state')
     .update({ last_synced_at: new Date().toISOString(), sync_token: newSyncToken })
     .eq('profile_id', profileId)

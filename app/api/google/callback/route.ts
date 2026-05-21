@@ -1,6 +1,6 @@
 import { auth } from '@clerk/nextjs/server'
 import { NextRequest, NextResponse } from 'next/server'
-import { createSupabaseServerClient } from '@/lib/supabase/server'
+import { createSupabaseServerClient, getProfileId } from '@/lib/supabase/server'
 
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID!
 const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET!
@@ -86,14 +86,8 @@ export async function GET(req: NextRequest) {
 
   const supabase = await createSupabaseServerClient()
 
-  // Resolve profile id
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('id')
-    .eq('clerk_id', userId)
-    .maybeSingle()
-
-  if (!profile) {
+  const profileId = await getProfileId(supabase, userId)
+  if (!profileId) {
     return NextResponse.redirect(new URL('/settings?google_error=profile_not_found', req.url))
   }
 
@@ -102,7 +96,7 @@ export async function GET(req: NextRequest) {
     .from('google_sync_state')
     .upsert(
       {
-        profile_id: profile.id,
+        profile_id: profileId,
         access_token: encryptedAccess,
         ...(encryptedRefresh ? { refresh_token: encryptedRefresh } : {}),
       },

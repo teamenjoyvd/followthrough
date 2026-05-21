@@ -1,6 +1,6 @@
 import { auth } from '@clerk/nextjs/server'
 import { NextResponse } from 'next/server'
-import { createSupabaseServerClient } from '@/lib/supabase/server'
+import { createSupabaseServerClient, getProfileId } from '@/lib/supabase/server'
 import { syncPeople } from '@/lib/google/sync'
 import { decryptToken } from '@/app/api/google/callback/route'
 import type { GooglePerson } from '@/lib/google/sync'
@@ -31,20 +31,14 @@ export async function POST() {
 
   const supabase = await createSupabaseServerClient()
 
-  // Resolve profile
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('id')
-    .eq('clerk_id', userId)
-    .maybeSingle()
-
-  if (!profile) return NextResponse.json({ error: 'Profile not found' }, { status: 404 })
+  const profileId = await getProfileId(supabase, userId)
+  if (!profileId) return NextResponse.json({ error: 'Profile not found' }, { status: 404 })
 
   // Load sync state — use (supabase as any) because generated types predate the new columns
   const { data: syncState } = await (supabase as any)
     .from('google_sync_state')
     .select('access_token, refresh_token, sync_token')
-    .eq('profile_id', profile.id)
+    .eq('profile_id', profileId)
     .maybeSingle() as {
       data: {
         access_token: string | null
@@ -86,7 +80,7 @@ export async function POST() {
     await (supabase as any)
       .from('google_sync_state')
       .update({ access_token: newEncrypted })
-      .eq('profile_id', profile.id)
+      .eq('profile_id', profileId)
 
     accessToken = newAccess
     peopleRes = await fetch(buildUrl(syncState.sync_token), {
@@ -107,7 +101,7 @@ export async function POST() {
   const people = peopleData.connections ?? []
   const newSyncToken = peopleData.nextSyncToken ?? null
 
-  const result = await syncPeople(supabase, profile.id, people, newSyncToken)
+  const result = await syncPeople(supabase, profileId, people, newSyncToken)
 
   return NextResponse.json(result)
 }
