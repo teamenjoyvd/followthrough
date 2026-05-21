@@ -2,7 +2,7 @@
 
 import { auth } from '@clerk/nextjs/server'
 import { revalidatePath } from 'next/cache'
-import { createClient } from '@supabase/supabase-js'
+import { createSupabaseServerClient } from '@/lib/supabase/server'
 import type { Database } from '@/types/supabase'
 
 type CallOutcome = Database['public']['Enums']['call_outcome']
@@ -32,23 +32,16 @@ type LogNoteInput = {
   body: string
 }
 
-function getServiceClient() {
-  return createClient<Database>(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  )
-}
-
 /** Resolves the profile row for the authenticated Clerk user. */
 async function resolveProfile(clerkUserId: string): Promise<{ id: string } | null> {
-  const supabase = getServiceClient()
+  const supabase = await createSupabaseServerClient()
   const { data, error } = await supabase
     .from('profiles')
     .select('id')
     .eq('clerk_id', clerkUserId)
     .single()
   if (error || !data) return null
-  return data
+  return data as { id: string }
 }
 
 export async function logCall(input: LogCallInput): Promise<{ error?: string }> {
@@ -59,7 +52,7 @@ export async function logCall(input: LogCallInput): Promise<{ error?: string }> 
   if (!profile) return { error: 'Profile not found' }
   if (profile.id !== input.profileId) return { error: 'Forbidden' }
 
-  const supabase = getServiceClient()
+  const supabase = await createSupabaseServerClient()
 
   const interactionRow: InteractionInsert = {
     contact_id: input.contactId,
@@ -78,7 +71,7 @@ export async function logCall(input: LogCallInput): Promise<{ error?: string }> 
   }
 
   const callRow: CallDetailInsert = {
-    interaction_id: interaction.id,
+    interaction_id: (interaction as { id: string }).id,
     outcome: input.outcome,
     duration_seconds: input.durationSeconds ?? null,
     summary: input.summary ?? null,
@@ -89,7 +82,7 @@ export async function logCall(input: LogCallInput): Promise<{ error?: string }> 
 
   await supabase
     .from('contacts')
-    .update({ last_contacted_at: new Date().toISOString() })
+    .update({ last_contacted_at: new Date().toISOString() } satisfies Database['public']['Tables']['contacts']['Update'])
     .eq('id', input.contactId)
     .eq('profile_id', input.profileId)
 
@@ -105,7 +98,7 @@ export async function logEmail(input: LogEmailInput): Promise<{ error?: string }
   if (!profile) return { error: 'Profile not found' }
   if (profile.id !== input.profileId) return { error: 'Forbidden' }
 
-  const supabase = getServiceClient()
+  const supabase = await createSupabaseServerClient()
 
   const interactionRow: InteractionInsert = {
     contact_id: input.contactId,
@@ -124,7 +117,7 @@ export async function logEmail(input: LogEmailInput): Promise<{ error?: string }
   }
 
   const emailRow: EmailDetailInsert = {
-    interaction_id: interaction.id,
+    interaction_id: (interaction as { id: string }).id,
     subject: input.subject ?? null,
     body: input.body ?? null,
   }
@@ -134,7 +127,7 @@ export async function logEmail(input: LogEmailInput): Promise<{ error?: string }
 
   await supabase
     .from('contacts')
-    .update({ last_contacted_at: new Date().toISOString() })
+    .update({ last_contacted_at: new Date().toISOString() } satisfies Database['public']['Tables']['contacts']['Update'])
     .eq('id', input.contactId)
     .eq('profile_id', input.profileId)
 
@@ -150,7 +143,7 @@ export async function logNote(input: LogNoteInput): Promise<{ error?: string }> 
   if (!profile) return { error: 'Profile not found' }
   if (profile.id !== input.profileId) return { error: 'Forbidden' }
 
-  const supabase = getServiceClient()
+  const supabase = await createSupabaseServerClient()
 
   const interactionRow: InteractionInsert = {
     contact_id: input.contactId,
@@ -169,7 +162,7 @@ export async function logNote(input: LogNoteInput): Promise<{ error?: string }> 
   }
 
   const noteRow: NoteDetailInsert = {
-    interaction_id: interaction.id,
+    interaction_id: (interaction as { id: string }).id,
     body: input.body,
   }
 
@@ -187,9 +180,8 @@ export async function deleteInteraction(
   const { userId } = await auth()
   if (!userId) return { error: 'Unauthorized' }
 
-  const supabase = getServiceClient()
+  const supabase = await createSupabaseServerClient()
 
-  // RLS enforces ownership — delete will silently no-op if not owner
   const { error } = await supabase
     .from('interactions')
     .delete()
