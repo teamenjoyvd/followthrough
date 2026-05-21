@@ -37,7 +37,10 @@ export async function updateProfile(
     .update({ display_name: trimmed })
     .eq('id', profileId)
 
-  if (error) return { error: error.message }
+  if (error) {
+    console.error('updateProfile error:', error)
+    return { error: 'Failed to update profile. Please try again.' }
+  }
 
   revalidatePath('/settings')
   return { success: true }
@@ -67,7 +70,10 @@ export async function updatePreferences({
     })
     .eq('id', profileId)
 
-  if (error) return { error: error.message }
+  if (error) {
+    console.error('updatePreferences error:', error)
+    return { error: 'Failed to update preferences. Please try again.' }
+  }
 
   revalidatePath('/settings')
   return { success: true }
@@ -97,7 +103,10 @@ export async function updateFollowupRules(
     .update({ followup_rules: rules })
     .eq('id', profileId)
 
-  if (error) return { error: error.message }
+  if (error) {
+    console.error('updateFollowupRules error:', error)
+    return { error: 'Failed to update follow-up rules. Please try again.' }
+  }
 
   revalidatePath('/settings')
   return { success: true }

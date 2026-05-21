@@ -297,7 +297,7 @@ function GoogleSyncSection({
           <div>
             <p className="text-sm font-medium text-foreground">{isConnected ? 'Connected' : 'Not connected'}</p>
             {syncState?.last_synced_at && (
-              <p className="text-xs text-muted-foreground mt-0.5">
+              <p className="text-xs text-muted-foreground mt-0.5" suppressHydrationWarning>
                 Last synced {new Date(syncState.last_synced_at).toLocaleString()}
               </p>
             )}

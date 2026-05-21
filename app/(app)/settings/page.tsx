@@ -32,47 +32,72 @@ export default async function SettingsPage({
   const params = await searchParams
   const supabase = await createSupabaseServerClient()
 
-  const { data: profile } = await (supabase as any)
+  const { data: rawProfile } = (await supabase
     .from('profiles')
-    .select('id, email, display_name, confirmation_enabled, pipeline_view, followup_rules')
+    .select('*')
     .eq('clerk_id', userId)
-    .maybeSingle() as {
+    .maybeSingle()) as unknown as {
       data: {
         id: string
         email: string
         display_name: string | null
         confirmation_enabled: boolean
         pipeline_view: string
-        followup_rules: FollowupRules | null
+        followup_rules: any
       } | null
     }
 
-  if (!profile) redirect('/sign-in')
+  if (!rawProfile) redirect('/sign-in')
 
-  const followupRules: FollowupRules = profile.followup_rules ?? DEFAULT_FOLLOWUP_RULES
+  const followupRules = (rawProfile.followup_rules as unknown as FollowupRules) ?? DEFAULT_FOLLOWUP_RULES
 
-  const { data: syncState } = await (supabase as any)
+  const profile = {
+    id: rawProfile.id,
+    email: rawProfile.email,
+    display_name: rawProfile.display_name,
+    confirmation_enabled: rawProfile.confirmation_enabled,
+    pipeline_view: rawProfile.pipeline_view,
+    followup_rules: followupRules,
+  }
+
+  const { data: rawSyncState } = (await supabase
     .from('google_sync_state')
-    .select('last_synced_at, access_token')
+    .select('*')
     .eq('profile_id', profile.id)
-    .maybeSingle() as { data: { last_synced_at: string | null; access_token: string | null } | null }
+    .maybeSingle()) as unknown as {
+      data: {
+        last_synced_at: string | null
+        access_token: string | null
+      } | null
+    }
+
+  const syncState = rawSyncState
+    ? {
+        last_synced_at: rawSyncState.last_synced_at,
+        access_token: rawSyncState.access_token,
+      }
+    : null
 
   const isConnected = !!syncState?.access_token
 
-  const { data: conflicts = [] } = await (supabase as any)
+  const { data: rawConflicts } = (await supabase
     .from('sync_conflicts')
     .select('*, contacts(first_name, last_name)')
     .eq('profile_id', profile.id)
     .eq('resolved', false)
-    .order('created_at', { ascending: false }) as { data: SyncConflictWithContact[] | null }
+    .order('created_at', { ascending: false })) as unknown as {
+      data: SyncConflictWithContact[] | null
+    }
 
-  const conflictCount = conflicts?.length ?? 0
+  const conflicts = rawConflicts ?? []
+
+  const conflictCount = conflicts.length
 
   const sharedProps = {
-    profile: { ...profile, followup_rules: followupRules },
+    profile,
     isConnected,
     syncState,
-    conflicts: conflicts ?? [],
+    conflicts,
     conflictCount,
     flashConnected: params.google_connected === '1',
     flashError: params.google_error,
