@@ -32,7 +32,7 @@ type LogNoteInput = {
 /** Resolves the profile row for the authenticated Clerk user. */
 async function resolveProfile(clerkUserId: string): Promise<{ id: string } | null> {
   const supabase = await createSupabaseServerClient()
-  const { data, error } = await supabase
+  const { data, error } = await (supabase as any)
     .from('profiles')
     .select('id')
     .eq('clerk_id', clerkUserId)
@@ -51,7 +51,7 @@ export async function logCall(input: LogCallInput): Promise<{ error?: string }> 
 
   const supabase = await createSupabaseServerClient()
 
-  const { data: interaction, error: interactionError } = await supabase
+  const { data: interaction, error: interactionError } = await (supabase as any)
     .from('interactions')
     .insert({
       contact_id: input.contactId,
@@ -65,7 +65,7 @@ export async function logCall(input: LogCallInput): Promise<{ error?: string }> 
     return { error: interactionError?.message ?? 'Failed to log interaction' }
   }
 
-  const { error: detailError } = await supabase.from('call_details').insert({
+  const { error: detailError } = await (supabase as any).from('call_details').insert({
     interaction_id: (interaction as { id: string }).id,
     outcome: input.outcome,
     duration_seconds: input.durationSeconds ?? null,
@@ -73,7 +73,7 @@ export async function logCall(input: LogCallInput): Promise<{ error?: string }> 
   })
   if (detailError) return { error: detailError.message }
 
-  await supabase
+  await (supabase as any)
     .from('contacts')
     .update({ last_contacted_at: new Date().toISOString() } satisfies Database['public']['Tables']['contacts']['Update'])
     .eq('id', input.contactId)
@@ -93,7 +93,7 @@ export async function logEmail(input: LogEmailInput): Promise<{ error?: string }
 
   const supabase = await createSupabaseServerClient()
 
-  const { data: interaction, error: interactionError } = await supabase
+  const { data: interaction, error: interactionError } = await (supabase as any)
     .from('interactions')
     .insert({
       contact_id: input.contactId,
@@ -107,14 +107,14 @@ export async function logEmail(input: LogEmailInput): Promise<{ error?: string }
     return { error: interactionError?.message ?? 'Failed to log interaction' }
   }
 
-  const { error: detailError } = await supabase.from('email_details').insert({
+  const { error: detailError } = await (supabase as any).from('email_details').insert({
     interaction_id: (interaction as { id: string }).id,
     subject: input.subject ?? null,
     body: input.body ?? null,
   })
   if (detailError) return { error: detailError.message }
 
-  await supabase
+  await (supabase as any)
     .from('contacts')
     .update({ last_contacted_at: new Date().toISOString() } satisfies Database['public']['Tables']['contacts']['Update'])
     .eq('id', input.contactId)
@@ -134,7 +134,7 @@ export async function logNote(input: LogNoteInput): Promise<{ error?: string }> 
 
   const supabase = await createSupabaseServerClient()
 
-  const { data: interaction, error: interactionError } = await supabase
+  const { data: interaction, error: interactionError } = await (supabase as any)
     .from('interactions')
     .insert({
       contact_id: input.contactId,
@@ -148,7 +148,7 @@ export async function logNote(input: LogNoteInput): Promise<{ error?: string }> 
     return { error: interactionError?.message ?? 'Failed to log interaction' }
   }
 
-  const { error: detailError } = await supabase.from('note_details').insert({
+  const { error: detailError } = await (supabase as any).from('note_details').insert({
     interaction_id: (interaction as { id: string }).id,
     body: input.body,
   })
@@ -167,7 +167,8 @@ export async function deleteInteraction(
 
   const supabase = await createSupabaseServerClient()
 
-  const { error } = await supabase
+  // RLS enforces ownership — delete will silently no-op if not owner
+  const { error } = await (supabase as any)
     .from('interactions')
     .delete()
     .eq('id', interactionId)

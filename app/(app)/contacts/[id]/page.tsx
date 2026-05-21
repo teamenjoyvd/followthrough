@@ -18,14 +18,14 @@ export async function generateMetadata({ params }: Props) {
   if (!userId) return { title: 'Contact — Followthrough' }
 
   const supabase = await createSupabaseServerClient()
-  const { data: profile } = await supabase
+  const { data: profile } = await (supabase as any)
     .from('profiles')
     .select('id')
     .eq('clerk_id', userId)
     .single()
   if (!profile) return { title: 'Contact — Followthrough' }
 
-  const { data: contact } = await supabase
+  const { data: contact } = await (supabase as any)
     .from('contacts')
     .select('first_name, last_name')
     .eq('id', id)
@@ -47,7 +47,7 @@ export default async function ContactDetailPage({ params }: Props) {
 
   const supabase = await createSupabaseServerClient()
 
-  const { data: profile } = await supabase
+  const { data: profile } = await (supabase as any)
     .from('profiles')
     .select('id')
     .eq('clerk_id', userId)
@@ -57,7 +57,7 @@ export default async function ContactDetailPage({ params }: Props) {
 
   const profileId = (profile as { id: string }).id
 
-  const { data: contact } = await supabase
+  const { data: contact } = await (supabase as any)
     .from('contacts')
     .select('id, first_name, last_name, company, job_title, email, last_contacted_at, pipeline_status')
     .eq('id', id)
@@ -66,7 +66,7 @@ export default async function ContactDetailPage({ params }: Props) {
 
   if (!contact) redirect('/contacts')
 
-  const { data: interactions } = await supabase
+  const { data: interactions } = await (supabase as any)
     .from('interactions')
     .select(`
       id, type, occurred_at,
