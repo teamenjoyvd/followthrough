@@ -2,14 +2,23 @@
 
 import { useState, useTransition } from 'react'
 import { resolveConflict } from '@/lib/actions/sync-conflicts'
-import type { Database } from '@/types/supabase'
 
-type SyncConflict = Database['public']['Tables']['sync_conflicts']['Row'] & {
+// Explicit interface — avoids Database['...']['Row'] & { contacts } intersection
+// which collapses the joined relation to `never` under strict TS.
+export interface SyncConflictWithContact {
+  id: string
+  profile_id: string
+  contact_id: string
+  field_name: string
+  our_value: string | null
+  google_value: string | null
+  resolved: boolean
+  created_at: string
   contacts: { first_name: string; last_name: string | null } | null
 }
 
 interface Props {
-  conflicts: SyncConflict[]
+  conflicts: SyncConflictWithContact[]
   profileId: string
 }
 
@@ -18,7 +27,7 @@ function ConflictRow({
   profileId,
   onResolved,
 }: {
-  conflict: SyncConflict
+  conflict: SyncConflictWithContact
   profileId: string
   onResolved: (id: string) => void
 }) {

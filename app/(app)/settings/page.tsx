@@ -3,17 +3,13 @@ import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { SyncConflictList } from './components/SyncConflictList'
-import type { Database } from '@/types/supabase'
+import type { SyncConflictWithContact } from './components/SyncConflictList'
 
 export const dynamic = 'force-dynamic'
 
 export const metadata = {
   title: 'Settings — Followthrough',
   description: 'Manage your Followthrough settings and integrations.',
-}
-
-type SyncConflictRow = Database['public']['Tables']['sync_conflicts']['Row'] & {
-  contacts: { first_name: string; last_name: string | null } | null
 }
 
 export default async function SettingsPage({
@@ -35,7 +31,7 @@ export default async function SettingsPage({
 
   if (!profile) redirect('/sign-in')
 
-  // Google sync state — cast because access_token/refresh_token predate generated types
+  // google_sync_state: cast because access_token/refresh_token predate generated types
   const { data: syncState } = await (supabase as any)
     .from('google_sync_state')
     .select('last_synced_at, access_token')
@@ -44,13 +40,13 @@ export default async function SettingsPage({
 
   const isConnected = !!syncState?.access_token
 
-  // Unresolved conflicts
-  const { data: conflicts = [] } = await supabase
+  // Use explicit type cast to avoid Row & { contacts } intersection collapsing to never
+  const { data: conflicts = [] } = await (supabase as any)
     .from('sync_conflicts')
     .select('*, contacts(first_name, last_name)')
     .eq('profile_id', profile.id)
     .eq('resolved', false)
-    .order('created_at', { ascending: false }) as { data: SyncConflictRow[] | null }
+    .order('created_at', { ascending: false }) as { data: SyncConflictWithContact[] | null }
 
   const conflictCount = conflicts?.length ?? 0
 
@@ -106,7 +102,7 @@ function SettingsContent({
   profile: { id: string; email: string; display_name: string | null }
   isConnected: boolean
   syncState: { last_synced_at: string | null; access_token: string | null } | null
-  conflicts: SyncConflictRow[]
+  conflicts: SyncConflictWithContact[]
   conflictCount: number
   flashConnected: boolean
   flashError: string | undefined
