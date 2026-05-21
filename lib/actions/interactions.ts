@@ -120,7 +120,7 @@ export async function logEmail(input: LogEmailInput): Promise<{ error?: string }
     .single()
 
   if (interactionError || !interaction) {
-    return { error: interactionError?.message ?? 'Failed to log interaction' }\
+    return { error: interactionError?.message ?? 'Failed to log interaction' }
   }
 
   const emailRow: EmailDetailInsert = {
