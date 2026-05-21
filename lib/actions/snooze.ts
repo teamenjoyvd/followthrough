@@ -2,19 +2,7 @@
 
 import { auth } from '@clerk/nextjs/server'
 import { revalidatePath } from 'next/cache'
-import { createSupabaseServerClient } from '@/lib/supabase/server'
-
-async function getProfileId(
-  supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>,
-  userId: string,
-): Promise<string | null> {
-  const { data } = await (supabase as any)
-    .from('profiles')
-    .select('id')
-    .eq('clerk_id', userId)
-    .maybeSingle()
-  return (data as { id: string } | null)?.id ?? null
-}
+import { createSupabaseServerClient, getProfileId } from '@/lib/supabase/server'
 
 // ---------------------------------------------------------------------------
 // snoozeContact
@@ -46,7 +34,7 @@ export async function snoozeContact(
   const { error } = await (supabase as any)
     .from('contacts')
     .update({
-      pre_snooze_status: (contact as { pipeline_status: string }).pipeline_status,
+      pre_snooze_status: contact.pipeline_status,
       pipeline_status: 'snoozed',
       snoozed_until: until.toISOString().split('T')[0], // date only
       on_working_list: false,
@@ -69,10 +57,14 @@ export async function snoozeContact(
 // a 'resurfaced' inbox notification.
 // ---------------------------------------------------------------------------
 
-export async function checkResurfaced(
-  profileId: string,
-): Promise<{ success: true; count: number } | { error: string }> {
+export async function checkResurfaced(): Promise<{ success: true; count: number } | { error: string }> {
+  const { userId } = await auth()
+  if (!userId) return { error: 'Unauthorized' }
+
   const supabase = await createSupabaseServerClient()
+  const profileId = await getProfileId(supabase, userId)
+  if (!profileId) return { error: 'Profile not found' }
+
   const todayStr = new Date().toISOString().split('T')[0] // YYYY-MM-DD
 
   const { data: contacts, error: fetchError } = await (supabase as any)

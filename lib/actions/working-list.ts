@@ -2,19 +2,7 @@
 
 import { auth } from '@clerk/nextjs/server'
 import { revalidatePath } from 'next/cache'
-import { createSupabaseServerClient } from '@/lib/supabase/server'
-
-async function getProfileId(
-  supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>,
-  userId: string,
-): Promise<string | null> {
-  const { data } = await (supabase as any)
-    .from('profiles')
-    .select('id')
-    .eq('clerk_id', userId)
-    .maybeSingle()
-  return (data as { id: string } | null)?.id ?? null
-}
+import { createSupabaseServerClient, getProfileId } from '@/lib/supabase/server'
 
 // ---------------------------------------------------------------------------
 // addToWorkingList
@@ -44,6 +32,7 @@ export async function addToWorkingList(
     type: 'working_list_changed',
     contact_id: contactId,
     payload: { action: 'added' },
+    read: false,
   })
 
   revalidatePath('/dashboard')
@@ -102,7 +91,7 @@ export async function markDone(
   if (interactionError) return { error: interactionError.message || 'Failed to log completion' }
 
   await (supabase as any).from('note_details').insert({
-    interaction_id: (interaction as { id: string }).id,
+    interaction_id: interaction.id,
     body: 'Marked done from working list',
   })
 

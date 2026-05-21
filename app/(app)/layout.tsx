@@ -53,18 +53,7 @@ export default async function AppLayout({
 
   await ensureProfile(userId, email, displayName)
 
-  // Query profile row to get the profile ID for unread counts
-  const supabase = await createSupabaseServerClient()
-  const { data: profile } = await (supabase as any)
-    .from('profiles')
-    .select('id')
-    .eq('clerk_id', userId)
-    .maybeSingle() as { data: { id: string } | null }
-
-  let unreadInboxCount = 0
-  if (profile) {
-    unreadInboxCount = await getUnreadInboxCount(profile.id)
-  }
+  const unreadInboxCount = await getUnreadInboxCount()
 
   return (
     <div className="flex h-screen overflow-hidden">

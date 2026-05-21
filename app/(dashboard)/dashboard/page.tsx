@@ -32,7 +32,7 @@ export default async function DashboardPage() {
   if (!profile) redirect('/sign-in')
 
   // Run the automatic check to resurface any expired snoozed contacts
-  await checkResurfaced(profile.id)
+  await checkResurfaced()
 
   // Fetch Working List contacts
   const { data } = await (supabase as any)
@@ -58,7 +58,7 @@ export default async function DashboardPage() {
     .eq('profile_id', profile.id) as { count: number | null }
 
   // Fetch Unread Inbox Count
-  const inboxUnreadCount = await getUnreadInboxCount(profile.id)
+  const inboxUnreadCount = await getUnreadInboxCount()
 
   const stats = {
     workingListCount: workingListContacts.length,

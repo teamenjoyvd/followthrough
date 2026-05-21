@@ -2,19 +2,8 @@
 
 import { auth } from '@clerk/nextjs/server'
 import { revalidatePath } from 'next/cache'
-import { createSupabaseServerClient } from '@/lib/supabase/server'
-
-async function getProfileId(
-  supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>,
-  userId: string,
-): Promise<string | null> {
-  const { data } = await (supabase as any)
-    .from('profiles')
-    .select('id')
-    .eq('clerk_id', userId)
-    .maybeSingle()
-  return (data as { id: string } | null)?.id ?? null
-}
+import { createSupabaseServerClient, getProfileId } from '@/lib/supabase/server'
+import type { InboxItem as PopulatedInboxItem } from '@/types/inbox'
 
 // ---------------------------------------------------------------------------
 // markInboxItemRead
@@ -47,8 +36,13 @@ export async function markInboxItemRead(
 // getUnreadInboxCount — called server-side for nav badge
 // ---------------------------------------------------------------------------
 
-export async function getUnreadInboxCount(profileId: string): Promise<number> {
+export async function getUnreadInboxCount(): Promise<number> {
+  const { userId } = await auth()
+  if (!userId) return 0
+
   const supabase = await createSupabaseServerClient()
+  const profileId = await getProfileId(supabase, userId)
+  if (!profileId) return 0
 
   const { count, error } = await (supabase as any)
     .from('inbox_items')
@@ -64,23 +58,13 @@ export async function getUnreadInboxCount(profileId: string): Promise<number> {
 // getInboxItems
 // ---------------------------------------------------------------------------
 
-export interface PopulatedInboxItem {
-  id: string
-  type: 'resurfaced' | 'working_list_changed' | 'sync_conflict'
-  contact_id: string | null
-  payload: Record<string, any>
-  read: boolean
-  created_at: string
-  contacts: {
-    first_name: string
-    last_name: string | null
-    company: string | null
-    pipeline_status: string
-  } | null
-}
+export async function getInboxItems(): Promise<PopulatedInboxItem[]> {
+  const { userId } = await auth()
+  if (!userId) return []
 
-export async function getInboxItems(profileId: string): Promise<PopulatedInboxItem[]> {
   const supabase = await createSupabaseServerClient()
+  const profileId = await getProfileId(supabase, userId)
+  if (!profileId) return []
 
   const { data, error } = await (supabase as any)
     .from('inbox_items')

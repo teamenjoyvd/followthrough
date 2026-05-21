@@ -54,6 +54,7 @@ export type Database = {
           last_name: string | null
           on_working_list: boolean
           pipeline_status: Database["public"]["Enums"]["pipeline_status"]
+          pre_snooze_status: Database["public"]["Enums"]["pipeline_status"] | null
           profile_id: string
           snoozed_until: string | null
           updated_at: string
@@ -71,6 +72,7 @@ export type Database = {
           last_name?: string | null
           on_working_list?: boolean
           pipeline_status?: Database["public"]["Enums"]["pipeline_status"]
+          pre_snooze_status?: Database["public"]["Enums"]["pipeline_status"] | null
           profile_id: string
           snoozed_until?: string | null
           updated_at?: string
@@ -88,6 +90,7 @@ export type Database = {
           last_name?: string | null
           on_working_list?: boolean
           pipeline_status?: Database["public"]["Enums"]["pipeline_status"]
+          pre_snooze_status?: Database["public"]["Enums"]["pipeline_status"] | null
           profile_id?: string
           snoozed_until?: string | null
           updated_at?: string

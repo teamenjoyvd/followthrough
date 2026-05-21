@@ -16,19 +16,8 @@ export default async function InboxPage() {
   const { userId } = await auth()
   if (!userId) redirect('/sign-in')
 
-  const supabase = await createSupabaseServerClient()
-
-  // Get current profile
-  const { data: profile } = await (supabase as any)
-    .from('profiles')
-    .select('id')
-    .eq('clerk_id', userId)
-    .maybeSingle() as { data: { id: string } | null }
-
-  if (!profile) redirect('/sign-in')
-
-  // Fetch actual inbox items with joined contact info
-  const items = await getInboxItems(profile.id)
+  // Fetch actual inbox items with joined contact info securely
+  const items = await getInboxItems()
 
   return (
     <>
