@@ -17,12 +17,18 @@ export const metadata = {
 type Contact = Database['public']['Tables']['contacts']['Row']
 
 export default async function DashboardPage() {
-  const { userId } = await auth()
+  const { userId, sessionClaims } = await auth()
   if (!userId) redirect('/sign-in')
+
+  // Resolve first name from JWT claims — no extra Clerk API call needed
+  const fullName =
+    (sessionClaims?.name as string) ||
+    (sessionClaims?.full_name as string) ||
+    ''
+  const displayName = fullName.split(' ')[0] || 'there'
 
   const supabase = await createSupabaseServerClient()
 
-  // Get current profile
   const { data: profile } = await (supabase as any)
     .from('profiles')
     .select('id')
@@ -31,10 +37,8 @@ export default async function DashboardPage() {
 
   if (!profile) redirect('/sign-in')
 
-  // Run the automatic check to resurface any expired snoozed contacts
   await checkResurfaced()
 
-  // Fetch Working List contacts
   const { data } = await (supabase as any)
     .from('contacts')
     .select('*')
@@ -44,20 +48,17 @@ export default async function DashboardPage() {
 
   const workingListContacts = data || []
 
-  // Fetch Snoozed contacts count
   const { count: snoozedCount } = await (supabase as any)
     .from('contacts')
     .select('id', { count: 'exact', head: true })
     .eq('profile_id', profile.id)
     .eq('pipeline_status', 'snoozed') as { count: number | null }
 
-  // Fetch Total contacts count
   const { count: totalContactsCount } = await (supabase as any)
     .from('contacts')
     .select('id', { count: 'exact', head: true })
     .eq('profile_id', profile.id) as { count: number | null }
 
-  // Fetch Unread Inbox Count
   const inboxUnreadCount = await getUnreadInboxCount()
 
   const stats = {
@@ -71,19 +72,21 @@ export default async function DashboardPage() {
     <>
       {/* Desktop layout — hidden on mobile */}
       <div className="hidden md:block">
-        <DashboardDesktop 
-          profileId={profile.id} 
-          workingList={workingListContacts} 
-          stats={stats} 
+        <DashboardDesktop
+          profileId={profile.id}
+          displayName={displayName}
+          workingList={workingListContacts}
+          stats={stats}
         />
       </div>
 
       {/* Mobile layout — hidden on desktop */}
       <div className="block md:hidden">
-        <DashboardMobile 
-          profileId={profile.id} 
-          workingList={workingListContacts} 
-          stats={stats} 
+        <DashboardMobile
+          profileId={profile.id}
+          displayName={displayName}
+          workingList={workingListContacts}
+          stats={stats}
         />
       </div>
     </>
