@@ -1,31 +1,13 @@
 import { auth, currentUser } from '@clerk/nextjs/server'
 import { redirect } from 'next/navigation'
 import { ensureProfile } from '@/lib/profile'
-import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { getUnreadInboxCount } from '@/lib/actions/inbox'
-import {
-  LayoutDashboard,
-  Users,
-  GitBranch,
-  Inbox,
-  Settings,
-} from 'lucide-react'
 import Link from 'next/link'
 import BottomNav from './components/BottomNav'
+import SidebarNavLinks from './components/SidebarNavLinks'
 
 // ---------------------------------------------------------------------------
-// Nav items shared by both layouts
-// ---------------------------------------------------------------------------
-const NAV_ITEMS = [
-  { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-  { href: '/contacts', label: 'Contacts', icon: Users },
-  { href: '/pipeline', label: 'Pipeline', icon: GitBranch },
-  { href: '/inbox', label: 'Inbox', icon: Inbox },
-  { href: '/settings', label: 'Settings', icon: Settings },
-] as const
-
-// ---------------------------------------------------------------------------
-// SidebarNav — RSC, no active state needed (server-rendered per request)
+// SidebarNav — RSC shell; nav links delegate to SidebarNavLinks (client)
 // ---------------------------------------------------------------------------
 function SidebarNav({ inboxUnreadCount }: { inboxUnreadCount: number }) {
   return (
@@ -37,26 +19,7 @@ function SidebarNav({ inboxUnreadCount }: { inboxUnreadCount: number }) {
         FollowThrough
       </span>
 
-      {NAV_ITEMS.map(({ href, label, icon: Icon }) => {
-        const showBadge = label === 'Inbox' && inboxUnreadCount > 0
-        return (
-          <Link
-            key={href}
-            href={href}
-            className="flex items-center justify-between rounded-lg px-3 py-2.5 text-sm font-medium text-muted-foreground hover:bg-muted hover:text-primary transition-colors"
-          >
-            <div className="flex items-center gap-3">
-              <Icon className="h-4 w-4 shrink-0" aria-hidden="true" />
-              <span>{label}</span>
-            </div>
-            {showBadge && (
-              <span className="inline-flex items-center justify-center bg-destructive/10 border border-destructive/20 font-extrabold text-[10px] text-destructive rounded-full h-5 px-1.5 leading-none shrink-0">
-                {inboxUnreadCount}
-              </span>
-            )}
-          </Link>
-        )
-      })}
+      <SidebarNavLinks inboxUnreadCount={inboxUnreadCount} />
     </nav>
   )
 }
@@ -91,7 +54,7 @@ export default async function AppLayout({
 
   return (
     <div className="flex h-screen overflow-hidden bg-background">
-      {/* Desktop Sidebar — RSC */}
+      {/* Desktop Sidebar — RSC shell, client nav links */}
       <SidebarNav inboxUnreadCount={unreadInboxCount} />
 
       <div className="flex flex-col flex-1 min-w-0">
