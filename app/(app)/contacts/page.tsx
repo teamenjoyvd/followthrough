@@ -6,6 +6,8 @@ import { createSupabaseServerClient } from '@/lib/supabase/server'
 import ContactsDesktop from './components/ContactsDesktop'
 import ContactsMobile from './components/ContactsMobile'
 import { PIPELINE_STATUSES } from './components/PipelineStatusControl'
+import { ContactFilterBar } from '@/components/ContactFilterBar'
+import { FilterShortcuts } from '@/components/FilterShortcuts'
 import type { Database } from '@/types/supabase'
 
 type PipelineStatus = Database['public']['Enums']['pipeline_status']
@@ -14,11 +16,20 @@ type SortDir = 'asc' | 'desc'
 
 const VALID_SORT_KEYS: SortKey[] = ['first_name', 'company', 'pipeline_status', 'last_contacted_at']
 
+const LAST_CONTACTED_DAYS: Record<string, number> = {
+  '7d': 7,
+  '14d': 14,
+  '30d': 30,
+  '90d': 90,
+}
+
 interface SearchParams {
   q?: string
   status?: string
   sort?: string
   dir?: string
+  last_contacted?: string
+  company?: string
 }
 
 export const dynamic = 'force-dynamic'
@@ -39,6 +50,8 @@ export default async function ContactsPage({
   const params = await searchParams
   const query = (params.q ?? '').trim()
   const statusFilter = (params.status ?? '') as PipelineStatus | ''
+  const lastContactedFilter = params.last_contacted ?? ''
+  const companyFilter = (params.company ?? '').trim()
   const sortKey: SortKey = VALID_SORT_KEYS.includes(params.sort as SortKey)
     ? (params.sort as SortKey)
     : 'first_name'
@@ -46,7 +59,6 @@ export default async function ContactsPage({
 
   const supabase = await createSupabaseServerClient()
 
-  // Resolve profile id
   const { data: profile } = await (supabase as any)
     .from('profiles')
     .select('id')
@@ -55,7 +67,6 @@ export default async function ContactsPage({
 
   if (!profile) redirect('/sign-in')
 
-  // Build query
   let dbQuery = supabase
     .from('contacts')
     .select('*')
@@ -73,7 +84,21 @@ export default async function ContactsPage({
     )
   }
 
+  if (companyFilter) {
+    const safeCompany = companyFilter.replace(/"/g, '""')
+    dbQuery = dbQuery.ilike('company', `%${safeCompany}%`)
+  }
+
+  if (lastContactedFilter && LAST_CONTACTED_DAYS[lastContactedFilter]) {
+    const days = LAST_CONTACTED_DAYS[lastContactedFilter]
+    const cutoff = new Date()
+    cutoff.setDate(cutoff.getDate() - days)
+    dbQuery = dbQuery.gte('last_contacted_at', cutoff.toISOString())
+  }
+
   const { data: contacts = [] } = await dbQuery
+
+  const activeFilterCount = [statusFilter, lastContactedFilter, companyFilter].filter(Boolean).length
 
   return (
     <div className="flex flex-col h-full">
@@ -90,11 +115,13 @@ export default async function ContactsPage({
         </Link>
       </div>
 
-      {/* Search + Filter */}
+      {/* Search + Filters */}
       <div className="px-4 md:px-6 py-3 bg-white border-b border-gray-100 space-y-3">
         {/* Search input */}
         <form method="GET">
           {statusFilter && <input type="hidden" name="status" value={statusFilter} />}
+          {lastContactedFilter && <input type="hidden" name="last_contacted" value={lastContactedFilter} />}
+          {companyFilter && <input type="hidden" name="company" value={companyFilter} />}
           <input
             id="contact-search"
             type="search"
@@ -105,38 +132,17 @@ export default async function ContactsPage({
           />
         </form>
 
-        {/* Pipeline status filter chips */}
-        <div className="flex flex-wrap gap-2" role="group" aria-label="Filter by pipeline status">
-          <Link
-            href={query ? `/contacts?q=${encodeURIComponent(query)}` : '/contacts'}
-            id="filter-all"
-            className={`px-3 py-1 rounded-full text-xs font-medium border transition-colors ${
-              !statusFilter
-                ? 'bg-gray-900 text-white border-gray-900'
-                : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300'
-            }`}
-          >
-            All
-          </Link>
-          {PIPELINE_STATUSES.map(({ value, label, color }) => {
-            const isActive = statusFilter === value
-            const href = query
-              ? `/contacts?q=${encodeURIComponent(query)}&status=${value}`
-              : `/contacts?status=${value}`
-            return (
-              <Link
-                key={value}
-                href={href}
-                id={`filter-${value}`}
-                className={`px-3 py-1 rounded-full text-xs font-medium border transition-colors ${
-                  isActive ? color : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300'
-                }`}
-              >
-                {label}
-              </Link>
-            )
-          })}
-        </div>
+        {/* Filter bar (client component for dropdowns/inputs) */}
+        <ContactFilterBar
+          currentStatus={statusFilter}
+          currentLastContacted={lastContactedFilter}
+          currentCompany={companyFilter}
+          currentQuery={query}
+          basePath="/contacts"
+        />
+
+        {/* Shortcuts */}
+        <FilterShortcuts />
       </div>
 
       {/* Contact list */}
@@ -149,7 +155,9 @@ export default async function ContactsPage({
       <div className="px-4 md:px-6 py-2 border-t border-gray-100 bg-white">
         <p className="text-xs text-gray-400">
           {contacts?.length ?? 0} contact{contacts?.length !== 1 ? 's' : ''}
-          {statusFilter ? ` · filtered by ${PIPELINE_STATUSES.find(s => s.value === statusFilter)?.label}` : ''}
+          {statusFilter ? ` · ${PIPELINE_STATUSES.find(s => s.value === statusFilter)?.label}` : ''}
+          {lastContactedFilter ? ` · last contacted ${lastContactedFilter}` : ''}
+          {companyFilter ? ` · company "${companyFilter}"` : ''}
           {query ? ` · matching "${query}"` : ''}
         </p>
       </div>
