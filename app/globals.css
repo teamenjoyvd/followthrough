@@ -2,6 +2,65 @@
 @tailwind components;
 @tailwind utilities;
 
-:root {
-  /* Add design tokens here */
+@layer base {
+  :root {
+    /* ── Terra Design System — "Rooted Warmth" ─────────────────────────────── */
+    /* Primary: Forest Green #4a7c59 → hsl(142 25% 39%) */
+    --primary: 142 25% 39%;
+    --primary-foreground: 0 0% 100%;
+
+    /* Background: Warm Cream #faf6f0 → hsl(36 43% 97%) */
+    --background: 36 43% 97%;
+    --foreground: 150 5% 18%;
+
+    /* Card / Popover: surface-container #f0ece4 → hsl(40 18% 91%) */
+    --card: 40 18% 91%;
+    --card-foreground: 150 5% 18%;
+    --popover: 40 18% 91%;
+    --popover-foreground: 150 5% 18%;
+
+    /* Secondary: warm neutral #6b6358 → hsl(34 8% 38%) */
+    --secondary: 34 8% 38%;
+    --secondary-foreground: 0 0% 100%;
+
+    /* Muted: surface-container-low #f5f1ea → hsl(40 22% 94%) */
+    --muted: 40 22% 94%;
+    --muted-foreground: 144 4% 30%;
+
+    /* Accent: tertiary-fixed #f8e0a8 → hsl(42 88% 82%) */
+    --accent: 42 88% 82%;
+    --accent-foreground: 34 57% 24%;
+
+    /* Destructive: error #b83230 → hsl(1 57% 45%) */
+    --destructive: 1 57% 45%;
+    --destructive-foreground: 0 0% 100%;
+
+    /* Border / Input / Ring */
+    --border: 82 8% 75%;
+    --input: 40 22% 94%;
+    --ring: 142 25% 39%;
+
+    /* Radius — Terra uses 12px as dominant value */
+    --radius: 0.75rem;
+
+    /* Font families */
+    --font-headline: var(--font-literata), Georgia, serif;
+    --font-body: var(--font-nunito-sans), system-ui, sans-serif;
+  }
+
+  /* No dark mode tokens for this ticket — Terra is light-only */
+
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    font-family: var(--font-body);
+    line-height: 1.6;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-headline);
+  }
 }

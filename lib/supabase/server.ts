@@ -1,6 +1,6 @@
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
-import type { Database } from '@/types/supabase'
+import type { Database } from '../../types/supabase'
 
 type CookieToSet = { name: string; value: string; options?: Record<string, unknown> }
 
@@ -50,4 +50,16 @@ export async function createSupabaseServiceClient() {
       },
     }
   )
+}
+
+export async function getProfileId(
+  supabase: any,
+  userId: string,
+): Promise<string | null> {
+  const { data } = await supabase
+    .from('profiles')
+    .select('id')
+    .eq('clerk_id', userId)
+    .maybeSingle()
+  return data?.id ?? null
 }
