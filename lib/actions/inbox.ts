@@ -59,3 +59,40 @@ export async function getUnreadInboxCount(profileId: string): Promise<number> {
   if (error) return 0
   return count ?? 0
 }
+
+// ---------------------------------------------------------------------------
+// getInboxItems
+// ---------------------------------------------------------------------------
+
+export interface PopulatedInboxItem {
+  id: string
+  type: 'resurfaced' | 'working_list_changed' | 'sync_conflict'
+  contact_id: string | null
+  payload: Record<string, any>
+  read: boolean
+  created_at: string
+  contacts: {
+    first_name: string
+    last_name: string | null
+    company: string | null
+    pipeline_status: string
+  } | null
+}
+
+export async function getInboxItems(profileId: string): Promise<PopulatedInboxItem[]> {
+  const supabase = await createSupabaseServerClient()
+
+  const { data, error } = await (supabase as any)
+    .from('inbox_items')
+    .select('*, contacts(first_name, last_name, company, pipeline_status)')
+    .eq('profile_id', profileId)
+    .order('created_at', { ascending: false })
+
+  if (error) {
+    console.error('Failed to fetch inbox items:', error)
+    return []
+  }
+
+  return (data || []) as PopulatedInboxItem[]
+}
+

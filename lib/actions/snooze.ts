@@ -61,3 +61,73 @@ export async function snoozeContact(
   revalidatePath(`/contacts/${contactId}`)
   return { success: true }
 }
+
+// ---------------------------------------------------------------------------
+// checkResurfaced
+// Checks for any contacts where status is 'snoozed' and the snooze has expired
+// (snoozed_until <= today). Restores their pre_snooze_status and generates
+// a 'resurfaced' inbox notification.
+// ---------------------------------------------------------------------------
+
+export async function checkResurfaced(
+  profileId: string,
+): Promise<{ success: true; count: number } | { error: string }> {
+  const supabase = await createSupabaseServerClient()
+  const todayStr = new Date().toISOString().split('T')[0] // YYYY-MM-DD
+
+  const { data: contacts, error: fetchError } = await (supabase as any)
+    .from('contacts')
+    .select('id, pre_snooze_status')
+    .eq('profile_id', profileId)
+    .eq('pipeline_status', 'snoozed')
+    .lte('snoozed_until', todayStr)
+
+  if (fetchError) {
+    return { error: fetchError.message || 'Failed to fetch expired snoozed contacts' }
+  }
+
+  if (!contacts || contacts.length === 0) {
+    return { success: true, count: 0 }
+  }
+
+  // Update contacts and insert inbox notifications
+  for (const contact of contacts) {
+    const fallbackStatus = 'lead'
+    const nextStatus = contact.pre_snooze_status || fallbackStatus
+
+    const { error: updateError } = await (supabase as any)
+      .from('contacts')
+      .update({
+        pipeline_status: nextStatus,
+        snoozed_until: null,
+        pre_snooze_status: null,
+      })
+      .eq('id', contact.id)
+      .eq('profile_id', profileId)
+
+    if (updateError) {
+      console.error(`Failed to resurface contact ${contact.id}:`, updateError.message)
+      continue
+    }
+
+    // Emit a 'resurfaced' notification item in the inbox
+    const { error: inboxError } = await (supabase as any)
+      .from('inbox_items')
+      .insert({
+        profile_id: profileId,
+        type: 'resurfaced',
+        contact_id: contact.id,
+        payload: { previous_status: contact.pre_snooze_status || null },
+        read: false,
+      })
+
+    if (inboxError) {
+      console.error(`Failed to create inbox item for resurfaced contact ${contact.id}:`, inboxError.message)
+    }
+  }
+
+  revalidatePath('/dashboard')
+  revalidatePath('/inbox')
+  return { success: true, count: contacts.length }
+}
+
