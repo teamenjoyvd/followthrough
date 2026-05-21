@@ -1,5 +1,3 @@
-'use server'
-
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { detectConflicts } from './conflict'
 import type { Database } from '@/types/supabase'
