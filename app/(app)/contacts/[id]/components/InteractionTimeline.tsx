@@ -1,3 +1,6 @@
+'use client'
+
+import { useTransition } from 'react'
 import { formatDistanceToNow } from 'date-fns'
 import { Phone, Mail, FileText, Trash2 } from 'lucide-react'
 import { deleteInteraction } from '@/lib/actions/interactions'
@@ -52,28 +55,30 @@ function InteractionDetail({ interaction }: { interaction: InteractionWithDetail
   return null
 }
 
-async function DeleteButton({
+function DeleteButton({
   interactionId,
   contactId,
 }: {
   interactionId: string
   contactId: string
 }) {
-  async function handleDelete() {
-    'use server'
-    await deleteInteraction(interactionId, contactId)
+  const [isPending, startTransition] = useTransition()
+
+  const handleDelete = () => {
+    startTransition(async () => {
+      await deleteInteraction(interactionId, contactId)
+    })
   }
 
   return (
-    <form action={handleDelete}>
-      <button
-        type="submit"
-        className="opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive"
-        aria-label="Delete interaction"
-      >
-        <Trash2 className="h-3.5 w-3.5" />
-      </button>
-    </form>
+    <button
+      onClick={handleDelete}
+      disabled={isPending}
+      className="opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive disabled:opacity-50"
+      aria-label="Delete interaction"
+    >
+      <Trash2 className="h-3.5 w-3.5" />
+    </button>
   )
 }
 

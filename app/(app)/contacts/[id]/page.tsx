@@ -1,10 +1,13 @@
 import { auth } from '@clerk/nextjs/server'
-import { redirect } from 'next/navigation'
+import { redirect, notFound } from 'next/navigation'
+import Link from 'next/link'
+import { ArrowLeft } from 'lucide-react'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import ContactDetailDesktop from './components/ContactDetailDesktop'
 import ContactDetailMobile from './components/ContactDetailMobile'
 import DeleteContactButton from './components/DeleteContactButton'
-import type { ContactSummary, InteractionWithDetails } from './components/types'
+import { getContactForUser } from '@/lib/contacts-data'
+import type { InteractionWithDetails } from './components/types'
 
 interface Props {
   params: Promise<{ id: string }>
@@ -17,25 +20,11 @@ export async function generateMetadata({ params }: Props) {
   const { userId } = await auth()
   if (!userId) return { title: 'Contact — Followthrough' }
 
-  const supabase = await createSupabaseServerClient()
-  const { data: profile } = await (supabase as any)
-    .from('profiles')
-    .select('id')
-    .eq('clerk_id', userId)
-    .single()
-  if (!profile) return { title: 'Contact — Followthrough' }
-
-  const { data: contact } = await (supabase as any)
-    .from('contacts')
-    .select('first_name, last_name')
-    .eq('id', id)
-    .eq('profile_id', (profile as { id: string }).id)
-    .single()
+  const contact = await getContactForUser(id, userId)
   if (!contact) return { title: 'Contact — Followthrough' }
 
-  const c = contact as { first_name: string; last_name: string | null }
   return {
-    title: `${c.first_name} ${c.last_name ?? ''} — Followthrough`.trim(),
+    title: `${contact.first_name} ${contact.last_name ?? ''} — Followthrough`.trim(),
   }
 }
 
@@ -44,27 +33,19 @@ export default async function ContactDetailPage({ params }: Props) {
   if (!userId) redirect('/sign-in')
 
   const { id } = await params
+  const contact = await getContactForUser(id, userId)
 
+  if (!contact) notFound()
+
+  // Resolve profileId for server actions in child components
   const supabase = await createSupabaseServerClient()
-
   const { data: profile } = await (supabase as any)
     .from('profiles')
     .select('id')
     .eq('clerk_id', userId)
-    .single()
+    .maybeSingle() as { data: { id: string } | null }
 
-  if (!profile) redirect('/sign-in')
-
-  const profileId = (profile as { id: string }).id
-
-  const { data: contact } = await (supabase as any)
-    .from('contacts')
-    .select('id, first_name, last_name, company, job_title, email, last_contacted_at, pipeline_status')
-    .eq('id', id)
-    .eq('profile_id', profileId)
-    .single()
-
-  if (!contact) redirect('/contacts')
+  const profileId = profile?.id ?? ''
 
   const { data: interactions } = await (supabase as any)
     .from('interactions')
@@ -79,23 +60,34 @@ export default async function ContactDetailPage({ params }: Props) {
     .order('occurred_at', { ascending: false })
 
   const props = {
-    contact: contact as ContactSummary,
+    contact,
     interactions: (interactions ?? []) as InteractionWithDetails[],
     profileId,
   }
 
   return (
-    <div className="flex flex-col h-full">
-      <div className="flex items-center justify-between px-4 md:px-6 py-4 border-b border-gray-200 bg-white">
-        <h1 className="text-base font-semibold text-gray-900 truncate">
-          {props.contact.first_name} {props.contact.last_name}
-        </h1>
+    <div className="flex flex-col h-full bg-slate-50">
+      {/* Header */}
+      <div className="flex items-center justify-between px-4 md:px-6 py-4 border-b border-gray-200 bg-white shadow-sm shrink-0">
+        <div className="flex items-center gap-3">
+          <Link
+            href="/contacts"
+            className="inline-flex items-center justify-center h-8 w-8 rounded-md text-gray-500 hover:bg-gray-100 hover:text-gray-700 transition-colors"
+            aria-label="Back to contacts"
+          >
+            <ArrowLeft className="h-4 w-4" />
+          </Link>
+          <h1 className="text-base font-semibold text-gray-900 truncate">
+            {contact.first_name} {contact.last_name}
+          </h1>
+        </div>
         <DeleteContactButton
-          contactId={props.contact.id}
-          contactName={`${props.contact.first_name} ${props.contact.last_name ?? ''}`.trim()}
+          contactId={contact.id}
+          contactName={`${contact.first_name} ${contact.last_name ?? ''}`.trim()}
         />
       </div>
 
+      {/* Dual layout */}
       <div className="flex-1 overflow-hidden">
         <div className="hidden md:block h-full">
           <ContactDetailDesktop {...props} />

@@ -18,8 +18,10 @@ export type ContactSummary = Pick<
   'id' | 'first_name' | 'last_name' | 'company' | 'job_title' | 'email' | 'last_contacted_at' | 'pipeline_status'
 >
 
+import type { ContactDetail } from '@/lib/contacts-data'
+
 export interface ContactDetailProps {
-  contact: ContactSummary
+  contact: ContactDetail
   interactions: InteractionWithDetails[]
   profileId: string
 }
