@@ -1,8 +1,9 @@
-import { auth } from '@clerk/nextjs/server'
+import { auth, currentUser } from '@clerk/nextjs/server'
 import { redirect } from 'next/navigation'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { checkResurfaced } from '@/lib/actions/snooze'
 import { getUnreadInboxCount } from '@/lib/actions/inbox'
+import { ensureProfile } from '@/lib/profile'
 import DashboardDesktop from './components/DashboardDesktop'
 import DashboardMobile from './components/DashboardMobile'
 import type { Database } from '@/types/supabase'
@@ -20,11 +21,23 @@ export default async function DashboardPage() {
   const { userId, sessionClaims } = await auth()
   if (!userId) redirect('/sign-in')
 
-  // Resolve first name from JWT claims — no extra Clerk API call needed
-  const fullName =
-    (sessionClaims?.name as string) ||
-    (sessionClaims?.full_name as string) ||
-    ''
+  // Resolve email and full display name for profile provisioning
+  let email = (sessionClaims?.email as string) || (sessionClaims?.primary_email as string) || ''
+  let fullName = (sessionClaims?.name as string) || (sessionClaims?.full_name as string) || ''
+
+  if (!email || !fullName) {
+    const user = await currentUser()
+    email = email || (user?.emailAddresses?.[0]?.emailAddress ?? '')
+    fullName =
+      fullName ||
+      [user?.firstName, user?.lastName].filter(Boolean).join(' ') ||
+      email ||
+      userId
+  }
+
+  // Ensure the profile exists in Supabase before querying it
+  await ensureProfile(userId, email, fullName)
+
   const displayName = fullName.split(' ')[0] || 'there'
 
   const supabase = await createSupabaseServerClient()
