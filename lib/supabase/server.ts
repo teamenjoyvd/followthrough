@@ -1,6 +1,6 @@
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
-import type { Database } from '@/types/supabase'
+import type { Database } from '../../types/supabase'
 
 type CookieToSet = { name: string; value: string; options?: Record<string, unknown> }
 
