@@ -63,4 +63,3 @@ export async function getProfileId(
     .maybeSingle()
   return data?.id ?? null
 }
-
