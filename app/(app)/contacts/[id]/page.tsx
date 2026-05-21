@@ -6,6 +6,7 @@ import ContactDetailDesktop from './components/ContactDetailDesktop'
 import ContactDetailMobile from './components/ContactDetailMobile'
 import DeleteContactButton from './components/DeleteContactButton'
 import { getContactForUser } from '@/lib/contacts-data'
+import { createSupabaseServerClient } from '@/lib/supabase/server'
 
 interface Props {
   params: Promise<{ id: string }>
@@ -35,6 +36,16 @@ export default async function ContactDetailPage({ params }: Props) {
 
   if (!contact) notFound()
 
+  // Resolve profileId for server actions in child components
+  const supabase = await createSupabaseServerClient()
+  const { data: profile } = await (supabase as any)
+    .from('profiles')
+    .select('id')
+    .eq('clerk_id', userId)
+    .maybeSingle() as { data: { id: string } | null }
+
+  const profileId = profile?.id ?? ''
+
   return (
     <div className="flex flex-col h-full">
       {/* Header */}
@@ -56,8 +67,8 @@ export default async function ContactDetailPage({ params }: Props) {
 
       {/* Dual layout */}
       <div className="flex-1 overflow-hidden">
-        <ContactDetailDesktop contact={contact} />
-        <ContactDetailMobile contact={contact} />
+        <ContactDetailDesktop contact={contact} profileId={profileId} />
+        <ContactDetailMobile contact={contact} profileId={profileId} />
       </div>
     </div>
   )
