@@ -1,7 +1,8 @@
 'use client'
 
-import { useRouter, useSearchParams, usePathname } from 'next/navigation'
+import { useRouter } from 'next/navigation'
 import { useCallback } from 'react'
+import Link from 'next/link'
 import { X } from 'lucide-react'
 import { PIPELINE_STATUSES } from '@/app/(app)/contacts/components/PipelineStatusControl'
 import type { Database } from '@/types/supabase'
@@ -32,8 +33,6 @@ export function ContactFilterBar({
   basePath,
 }: Props) {
   const router = useRouter()
-  const pathname = usePathname()
-  const searchParams = useSearchParams()
 
   const buildHref = useCallback(
     (overrides: Record<string, string>) => {
@@ -60,7 +59,7 @@ export function ContactFilterBar({
     <div className="flex flex-col gap-2">
       {/* Status chips */}
       <div className="flex flex-wrap gap-1.5" role="group" aria-label="Filter by pipeline status">
-        <a
+        <Link
           href={buildHref({ status: '' })}
           className={`px-3 py-1 rounded-full text-xs font-medium border transition-colors ${
             !currentStatus
@@ -69,9 +68,9 @@ export function ContactFilterBar({
           }`}
         >
           All
-        </a>
+        </Link>
         {PIPELINE_STATUSES.map(({ value, label, color }) => (
-          <a
+          <Link
             key={value}
             href={buildHref({ status: value })}
             className={`px-3 py-1 rounded-full text-xs font-medium border transition-colors ${
@@ -81,7 +80,7 @@ export function ContactFilterBar({
             }`}
           >
             {label}
-          </a>
+          </Link>
         ))}
       </div>
 
@@ -101,7 +100,7 @@ export function ContactFilterBar({
           ))}
         </select>
 
-        {/* Company search */}
+        {/* Company search — Enter key to apply */}
         <input
           type="search"
           placeholder="Filter by company…"
@@ -111,24 +110,19 @@ export function ContactFilterBar({
               router.push(buildHref({ company: (e.target as HTMLInputElement).value }))
             }
           }}
-          onBlur={(e) => {
-            if (e.target.value !== currentCompany) {
-              router.push(buildHref({ company: e.target.value }))
-            }
-          }}
           className="text-xs border border-gray-200 rounded-md px-2 py-1.5 bg-white text-gray-700 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 w-40"
           aria-label="Filter by company"
         />
 
         {/* Clear all */}
         {hasActiveFilters && (
-          <a
+          <Link
             href={currentQuery ? `${basePath}?q=${encodeURIComponent(currentQuery)}` : basePath}
             className="inline-flex items-center gap-1 text-xs text-gray-500 hover:text-gray-800 transition-colors"
           >
             <X className="h-3 w-3" />
             Clear filters
-          </a>
+          </Link>
         )}
       </div>
     </div>

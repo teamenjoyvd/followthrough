@@ -49,7 +49,8 @@ export default async function ContactsPage({
 
   const params = await searchParams
   const query = (params.q ?? '').trim()
-  const statusFilter = (params.status ?? '') as PipelineStatus | ''
+  // Validate status against known values to prevent invalid DB queries
+  const statusFilter = (PIPELINE_STATUSES.some(s => s.value === params.status) ? params.status : '') as PipelineStatus | ''
   const lastContactedFilter = params.last_contacted ?? ''
   const companyFilter = (params.company ?? '').trim()
   const sortKey: SortKey = VALID_SORT_KEYS.includes(params.sort as SortKey)
@@ -93,7 +94,10 @@ export default async function ContactsPage({
     const days = LAST_CONTACTED_DAYS[lastContactedFilter]
     const cutoff = new Date()
     cutoff.setDate(cutoff.getDate() - days)
-    dbQuery = dbQuery.gte('last_contacted_at', cutoff.toISOString())
+    // "Not contacted in Xd" = last_contacted_at is older than cutoff OR null (never contacted)
+    dbQuery = dbQuery.or(
+      `last_contacted_at.lte.${cutoff.toISOString()},last_contacted_at.is.null`
+    )
   }
 
   const { data: contacts = [] } = await dbQuery
@@ -156,7 +160,7 @@ export default async function ContactsPage({
         <p className="text-xs text-gray-400">
           {contacts?.length ?? 0} contact{contacts?.length !== 1 ? 's' : ''}
           {statusFilter ? ` · ${PIPELINE_STATUSES.find(s => s.value === statusFilter)?.label}` : ''}
-          {lastContactedFilter ? ` · last contacted ${lastContactedFilter}` : ''}
+          {lastContactedFilter ? ` · not contacted in ${lastContactedFilter}` : ''}
           {companyFilter ? ` · company "${companyFilter}"` : ''}
           {query ? ` · matching "${query}"` : ''}
         </p>

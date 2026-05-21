@@ -1,6 +1,6 @@
 'use client'
 
-import { useTransition } from 'react'
+import { useState, useTransition } from 'react'
 import Link from 'next/link'
 import { moveContact } from '@/lib/actions/pipeline'
 import { PIPELINE_STATUSES } from '@/app/(app)/contacts/components/PipelineStatusControl'
@@ -20,15 +20,19 @@ interface Props {
 function ContactRow({
   contact,
   profileId,
+  onStatusChange,
 }: {
   contact: Contact
   profileId: string
+  onStatusChange: (contactId: string, newStatus: PipelineStatus) => void
 }) {
   const [isPending, startTransition] = useTransition()
   const fullName = [contact.first_name, contact.last_name].filter(Boolean).join(' ')
   const statusMeta = PIPELINE_STATUSES.find((s) => s.value === contact.pipeline_status)
 
   function handleStatusChange(newStatus: PipelineStatus) {
+    // Optimistic update first, then fire server action
+    onStatusChange(contact.id, newStatus)
     startTransition(async () => {
       await moveContact(contact.id, newStatus, profileId)
     })
@@ -63,9 +67,17 @@ function ContactRow({
 }
 
 export function PipelineList({ contacts, profileId }: Props) {
+  const [items, setItems] = useState<Contact[]>(contacts)
+
+  function handleStatusChange(contactId: string, newStatus: PipelineStatus) {
+    setItems((prev) =>
+      prev.map((c) => (c.id === contactId ? { ...c, pipeline_status: newStatus } : c)),
+    )
+  }
+
   const grouped = PIPELINE_STATUSES.reduce<Record<PipelineStatus, Contact[]>>(
     (acc, { value }) => {
-      acc[value] = contacts.filter((c) => c.pipeline_status === value)
+      acc[value] = items.filter((c) => c.pipeline_status === value)
       return acc
     },
     {} as Record<PipelineStatus, Contact[]>,
@@ -84,7 +96,12 @@ export function PipelineList({ contacts, profileId }: Props) {
               </span>
             </div>
             {group.map((contact) => (
-              <ContactRow key={contact.id} contact={contact} profileId={profileId} />
+              <ContactRow
+                key={contact.id}
+                contact={contact}
+                profileId={profileId}
+                onStatusChange={handleStatusChange}
+              />
             ))}
           </section>
         )

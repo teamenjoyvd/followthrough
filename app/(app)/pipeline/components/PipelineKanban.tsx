@@ -151,7 +151,8 @@ export function PipelineKanban({ contacts, profileId }: Props) {
       onDragOver={handleDragOver}
       onDragEnd={handleDragEnd}
     >
-      <div className={`flex gap-3 p-4 overflow-x-auto h-full ${isPending ? 'opacity-70 pointer-events-none' : ''}`}>
+      {/* opacity-70 indicates background save; pointer-events kept so user can scroll */}
+      <div className={`flex gap-3 p-4 overflow-x-auto h-full ${isPending ? 'opacity-70' : ''}`}>
         {PIPELINE_STATUSES.map(({ value, label, color }) => (
           <div
             key={value}
