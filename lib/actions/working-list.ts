@@ -18,7 +18,7 @@ export async function addToWorkingList(
   const profileId = await getProfileId(supabase, userId)
   if (!profileId) return { error: 'Profile not found' }
 
-  const { error } = await supabase
+  const { error } = await (supabase as any)
     .from('contacts')
     .update({ on_working_list: true, working_list_added_at: new Date().toISOString() })
     .eq('id', contactId)
@@ -28,7 +28,7 @@ export async function addToWorkingList(
   if (error) return { error: error.message || 'Failed to add to working list' }
 
   // Emit inbox item
-  await supabase.from('inbox_items').insert({
+  await (supabase as any).from('inbox_items').insert({
     profile_id: profileId,
     type: 'working_list_changed',
     contact_id: contactId,
@@ -55,7 +55,7 @@ export async function removeFromWorkingList(
   const profileId = await getProfileId(supabase, userId)
   if (!profileId) return { error: 'Profile not found' }
 
-  const { error } = await supabase
+  const { error } = await (supabase as any)
     .from('contacts')
     .update({ on_working_list: false, working_list_added_at: null })
     .eq('id', contactId)
@@ -84,7 +84,7 @@ export async function markDone(
   if (!profileId) return { error: 'Profile not found' }
 
   // Insert a note interaction to record the completion
-  const { data: interaction, error: interactionError } = await supabase
+  const { data: interaction, error: interactionError } = await (supabase as any)
     .from('interactions')
     .insert({ contact_id: contactId, profile_id: profileId, type: 'note' })
     .select('id')
@@ -92,13 +92,13 @@ export async function markDone(
 
   if (interactionError) return { error: interactionError.message || 'Failed to log completion' }
 
-  await supabase.from('note_details').insert({
+  await (supabase as any).from('note_details').insert({
     interaction_id: interaction.id,
     body: 'Marked done from working list',
   })
 
   // Remove from working list
-  await supabase
+  await (supabase as any)
     .from('contacts')
     .update({ on_working_list: false, working_list_added_at: null })
     .eq('id', contactId)
