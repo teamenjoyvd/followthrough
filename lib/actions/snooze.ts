@@ -22,7 +22,7 @@ export async function snoozeContact(
   if (!profileId) return { error: 'Profile not found' }
 
   // Read current status to store before overwriting
-  const { data: contact, error: readError } = await (supabase as any)
+  const { data: contact, error: readError } = await supabase
     .from('contacts')
     .select('pipeline_status')
     .eq('id', contactId)
@@ -31,7 +31,7 @@ export async function snoozeContact(
 
   if (readError || !contact) return { error: 'Contact not found' }
 
-  const { error } = await (supabase as any)
+  const { error } = await supabase
     .from('contacts')
     .update({
       pre_snooze_status: contact.pipeline_status,
@@ -67,7 +67,7 @@ export async function checkResurfaced(): Promise<{ success: true; count: number 
 
   const todayStr = new Date().toISOString().split('T')[0] // YYYY-MM-DD
 
-  const { data: contacts, error: fetchError } = await (supabase as any)
+  const { data: contacts, error: fetchError } = await supabase
     .from('contacts')
     .select('id, pre_snooze_status')
     .eq('profile_id', profileId)
@@ -87,7 +87,7 @@ export async function checkResurfaced(): Promise<{ success: true; count: number 
     const fallbackStatus = 'lead'
     const nextStatus = contact.pre_snooze_status || fallbackStatus
 
-    const { error: updateError } = await (supabase as any)
+    const { error: updateError } = await supabase
       .from('contacts')
       .update({
         pipeline_status: nextStatus,
@@ -103,7 +103,7 @@ export async function checkResurfaced(): Promise<{ success: true; count: number 
     }
 
     // Emit a 'resurfaced' notification item in the inbox
-    const { error: inboxError } = await (supabase as any)
+    const { error: inboxError } = await supabase
       .from('inbox_items')
       .insert({
         profile_id: profileId,
@@ -122,4 +122,3 @@ export async function checkResurfaced(): Promise<{ success: true; count: number 
   revalidatePath('/inbox')
   return { success: true, count: contacts.length }
 }
-

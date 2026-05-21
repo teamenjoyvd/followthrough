@@ -19,7 +19,7 @@ export async function markInboxItemRead(
   const profileId = await getProfileId(supabase, userId)
   if (!profileId) return { error: 'Profile not found' }
 
-  const { error } = await (supabase as any)
+  const { error } = await supabase
     .from('inbox_items')
     .update({ read: true })
     .eq('id', itemId)
@@ -44,7 +44,7 @@ export async function getUnreadInboxCount(): Promise<number> {
   const profileId = await getProfileId(supabase, userId)
   if (!profileId) return 0
 
-  const { count, error } = await (supabase as any)
+  const { count, error } = await supabase
     .from('inbox_items')
     .select('id', { count: 'exact', head: true })
     .eq('profile_id', profileId)
@@ -66,7 +66,7 @@ export async function getInboxItems(): Promise<PopulatedInboxItem[]> {
   const profileId = await getProfileId(supabase, userId)
   if (!profileId) return []
 
-  const { data, error } = await (supabase as any)
+  const { data, error } = await supabase
     .from('inbox_items')
     .select('*, contacts(first_name, last_name, company, pipeline_status)')
     .eq('profile_id', profileId)
@@ -79,4 +79,3 @@ export async function getInboxItems(): Promise<PopulatedInboxItem[]> {
 
   return (data || []) as PopulatedInboxItem[]
 }
-
