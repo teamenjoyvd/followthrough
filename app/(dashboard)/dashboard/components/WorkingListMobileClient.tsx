@@ -7,40 +7,9 @@ import { CheckCircle2, Clock, Trash2, Mail, Phone, Calendar } from 'lucide-react
 import { markDone, removeFromWorkingList } from '@/lib/actions/working-list'
 import { snoozeContact } from '@/lib/actions/snooze'
 import type { Database } from '@/types/supabase'
+import { getInitials, getAvatarUrl, getContactDescription, getPreferredContactMethods, formatRelativeTime } from '@/lib/utils/dashboard'
 
 type Contact = Database['public']['Tables']['contacts']['Row']
-
-function getInitials(first: string, last: string | null) {
-  return `${first[0] || ''}${last ? last[0] || '' : ''}`.toUpperCase()
-}
-
-// Custom mock avatar matching Image 2 for high fidelity seeding
-function getAvatarUrl(firstName: string, lastName: string | null) {
-  const first = firstName.toLowerCase().trim()
-  const last = (lastName || '').toLowerCase().trim()
-  if (first === 'marcus' || (first === 'marcus' && last.startsWith('thorne'))) {
-    return 'https://lh3.googleusercontent.com/aida-public/AB6AXuAwQwIvivkauD3UBt9MGdMBo5Dk5HU6mW4rkrElMqduJql-TVXVfqqrfsY9E08D-R7cK0xWZsQQbukKZB9V9E3ZDmVQVCX734dXJe9BlCrR9UUeF2TYuFfg4DiV8tMEoe0Y0WZsDT7UM5STOAF-vjcwY2DVllZMBKcQqHc4iOj2h2vZT3G_Zc83qOF2nCdPC3aGlPg34OqmujLmq_SWfyTkNgzTaDEOS5AnTZADNjjjziuDKrEtrgmKnRi6TPn0FEGdW2ssVw2GrA'
-  }
-  if (first === 'elena' || (first === 'elena' && last.startsWith('rodriguez'))) {
-    return 'https://lh3.googleusercontent.com/aida-public/AB6AXuCN3Xyqj-6CP-V80X_jZ7Hb6vn0PeqQbKaz3GekZU7gx5t8yG3L__-oYTNDHHyWt6fbs03a2JMS477vXNRe014O7JF9Xaxb6KaAZfBZPCFzGoJUWnmXh-LcdBvaQjq0qotP2jvuvdIuR1V7TTR4Z1V8ArqNGjLclQITirDHGbr-egxnvWjMjFFIBexzgyBO0wAMvqEk-m0rH5hKKRgFhjCqV0hFinGWrZTIEM-Vx8ksANf4dCNcGtbAINDLx4TZMMX-uaFQ2P_Jww'
-  }
-  return null
-}
-
-// Custom descriptions matching Image 2
-function getContactDescription(contact: Contact) {
-  const first = contact.first_name.toLowerCase().trim()
-  if (first === 'marcus') {
-    return 'Follow up on quarterly investment strategy'
-  }
-  if (first === 'elena') {
-    return 'Birthday check-in and coffee invite'
-  }
-  if (first === 'sarah') {
-    return 'Send the book recommendation discussed'
-  }
-  return contact.company || contact.job_title || 'Stay in touch and keep the momentum'
-}
 
 export default function WorkingListMobileClient({ workingList }: { workingList: Contact[] }) {
   const router = useRouter()
@@ -103,10 +72,10 @@ export default function WorkingListMobileClient({ workingList }: { workingList: 
       isPending ? 'opacity-60 pointer-events-none' : ''
     } transition-opacity`}>
       {workingList.map((c) => {
-        const avatarUrl = getAvatarUrl(c.first_name, c.last_name)
-        const isMarcus = c.first_name.toLowerCase().trim() === 'marcus'
-        const isElena = c.first_name.toLowerCase().trim() === 'elena'
-        const isSarah = c.first_name.toLowerCase().trim() === 'sarah'
+        const avatarUrl = getAvatarUrl(c)
+        const description = getContactDescription(c)
+        const preferredMethods = getPreferredContactMethods(c)
+        const relativeTime = formatRelativeTime(c.last_contacted_at)
 
         return (
           <div
@@ -129,51 +98,65 @@ export default function WorkingListMobileClient({ workingList }: { workingList: 
                     {c.first_name} {c.last_name}
                   </h4>
                   <p className="text-sm text-[#4a4e4a] mt-0.5 font-sans leading-relaxed truncate">
-                    {getContactDescription(c)}
+                    {description}
                   </p>
                 </div>
               </Link>
               
               {/* Action Buttons styled like Image 2 */}
               <div className="flex items-center gap-2 shrink-0">
-                {isMarcus && (
+                {relativeTime && (
+                  <span className="text-xs font-sans text-[#4a4e4a]/60 mr-2">{relativeTime}</span>
+                )}
+
+                {preferredMethods.length > 0 ? (
                   <>
-                    <button
-                      onClick={() => handleMarkDone(c.id)}
-                      title="Send email (Mark Done)"
-                      className="p-2.5 rounded-full bg-[#eae6de] text-[#4a7c59] hover:bg-[#4a7c59] hover:text-white transition-colors duration-200"
-                    >
-                      <Mail className="h-4 w-4" />
-                    </button>
-                    <button
-                      onClick={() => setActiveSnoozeId(activeSnoozeId === c.id ? null : c.id)}
-                      title="Call (Snooze)"
-                      className="p-2.5 rounded-full bg-[#eae6de] text-[#4a7c59] hover:bg-[#4a7c59] hover:text-white transition-colors duration-200"
-                    >
-                      <Phone className="h-4 w-4" />
-                    </button>
+                    {preferredMethods.map((method) => {
+                      if (method === 'email') {
+                        return (
+                          <button
+                            key="email"
+                            onClick={() => handleMarkDone(c.id)}
+                            title="Send email (Mark Done)"
+                            className="p-2.5 rounded-full bg-[#eae6de] text-[#4a7c59] hover:bg-[#4a7c59] hover:text-white transition-colors duration-200"
+                          >
+                            <Mail className="h-4 w-4" />
+                          </button>
+                        )
+                      }
+                      if (method === 'call' || method === 'phone') {
+                        return (
+                          <button
+                            key="call"
+                            onClick={() => setActiveSnoozeId(activeSnoozeId === c.id ? null : c.id)}
+                            title="Call (Snooze)"
+                            className="p-2.5 rounded-full bg-[#eae6de] text-[#4a7c59] hover:bg-[#4a7c59] hover:text-white transition-colors duration-200"
+                          >
+                            <Phone className="h-4 w-4" />
+                          </button>
+                        )
+                      }
+                      if (method === 'calendar' || method === 'invite') {
+                        return (
+                          <button
+                            key="calendar"
+                            onClick={() => setActiveSnoozeId(activeSnoozeId === c.id ? null : c.id)}
+                            title="Invite (Snooze)"
+                            className="p-2.5 rounded-full bg-[#eae6de] text-[#4a7c59] hover:bg-[#4a7c59] hover:text-white transition-colors duration-200"
+                          >
+                            <Calendar className="h-4 w-4" />
+                          </button>
+                        )
+                      }
+                      return null
+                    })}
                   </>
-                )}
-                
-                {isElena && (
-                  <button
-                    onClick={() => setActiveSnoozeId(activeSnoozeId === c.id ? null : c.id)}
-                    title="Invite (Snooze)"
-                    className="p-2.5 rounded-full bg-[#eae6de] text-[#4a7c59] hover:bg-[#4a7c59] hover:text-white transition-colors duration-200"
-                  >
-                    <Calendar className="h-4 w-4" />
-                  </button>
-                )}
-
-                {isSarah && (
-                  <span className="text-xs font-sans text-[#4a4e4a]/60">2h ago</span>
-                )}
-
-                {!isMarcus && !isElena && !isSarah && (
+                ) : (
                   <>
                     <button
                       onClick={() => handleMarkDone(c.id)}
                       className="p-2 rounded-lg text-[#4a7c59] hover:bg-[#c8e8d0] transition-colors"
+                      title="Mark Done"
                     >
                       <CheckCircle2 className="h-4 w-4" />
                     </button>
@@ -184,12 +167,14 @@ export default function WorkingListMobileClient({ workingList }: { workingList: 
                           ? 'bg-[#c4a66a] text-[#554020]'
                           : 'text-[#705c30] hover:bg-[#f8e0a8]/40'
                       }`}
+                      title="Snooze"
                     >
                       <Clock className="h-4 w-4" />
                     </button>
                     <button
                       onClick={() => handleRemove(c.id)}
                       className="p-2 rounded-lg text-[#74796e] hover:text-[#b83230] hover:bg-[#ffdad8]/50 transition-colors"
+                      title="Remove"
                     >
                       <Trash2 className="h-4 w-4" />
                     </button>

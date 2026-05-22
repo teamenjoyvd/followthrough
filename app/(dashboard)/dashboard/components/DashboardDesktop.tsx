@@ -1,5 +1,3 @@
-'use client'
-
 // Desktop Dashboard Component — Styled to match the Terra "Rooted Warmth" design specifications (Image 2 & reference HTML).
 import Link from 'next/link'
 import WorkingListDesktopClient from './WorkingListDesktopClient'
@@ -20,11 +18,13 @@ interface Props {
   displayName: string
   workingList: Contact[]
   stats: Stats
+  avatarUrl: string | null
+  healthPercentage: number
 }
 
-export default function DashboardDesktop({ profileId, displayName, workingList, stats }: Props) {
-  // Fallback to Julian if profile has no name, to maintain rooted friendly feeling
-  const name = displayName || 'Julian'
+export default function DashboardDesktop({ profileId, displayName, workingList, stats, avatarUrl, healthPercentage }: Props) {
+  // Fallback to there if profile has no name, to maintain rooted friendly feeling
+  const name = displayName || 'there'
 
   return (
     <div className="min-h-screen bg-[#faf6f0] pb-24 font-body">
@@ -59,7 +59,7 @@ export default function DashboardDesktop({ profileId, displayName, workingList, 
           <img
             alt="User Profile"
             className="w-10 h-10 rounded-full border-2 border-[#c8e8d0] shadow-sm object-cover"
-            src="https://lh3.googleusercontent.com/aida-public/AB6AXuBgmqZ-naMC68qyB-8YDoi7m3XwER_oXB6HHtUYgDcXHeZ_uA1WzMzixSyP2IRtf9IKlR0X3ablr-Gn97Xrtx13-Oq-SRLdXF4GQY7-manjSaQV4_k3r4uOfTW7GtQ94NZ_cGHL2bma4C6-08LoNUNrfeJolIuf8ynkxHOp7VefkgBNr1oO2PIjhE4OZpSzYVuelHWp7I6pzuPQcrmsLdOvmIEZ5_2ILbyvtKcfayNUAtIQPNgQWPU0hUUmwj1dvwBSQX_4tmWhUw"
+            src={avatarUrl || "https://lh3.googleusercontent.com/aida-public/AB6AXuBgmqZ-naMC68qyB-8YDoi7m3XwER_oXB6HHtUYgDcXHeZ_uA1WzMzixSyP2IRtf9IKlR0X3ablr-Gn97Xrtx13-Oq-SRLdXF4GQY7-manjSaQV4_k3r4uOfTW7GtQ94NZ_cGHL2bma4C6-08LoNUNrfeJolIuf8ynkxHOp7VefkgBNr1oO2PIjhE4OZpSzYVuelHWp7I6pzuPQcrmsLdOvmIEZ5_2ILbyvtKcfayNUAtIQPNgQWPU0hUUmwj1dvwBSQX_4tmWhUw"}
           />
         </div>
       </header>
@@ -110,10 +110,10 @@ export default function DashboardDesktop({ profileId, displayName, workingList, 
               <div className="relative w-32 h-32 flex items-center justify-center">
                 <svg className="w-full h-full transform -rotate-90">
                   <circle className="text-[#dbd7cf]" cx="64" cy="64" fill="transparent" r="58" stroke="currentColor" strokeWidth="8"></circle>
-                  <circle className="text-[#4a7c59] transition-all duration-1000" cx="64" cy="64" fill="transparent" r="58" stroke="currentColor" strokeDasharray="364" stroke-dashoffset="65" strokeWidth="8"></circle>
+                  <circle className="text-[#4a7c59] transition-all duration-1000" cx="64" cy="64" fill="transparent" r="58" stroke="currentColor" strokeDasharray="364" stroke-dashoffset={364 * (1 - healthPercentage / 100)} strokeWidth="8"></circle>
                 </svg>
                 <div className="absolute inset-0 flex flex-col items-center justify-center">
-                  <span className="text-3xl font-headline font-bold text-[#4a7c59]">82%</span>
+                  <span className="text-3xl font-headline font-bold text-[#4a7c59]">{healthPercentage}%</span>
                 </div>
               </div>
               <p className="mt-4 text-xs text-center text-[#4a4e4a] leading-relaxed px-4">

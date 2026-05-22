@@ -26,9 +26,9 @@ export default async function DashboardPage() {
   // 1. Try to fetch the profile first to see if it already exists
   let { data: profile } = await (supabase as any)
     .from('profiles')
-    .select('id, display_name')
+    .select('id, display_name, followup_rules')
     .eq('clerk_id', userId)
-    .maybeSingle() as { data: { id: string; display_name: string | null } | null }
+    .maybeSingle() as { data: { id: string; display_name: string | null; followup_rules: any } | null }
 
   // 2. If the profile does not exist, provision a new one
   if (!profile) {
@@ -51,9 +51,9 @@ export default async function DashboardPage() {
     // Re-fetch the profile to make sure it was successfully created
     const { data: refetched } = await (supabase as any)
       .from('profiles')
-      .select('id, display_name')
+      .select('id, display_name, followup_rules')
       .eq('clerk_id', userId)
-      .maybeSingle() as { data: { id: string; display_name: string | null } | null }
+      .maybeSingle() as { data: { id: string; display_name: string | null; followup_rules: any } | null }
 
     profile = refetched
   }
@@ -67,34 +67,59 @@ export default async function DashboardPage() {
 
   await checkResurfaced()
 
-  const { data } = await (supabase as any)
+  // Fetch Clerk user details to retrieve the avatar URL
+  const clerkUser = await currentUser()
+  const avatarUrl = clerkUser?.imageUrl || null
+
+  // Fetch all contacts for relationship health calculation and working list filter
+  const { data: allContacts } = await (supabase as any)
     .from('contacts')
     .select('*')
-    .eq('profile_id', profile.id)
-    .eq('on_working_list', true)
-    .order('working_list_added_at', { ascending: true }) as { data: Contact[] | null }
+    .eq('profile_id', profile.id) as { data: Contact[] | null }
 
-  const workingListContacts = data || []
+  const contactsList = allContacts || []
 
-  const { count: snoozedCount } = await (supabase as any)
-    .from('contacts')
-    .select('id', { count: 'exact', head: true })
-    .eq('profile_id', profile.id)
-    .eq('pipeline_status', 'snoozed') as { count: number | null }
+  // Filter and sort the working list contacts in memory
+  const workingListContacts = contactsList
+    .filter((c) => c.on_working_list)
+    .sort((a, b) => {
+      const aTime = a.working_list_added_at ? new Date(a.working_list_added_at).getTime() : 0
+      const bTime = b.working_list_added_at ? new Date(b.working_list_added_at).getTime() : 0
+      return aTime - bTime
+    })
 
-  const { count: totalContactsCount } = await (supabase as any)
-    .from('contacts')
-    .select('id', { count: 'exact', head: true })
-    .eq('profile_id', profile.id) as { count: number | null }
-
+  // Calculate stats
+  const snoozedCount = contactsList.filter((c) => c.pipeline_status === 'snoozed').length
+  const totalContactsCount = contactsList.length
   const inboxUnreadCount = await getUnreadInboxCount()
 
   const stats = {
     workingListCount: workingListContacts.length,
     inboxCount: inboxUnreadCount,
-    snoozedCount: snoozedCount ?? 0,
-    totalContactsCount: totalContactsCount ?? 0,
+    snoozedCount,
+    totalContactsCount,
   }
+
+  // Calculate relationship health dynamically: compare last_contacted_at/created_at with rule thresholds to find overdue contacts
+  const followupRules = (profile as any).followup_rules || { lead: 14, qualified: 7, bought: 30, leave_alone: 90 }
+  let overdueCount = 0
+
+  for (const contact of contactsList) {
+    if (contact.pipeline_status === 'snoozed') continue
+    const thresholdDays = followupRules[contact.pipeline_status] ?? 14
+    const referenceDateStr = contact.last_contacted_at || contact.created_at
+    if (referenceDateStr) {
+      const referenceDate = new Date(referenceDateStr)
+      const diffMs = Date.now() - referenceDate.getTime()
+      if (diffMs > thresholdDays * 24 * 60 * 60 * 1000) {
+        overdueCount++
+      }
+    } else {
+      overdueCount++
+    }
+  }
+
+  const healthPercentage = totalContactsCount > 0 ? Math.round(((totalContactsCount - overdueCount) / totalContactsCount) * 100) : 100
 
   return (
     <>
@@ -105,6 +130,8 @@ export default async function DashboardPage() {
           displayName={displayName}
           workingList={workingListContacts}
           stats={stats}
+          avatarUrl={avatarUrl}
+          healthPercentage={healthPercentage}
         />
       </div>
 
@@ -115,6 +142,8 @@ export default async function DashboardPage() {
           displayName={displayName}
           workingList={workingListContacts}
           stats={stats}
+          avatarUrl={avatarUrl}
+          healthPercentage={healthPercentage}
         />
       </div>
     </>
