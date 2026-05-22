@@ -1,5 +1,6 @@
 export interface BrandingConfig {
   appName: string
+  appDescription: string
   primaryColor: string     // Hex format e.g. '#4a7c59'
   secondaryColor: string   // Hex format e.g. '#6b6358'
   logoPath: string         // e.g. '/logo.svg'
@@ -9,6 +10,7 @@ export interface BrandingConfig {
 
 export const branding: BrandingConfig = {
   appName: 'Followthrough',
+  appDescription: 'Contact follow-up, done right. Stay connected with the people who matter most.',
   primaryColor: '#4a7c59',    // Forest Green (Terra primary)
   secondaryColor: '#6b6358',  // Warm neutral (Terra secondary)
   logoPath: '/logo.svg',
@@ -21,18 +23,27 @@ export const branding: BrandingConfig = {
  * formatted as "H S% L%" (without the hsl() wrapper), suitable for CSS custom properties.
  */
 export function hexToHslString(hex: string): string {
-  // Remove leading # if present
-  const cleanedHex = hex.replace('#', '')
+  const cleanedHex = hex.startsWith('#') ? hex.slice(1) : hex
+  const normalizedHex = cleanedHex.length === 3
+    ? cleanedHex.split('').map(c => c + c).join('')
+    : cleanedHex
 
-  if (cleanedHex.length !== 6) {
-    // Fallback if hex is invalid
+  if (normalizedHex.length !== 6) {
     return '142 25% 39%'
   }
 
   // Parse r, g, b components
-  const r = parseInt(cleanedHex.substring(0, 2), 16) / 255
-  const g = parseInt(cleanedHex.substring(2, 4), 16) / 255
-  const b = parseInt(cleanedHex.substring(4, 6), 16) / 255
+  const rParsed = parseInt(normalizedHex.substring(0, 2), 16)
+  const gParsed = parseInt(normalizedHex.substring(2, 4), 16)
+  const bParsed = parseInt(normalizedHex.substring(4, 6), 16)
+
+  if (isNaN(rParsed) || isNaN(gParsed) || isNaN(bParsed)) {
+    return '142 25% 39%'
+  }
+
+  const r = rParsed / 255
+  const g = gParsed / 255
+  const b = bParsed / 255
 
   const max = Math.max(r, g, b)
   const min = Math.min(r, g, b)

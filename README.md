@@ -11,7 +11,7 @@ Built with Next.js, Supabase, and Clerk.
 Followthrough supports full dynamic white-labeling and visual rebranding. To rebrand the application:
 
 ### 1. Branding Constants
-Configure global brand details in [config/branding.ts](file:///c:/Users/fefence/Downloads/react/teamenjoyvd/followthrough/config/branding.ts):
+Configure global brand details in [config/branding.ts](./config/branding.ts):
 
 ```typescript
 export const branding = {

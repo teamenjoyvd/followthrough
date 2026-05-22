@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { Logo } from '@/components/Logo'
+import { branding } from '@/config/branding'
 
 export default function HomePage() {
   return (
@@ -7,7 +8,7 @@ export default function HomePage() {
       <div className="flex flex-col items-center mb-8 gap-4 text-center">
         <Logo className="scale-125 md:scale-150 mb-4 gap-4" />
         <p className="text-muted-foreground max-w-md font-body">
-          Contact follow-up, done right. Stay connected with the people who matter most.
+          {branding.appDescription}
         </p>
       </div>
       <div className="flex gap-4">
