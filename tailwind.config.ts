@@ -63,6 +63,8 @@ const config: Config = {
           'on-tertiary-container': '#554020',
           outline: '#74796e',
           'outline-variant': '#c4c8bc',
+          'snooze-from': '#2e4d37',
+          'snooze-to': '#1c3022',
         },
       },
       borderRadius: {
