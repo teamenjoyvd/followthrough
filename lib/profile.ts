@@ -26,7 +26,7 @@ export async function ensureProfile(
 
   if (selectError) {
     console.error('[ensureProfile] select error:', selectError.message)
-    return
+    throw new Error(`[ensureProfile] Failed to select profile: ${selectError.message}`)
   }
 
   // If no profile exists, provision a new one.
@@ -39,6 +39,7 @@ export async function ensureProfile(
 
     if (insertError) {
       console.error('[ensureProfile] insert error:', insertError.message)
+      throw new Error(`[ensureProfile] Failed to insert profile: ${insertError.message}`)
     }
   }
 }

@@ -1,5 +1,6 @@
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
+import { auth } from '@clerk/nextjs/server'
 import type { Database } from '../../types/supabase'
 
 type CookieToSet = { name: string; value: string; options?: Record<string, unknown> }
@@ -7,25 +8,45 @@ type CookieToSet = { name: string; value: string; options?: Record<string, unkno
 export async function createSupabaseServerClient() {
   const cookieStore = await cookies()
 
+  let supabaseToken: string | null = null
+  try {
+    const { userId, getToken } = await auth()
+    if (userId) {
+      supabaseToken = await getToken({ template: 'supabase' })
+    }
+  } catch (error) {
+    console.error('[createSupabaseServerClient] Failed to retrieve Clerk JWT token:', error)
+  }
+
+  const options: any = {
+    cookies: {
+      getAll() {
+        return cookieStore.getAll()
+      },
+      setAll(cookiesToSet: CookieToSet[]) {
+        try {
+          cookiesToSet.forEach(({ name, value, options }) =>
+            cookieStore.set(name, value, options)
+          )
+        } catch {
+          // Server Component — cookie writes are best-effort
+        }
+      },
+    },
+  }
+
+  if (supabaseToken) {
+    options.global = {
+      headers: {
+        Authorization: `Bearer ${supabaseToken}`,
+      },
+    }
+  }
+
   return createServerClient<Database>(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll() {
-          return cookieStore.getAll()
-        },
-        setAll(cookiesToSet: CookieToSet[]) {
-          try {
-            cookiesToSet.forEach(({ name, value, options }) =>
-              cookieStore.set(name, value, options)
-            )
-          } catch {
-            // Server Component — cookie writes are best-effort
-          }
-        },
-      },
-    }
+    options
   )
 }
 
