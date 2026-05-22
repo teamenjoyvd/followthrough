@@ -79,6 +79,21 @@ export default async function DashboardPage() {
 
   const contactsList = allContacts || []
 
+  // Fetch upcoming snoozed contacts resurfacing in the next 7 days
+  const todayStr = new Date().toISOString().split('T')[0]
+  const sevenDaysLater = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+  const sevenDaysLaterStr = sevenDaysLater.toISOString().split('T')[0]
+
+  const { data: upcomingContacts } = await (supabase as any)
+    .from('contacts')
+    .select('*')
+    .eq('profile_id', profile.id)
+    .eq('pipeline_status', 'snoozed')
+    .gte('snoozed_until', todayStr)
+    .lte('snoozed_until', sevenDaysLaterStr)
+    .order('snoozed_until', { ascending: true })
+    .limit(5) as { data: Contact[] | null }
+
   // Filter and sort the working list contacts in memory
   const workingListContacts = contactsList
     .filter((c) => c.on_working_list)
@@ -132,6 +147,7 @@ export default async function DashboardPage() {
           stats={stats}
           avatarUrl={avatarUrl}
           healthPercentage={healthPercentage}
+          upcomingContacts={upcomingContacts || []}
         />
       </div>
 
@@ -144,6 +160,7 @@ export default async function DashboardPage() {
           stats={stats}
           avatarUrl={avatarUrl}
           healthPercentage={healthPercentage}
+          upcomingContacts={upcomingContacts || []}
         />
       </div>
     </>
