@@ -60,13 +60,21 @@ export default function QuickNoteDialog({
 
   // Partition contacts: Working List first, then other contacts
   const { workingListContacts, otherContacts } = React.useMemo(() => {
-    const workingList = filteredContacts
-      .filter((c) => c.on_working_list)
-      .sort((a, b) => a.first_name.localeCompare(b.first_name))
+    const workingList: Contact[] = []
+    const others: Contact[] = []
 
-    const others = filteredContacts
-      .filter((c) => !c.on_working_list)
-      .sort((a, b) => a.first_name.localeCompare(b.first_name))
+    // Sort once before partitioning to avoid redundant sorting operations
+    const sorted = [...filteredContacts].sort((a, b) => 
+      (a.first_name || '').localeCompare(b.first_name || '')
+    )
+
+    sorted.forEach((contact) => {
+      if (contact.on_working_list) {
+        workingList.push(contact)
+      } else {
+        others.push(contact)
+      }
+    })
 
     return {
       workingListContacts: workingList,
@@ -108,6 +116,7 @@ export default function QuickNoteDialog({
             <input
               type="text"
               placeholder="Search contacts..."
+              aria-label="Search contacts"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full bg-[#f5f1ea] border border-[#e4e0d8]/80 text-[#2e3230] placeholder-[#74796e] focus:outline-none focus:ring-2 focus:ring-[#4a7c59] rounded-xl pl-10 pr-4 py-2.5 text-sm transition-all"
