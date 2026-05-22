@@ -17,17 +17,17 @@ export default async function NewContactPage() {
   if (!userId) redirect('/sign-in')
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full bg-[#faf6f0]">
       {/* Header */}
-      <div className="flex items-center gap-3 px-4 md:px-6 py-4 border-b border-gray-200 bg-white">
+      <div className="flex items-center gap-3 px-4 md:px-6 py-4 border-b border-[#e4e0d8] bg-[#faf6f0]">
         <Link
           href="/contacts"
-          className="inline-flex items-center justify-center h-8 w-8 rounded-md text-gray-500 hover:bg-gray-100 hover:text-gray-700 transition-colors"
+          className="inline-flex items-center justify-center h-8 w-8 rounded-xl text-[#74796e] hover:bg-[#eae6de] hover:text-[#2e3230] transition-colors"
           aria-label="Back to contacts"
         >
           <ArrowLeft className="h-4 w-4" />
         </Link>
-        <h1 className="text-lg font-semibold text-gray-900">New contact</h1>
+        <h1 className="text-lg font-semibold text-[#2e3230]">New contact</h1>
       </div>
 
       {/* Dual layout */}

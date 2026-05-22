@@ -48,7 +48,7 @@ export default function DeleteContactButton({ contactId, contactName }: Props) {
       <AlertDialogTrigger asChild>
         <button
           id={`delete-contact-btn-${contactId}`}
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm text-red-600 border border-red-200 hover:bg-red-50 transition-colors"
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-sm font-semibold text-[#b83230] border border-[#b83230]/20 bg-[#ffdad8]/20 hover:bg-[#ffdad8]/50 transition-colors shadow-sm"
           aria-label={`Delete ${contactName}`}
         >
           <Trash2 className="h-3.5 w-3.5" />
@@ -59,20 +59,20 @@ export default function DeleteContactButton({ contactId, contactName }: Props) {
       <AlertDialogContent>
         <AlertDialogHeader>
           <div className="flex items-center gap-3 mb-1">
-            <div className="h-10 w-10 rounded-full bg-red-100 flex items-center justify-center shrink-0">
-              <Trash2 className="h-5 w-5 text-red-600" />
+            <div className="h-10 w-10 rounded-full bg-[#ffdad8]/50 flex items-center justify-center shrink-0">
+              <Trash2 className="h-5 w-5 text-[#b83230]" />
             </div>
-            <AlertDialogTitle>Delete contact?</AlertDialogTitle>
+            <AlertDialogTitle className="text-[#2e3230]">Delete contact?</AlertDialogTitle>
           </div>
-          <AlertDialogDescription>
-            <strong className="text-gray-700">{contactName}</strong> and all associated data
+          <AlertDialogDescription className="text-[#4a4e4a]">
+            <strong className="text-[#2e3230]">{contactName}</strong> and all associated data
             will be permanently deleted. This cannot be undone.
           </AlertDialogDescription>
         </AlertDialogHeader>
 
         {error && (
           <div className="px-0 py-0">
-            <p className="text-xs text-red-600 bg-red-50 border border-red-200 rounded-md px-3 py-2">
+            <p className="text-xs text-[#b83230] bg-[#ffdad8]/50 border border-[#b83230]/20 rounded-xl px-3 py-2">
               {error}
             </p>
           </div>
@@ -86,12 +86,14 @@ export default function DeleteContactButton({ contactId, contactName }: Props) {
               handleDelete()
             }}
             disabled={isPending}
+            className="px-4 py-2 rounded-xl bg-[#b83230] hover:bg-[#a62a28] text-white text-sm font-semibold transition-colors disabled:opacity-60"
           >
             {isPending ? 'Deleting…' : 'Delete'}
           </AlertDialogAction>
           <AlertDialogCancel
             id={`delete-cancel-btn-${contactId}`}
             disabled={isPending}
+            className="px-4 py-2 rounded-xl bg-[#eae6de] text-[#4a4e4a] hover:bg-[#dedad2] text-sm font-semibold border-none transition-colors disabled:opacity-60"
           >
             Cancel
           </AlertDialogCancel>

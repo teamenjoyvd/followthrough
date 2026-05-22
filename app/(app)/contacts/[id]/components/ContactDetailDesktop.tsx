@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { useState, useTransition } from 'react'
-import { Pencil, Phone, Plus, Star, Trash2, Globe, StarHalf } from 'lucide-react'
+import { Pencil, Phone, Plus, Star, Trash2, Globe } from 'lucide-react'
 import { PipelineStatusControl, PIPELINE_STATUSES } from '../../components/PipelineStatusControl'
 import type { Database } from '@/types/supabase'
 import type { ContactDetail } from '@/lib/contacts-data'
@@ -28,8 +28,8 @@ const PLATFORMS: SocialPlatform[] = ['linkedin', 'twitter', 'instagram', 'other'
 function InfoRow({ label, value }: { label: string; value: string | null }) {
   return (
     <div className="flex flex-col gap-0.5">
-      <dt className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">{label}</dt>
-      <dd className="text-sm font-medium text-slate-700">{value || <span className="text-slate-300">—</span>}</dd>
+      <dt className="text-[10px] font-semibold text-[#74796e] uppercase tracking-wider">{label}</dt>
+      <dd className="text-sm font-medium text-[#2e3230]">{value || <span className="text-[#74796e]">—</span>}</dd>
     </div>
   )
 }
@@ -102,16 +102,16 @@ function PhoneNumbersSection({
   }
 
   return (
-    <div className="p-5 rounded-2xl border border-slate-100 bg-white shadow-sm">
+    <div className="p-5 rounded-[20px] border border-[#e4e0d8] bg-[#f5f1ea] shadow-[0_4px_20px_rgba(46,50,48,0.04)]">
       <div className="flex items-center justify-between mb-4">
-        <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
-          <Phone className="h-4 w-4 text-slate-400" />
+        <h3 className="text-xs font-bold text-[#74796e] uppercase tracking-wider flex items-center gap-1.5">
+          <Phone className="h-4 w-4" />
           Phone numbers
         </h3>
         <button
           id="add-phone-desktop"
           onClick={() => setAdding(true)}
-          className="inline-flex items-center gap-1 text-xs font-semibold text-indigo-600 hover:text-indigo-800 transition-colors"
+          className="inline-flex items-center gap-1 text-xs font-semibold text-[#4a7c59] hover:text-[#3d6b4a] transition-colors"
           disabled={isPending}
         >
           <Plus className="h-3.5 w-3.5" />
@@ -127,42 +127,40 @@ function PhoneNumbersSection({
                 id={`edit-phone-number-${p.id}`}
                 value={editNumber}
                 onChange={(e) => setEditNumber(e.target.value)}
-                className="flex-1 text-sm border border-slate-200 rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-slate-55"
+                className="flex-1 text-sm border border-[#e4e0d8] rounded-xl px-2.5 py-1.5 bg-white text-[#2e3230] focus:outline-none focus:ring-2 focus:ring-[#4a7c59]"
                 placeholder="Phone number"
               />
               <select
                 id={`edit-phone-type-${p.id}`}
                 value={editType}
                 onChange={(e) => setEditType(e.target.value as PhoneType)}
-                className="text-xs border border-slate-200 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white cursor-pointer"
+                className="text-xs border border-[#e4e0d8] rounded-xl px-2 py-1.5 bg-white text-[#2e3230] focus:outline-none focus:ring-2 focus:ring-[#4a7c59] cursor-pointer"
               >
                 {PHONE_TYPES.map((t) => (
-                  <option key={t} value={t}>
-                    {t.charAt(0).toUpperCase() + t.slice(1)}
-                  </option>
+                  <option key={t} value={t}>{t.charAt(0).toUpperCase() + t.slice(1)}</option>
                 ))}
               </select>
               <button
                 onClick={() => handleUpdate(p.id)}
                 disabled={isPending}
-                className="text-xs font-semibold px-3 py-1.5 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors disabled:opacity-50"
+                className="text-xs font-semibold px-3 py-1.5 bg-[#4a7c59] text-white rounded-xl hover:bg-[#3d6b4a] transition-colors disabled:opacity-50"
               >
                 Save
               </button>
               <button
                 onClick={() => setEditingId(null)}
-                className="text-xs font-medium text-slate-400 hover:text-slate-600"
+                className="text-xs font-medium text-[#74796e] hover:text-[#2e3230]"
               >
                 Cancel
               </button>
             </li>
           ) : (
-            <li key={p.id} className="flex items-center justify-between group py-1.5 px-2 rounded-xl hover:bg-slate-50 transition-colors">
+            <li key={p.id} className="flex items-center justify-between group py-1.5 px-2 rounded-xl hover:bg-[#eae6de] transition-colors">
               <div className="flex items-center gap-2">
-                <span className="text-sm font-medium text-slate-800">{p.number}</span>
-                <span className="text-xs text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded capitalize">{p.type}</span>
+                <span className="text-sm font-medium text-[#2e3230]">{p.number}</span>
+                <span className="text-xs text-[#74796e] bg-[#eae6de] px-1.5 py-0.5 rounded capitalize">{p.type}</span>
                 {p.is_primary && (
-                  <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-indigo-50 text-indigo-600 font-semibold uppercase tracking-wider">
+                  <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-[#4a7c59]/10 text-[#4a7c59] font-semibold uppercase tracking-wider">
                     Primary
                   </span>
                 )}
@@ -174,7 +172,7 @@ function PhoneNumbersSection({
                     onClick={() => handleSetPrimary(p.id)}
                     disabled={isPending}
                     title="Set as primary"
-                    className="p-1 text-slate-300 hover:text-amber-500 transition-colors"
+                    className="p-1 text-[#74796e] hover:text-[#c4a66a] transition-colors"
                   >
                     <Star className="h-4 w-4" />
                   </button>
@@ -182,7 +180,7 @@ function PhoneNumbersSection({
                 <button
                   id={`edit-phone-${p.id}`}
                   onClick={() => startEdit(p)}
-                  className="p-1 text-slate-300 hover:text-slate-600 transition-colors"
+                  className="p-1 text-[#74796e] hover:text-[#2e3230] transition-colors"
                 >
                   <Pencil className="h-4 w-4" />
                 </button>
@@ -190,7 +188,7 @@ function PhoneNumbersSection({
                   id={`delete-phone-${p.id}`}
                   onClick={() => handleDelete(p.id)}
                   disabled={isPending}
-                  className="p-1 text-slate-300 hover:text-red-500 transition-colors"
+                  className="p-1 text-[#74796e] hover:text-[#b83230] transition-colors"
                 >
                   <Trash2 className="h-4 w-4" />
                 </button>
@@ -201,17 +199,17 @@ function PhoneNumbersSection({
       </ul>
 
       {phones.length === 0 && !adding && (
-        <p className="text-xs text-slate-300 italic">No phone numbers yet</p>
+        <p className="text-xs text-[#74796e] italic">No phone numbers yet</p>
       )}
 
       {adding && (
-        <div className="mt-4 flex flex-col gap-3 pt-4 border-t border-slate-100">
+        <div className="mt-4 flex flex-col gap-3 pt-4 border-t border-[#e4e0d8]">
           <div className="flex gap-2">
             <input
               id="new-phone-number"
               value={newNumber}
               onChange={(e) => setNewNumber(e.target.value)}
-              className="flex-1 text-sm border border-slate-200 rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className="flex-1 text-sm border border-[#e4e0d8] rounded-xl px-2.5 py-1.5 bg-white text-[#2e3230] focus:outline-none focus:ring-2 focus:ring-[#4a7c59]"
               placeholder="Phone number"
               autoFocus
             />
@@ -219,22 +217,20 @@ function PhoneNumbersSection({
               id="new-phone-type"
               value={newType}
               onChange={(e) => setNewType(e.target.value as PhoneType)}
-              className="text-xs border border-slate-200 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white"
+              className="text-xs border border-[#e4e0d8] rounded-xl px-2 py-1.5 bg-white text-[#2e3230] focus:outline-none focus:ring-2 focus:ring-[#4a7c59]"
             >
               {PHONE_TYPES.map((t) => (
-                <option key={t} value={t}>
-                  {t.charAt(0).toUpperCase() + t.slice(1)}
-                </option>
+                <option key={t} value={t}>{t.charAt(0).toUpperCase() + t.slice(1)}</option>
               ))}
             </select>
           </div>
           <div className="flex items-center justify-between">
-            <label className="flex items-center gap-1.5 text-xs text-slate-500 cursor-pointer font-medium">
+            <label className="flex items-center gap-1.5 text-xs text-[#4a4e4a] cursor-pointer font-medium">
               <input
                 type="checkbox"
                 checked={newPrimary}
                 onChange={(e) => setNewPrimary(e.target.checked)}
-                className="rounded text-indigo-600 focus:ring-indigo-500"
+                className="rounded text-[#4a7c59] focus:ring-[#4a7c59]"
               />
               Primary number
             </label>
@@ -243,13 +239,13 @@ function PhoneNumbersSection({
                 id="save-new-phone"
                 onClick={handleAdd}
                 disabled={isPending || !newNumber.trim()}
-                className="text-xs font-semibold px-3 py-1.5 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors disabled:opacity-50"
+                className="text-xs font-semibold px-3 py-1.5 bg-[#4a7c59] text-white rounded-xl hover:bg-[#3d6b4a] transition-colors disabled:opacity-50"
               >
                 Save
               </button>
               <button
                 onClick={() => { setAdding(false); setNewNumber('') }}
-                className="text-xs font-medium text-slate-400 hover:text-slate-600 py-1.5 px-1"
+                className="text-xs font-medium text-[#74796e] hover:text-[#2e3230] py-1.5 px-1"
               >
                 Cancel
               </button>
@@ -312,16 +308,16 @@ function SocialLinksSection({
   }
 
   return (
-    <div className="p-5 rounded-2xl border border-slate-100 bg-white shadow-sm">
+    <div className="p-5 rounded-[20px] border border-[#e4e0d8] bg-[#f5f1ea] shadow-[0_4px_20px_rgba(46,50,48,0.04)]">
       <div className="flex items-center justify-between mb-4">
-        <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
-          <Globe className="h-4 w-4 text-slate-400" />
+        <h3 className="text-xs font-bold text-[#74796e] uppercase tracking-wider flex items-center gap-1.5">
+          <Globe className="h-4 w-4" />
           Social links
         </h3>
         <button
           id="add-social-desktop"
           onClick={() => setAdding(true)}
-          className="inline-flex items-center gap-1 text-xs font-semibold text-indigo-600 hover:text-indigo-800 transition-colors"
+          className="inline-flex items-center gap-1 text-xs font-semibold text-[#4a7c59] hover:text-[#3d6b4a] transition-colors"
           disabled={isPending}
         >
           <Plus className="h-3.5 w-3.5" />
@@ -337,44 +333,42 @@ function SocialLinksSection({
                 id={`edit-social-platform-${l.id}`}
                 value={editPlatform}
                 onChange={(e) => setEditPlatform(e.target.value as SocialPlatform)}
-                className="text-xs border border-slate-200 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white cursor-pointer"
+                className="text-xs border border-[#e4e0d8] rounded-xl px-2 py-1.5 bg-white text-[#2e3230] focus:outline-none focus:ring-2 focus:ring-[#4a7c59] cursor-pointer"
               >
                 {PLATFORMS.map((p) => (
-                  <option key={p} value={p}>
-                    {p.charAt(0).toUpperCase() + p.slice(1)}
-                  </option>
+                  <option key={p} value={p}>{p.charAt(0).toUpperCase() + p.slice(1)}</option>
                 ))}
               </select>
               <input
                 id={`edit-social-url-${l.id}`}
                 value={editUrl}
                 onChange={(e) => setEditUrl(e.target.value)}
-                className="flex-1 text-sm border border-slate-200 rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className="flex-1 text-sm border border-[#e4e0d8] rounded-xl px-2.5 py-1.5 bg-white text-[#2e3230] focus:outline-none focus:ring-2 focus:ring-[#4a7c59]"
                 placeholder="URL"
               />
               <button
                 onClick={() => handleUpdate(l.id)}
                 disabled={isPending}
-                className="text-xs font-semibold px-3 py-1.5 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors disabled:opacity-50"
+                className="text-xs font-semibold px-3 py-1.5 bg-[#4a7c59] text-white rounded-xl hover:bg-[#3d6b4a] transition-colors disabled:opacity-50"
               >
                 Save
               </button>
               <button
                 onClick={() => setEditingId(null)}
-                className="text-xs font-medium text-slate-400 hover:text-slate-600"
+                className="text-xs font-medium text-[#74796e] hover:text-[#2e3230]"
               >
                 Cancel
               </button>
             </li>
           ) : (
-            <li key={l.id} className="flex items-center justify-between group py-1.5 px-2 rounded-xl hover:bg-slate-50 transition-colors">
+            <li key={l.id} className="flex items-center justify-between group py-1.5 px-2 rounded-xl hover:bg-[#eae6de] transition-colors">
               <div className="flex items-center gap-2 min-w-0">
-                <span className="text-xs text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded capitalize shrink-0">{l.platform}</span>
+                <span className="text-xs text-[#74796e] bg-[#eae6de] px-1.5 py-0.5 rounded capitalize shrink-0">{l.platform}</span>
                 <a
                   href={l.url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-sm font-medium text-indigo-600 hover:underline truncate"
+                  className="text-sm font-medium text-[#4a7c59] hover:underline truncate"
                 >
                   {l.url}
                 </a>
@@ -383,7 +377,7 @@ function SocialLinksSection({
                 <button
                   id={`edit-social-${l.id}`}
                   onClick={() => startEdit(l)}
-                  className="p-1 text-slate-300 hover:text-slate-600 transition-colors"
+                  className="p-1 text-[#74796e] hover:text-[#2e3230] transition-colors"
                 >
                   <Pencil className="h-4 w-4" />
                 </button>
@@ -391,7 +385,7 @@ function SocialLinksSection({
                   id={`delete-social-${l.id}`}
                   onClick={() => handleDelete(l.id)}
                   disabled={isPending}
-                  className="p-1 text-slate-300 hover:text-red-500 transition-colors"
+                  className="p-1 text-[#74796e] hover:text-[#b83230] transition-colors"
                 >
                   <Trash2 className="h-4 w-4" />
                 </button>
@@ -402,28 +396,26 @@ function SocialLinksSection({
       </ul>
 
       {links.length === 0 && !adding && (
-        <p className="text-xs text-slate-300 italic">No social links yet</p>
+        <p className="text-xs text-[#74796e] italic">No social links yet</p>
       )}
 
       {adding && (
-        <div className="mt-4 flex gap-2 pt-4 border-t border-slate-100">
+        <div className="mt-4 flex gap-2 pt-4 border-t border-[#e4e0d8]">
           <select
             id="new-social-platform"
             value={newPlatform}
             onChange={(e) => setNewPlatform(e.target.value as SocialPlatform)}
-            className="text-xs border border-slate-200 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white"
+            className="text-xs border border-[#e4e0d8] rounded-xl px-2 py-1.5 bg-white text-[#2e3230] focus:outline-none focus:ring-2 focus:ring-[#4a7c59]"
           >
             {PLATFORMS.map((p) => (
-              <option key={p} value={p}>
-                {p.charAt(0).toUpperCase() + p.slice(1)}
-              </option>
+              <option key={p} value={p}>{p.charAt(0).toUpperCase() + p.slice(1)}</option>
             ))}
           </select>
           <input
             id="new-social-url"
             value={newUrl}
             onChange={(e) => setNewUrl(e.target.value)}
-            className="flex-1 text-sm border border-slate-200 rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            className="flex-1 text-sm border border-[#e4e0d8] rounded-xl px-2.5 py-1.5 bg-white text-[#2e3230] focus:outline-none focus:ring-2 focus:ring-[#4a7c59]"
             placeholder="https://..."
             autoFocus
           />
@@ -431,13 +423,13 @@ function SocialLinksSection({
             id="save-new-social"
             onClick={handleAdd}
             disabled={isPending || !newUrl.trim()}
-            className="text-xs font-semibold px-3 py-1.5 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors disabled:opacity-50"
+            className="text-xs font-semibold px-3 py-1.5 bg-[#4a7c59] text-white rounded-xl hover:bg-[#3d6b4a] transition-colors disabled:opacity-50"
           >
             Save
           </button>
           <button
             onClick={() => { setAdding(false); setNewUrl('') }}
-            className="text-xs font-medium text-slate-400 hover:text-slate-600 py-1.5"
+            className="text-xs font-medium text-[#74796e] hover:text-[#2e3230] py-1.5"
           >
             Cancel
           </button>
@@ -459,13 +451,13 @@ export default function ContactDetailDesktop({
   const displayName = [contact.first_name, contact.last_name].filter(Boolean).join(' ')
 
   return (
-    <div className="hidden md:flex h-full overflow-hidden bg-slate-50">
+    <div className="hidden md:flex h-full overflow-hidden bg-[#faf6f0]">
       {/* Left panel: Info cards */}
-      <div className="w-[380px] lg:w-[420px] border-r border-slate-200 bg-white overflow-y-auto shrink-0 flex flex-col gap-6 p-6">
+      <div className="w-[380px] lg:w-[420px] border-r border-[#e4e0d8] bg-[#faf6f0] overflow-y-auto shrink-0 flex flex-col gap-5 p-6">
         {/* Pipeline status card */}
-        <div className="p-5 rounded-2xl border border-slate-100 bg-slate-50/50 shadow-inner">
+        <div className="p-5 rounded-[20px] border border-[#e4e0d8] bg-[#f5f1ea] shadow-[0_4px_20px_rgba(46,50,48,0.04)]">
           <div className="mb-3 flex items-center justify-between">
-            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Pipeline status</span>
+            <span className="text-[10px] font-bold text-[#74796e] uppercase tracking-wider">Pipeline status</span>
             {currentStatus && (
               <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wide border ${currentStatus.color}`}>
                 {currentStatus.label}
@@ -476,13 +468,13 @@ export default function ContactDetailDesktop({
         </div>
 
         {/* Basic Details card */}
-        <div className="p-5 rounded-2xl border border-slate-100 bg-white shadow-sm">
+        <div className="p-5 rounded-[20px] border border-[#e4e0d8] bg-[#f5f1ea] shadow-[0_4px_20px_rgba(46,50,48,0.04)]">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider">Basic details</h3>
+            <h3 className="text-xs font-bold text-[#74796e] uppercase tracking-wider">Basic details</h3>
             <Link
               href={`/contacts/${contact.id}/edit`}
               id="edit-contact-desktop"
-              className="inline-flex items-center gap-1 text-xs font-semibold text-indigo-600 hover:text-indigo-800 transition-colors"
+              className="inline-flex items-center gap-1 text-xs font-semibold text-[#4a7c59] hover:text-[#3d6b4a] transition-colors"
             >
               <Pencil className="h-3.5 w-3.5" />
               Edit
@@ -494,43 +486,32 @@ export default function ContactDetailDesktop({
             <InfoRow label="Email" value={contact.email} />
             <InfoRow label="Company" value={contact.company} />
             <InfoRow label="Job title" value={contact.job_title} />
-            <div className="col-span-2 border-t border-slate-100 pt-3 mt-1 grid grid-cols-2 gap-4">
+            <div className="col-span-2 border-t border-[#e4e0d8] pt-3 mt-1 grid grid-cols-2 gap-4">
               <InfoRow label="Last contacted" value={formatDate(contact.last_contacted_at)} />
               <InfoRow label="Added on" value={formatDate(contact.created_at)} />
             </div>
           </dl>
         </div>
 
-        {/* Phones Section */}
-        <PhoneNumbersSection
-          phones={contact.phoneNumbers}
-          contactId={contact.id}
-          profileId={profileId}
-        />
-
-        {/* Socials Section */}
-        <SocialLinksSection
-          links={contact.socialLinks}
-          contactId={contact.id}
-          profileId={profileId}
-        />
+        <PhoneNumbersSection phones={contact.phoneNumbers} contactId={contact.id} profileId={profileId} />
+        <SocialLinksSection links={contact.socialLinks} contactId={contact.id} profileId={profileId} />
       </div>
 
-      {/* Right panel: Timeline & Quick action */}
+      {/* Right panel: Timeline & header */}
       <div className="flex-1 overflow-y-auto p-8 flex flex-col gap-6">
         {/* Profile overview header card */}
-        <div className="bg-white rounded-2xl border border-slate-100 p-6 shadow-sm flex items-center justify-between gap-4">
+        <div className="bg-[#f5f1ea] rounded-[20px] border border-[#e4e0d8] p-6 shadow-[0_4px_20px_rgba(46,50,48,0.04)] flex items-center justify-between gap-4">
           <div className="min-w-0">
-            <h2 className="text-2xl font-bold text-slate-800 tracking-tight truncate">
+            <h2 className="text-2xl font-bold text-[#2e3230] tracking-tight truncate">
               {displayName}
             </h2>
             {(contact.job_title || contact.company) && (
-              <p className="mt-1 text-sm font-medium text-slate-400">
+              <p className="mt-1 text-sm font-medium text-[#74796e]">
                 {[contact.job_title, contact.company].filter(Boolean).join(' at ')}
               </p>
             )}
             {contact.email && (
-              <p className="mt-0.5 text-xs text-indigo-500 font-medium">{contact.email}</p>
+              <p className="mt-0.5 text-xs text-[#4a7c59] font-medium">{contact.email}</p>
             )}
           </div>
 
@@ -538,20 +519,17 @@ export default function ContactDetailDesktop({
             contactId={contact.id}
             profileId={profileId}
             triggerLabel="Log interaction"
-            triggerClassName="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-sm rounded-xl px-4 py-2.5 transition-colors shadow-sm cursor-pointer"
+            triggerClassName="bg-[#4a7c59] hover:bg-[#3d6b4a] text-white font-semibold text-sm rounded-xl px-4 py-2.5 transition-colors shadow-sm cursor-pointer"
           />
         </div>
 
         {/* Interactions history section */}
-        <div className="bg-white rounded-2xl border border-slate-100 p-6 shadow-sm flex-1 flex flex-col">
-          <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-6">
+        <div className="bg-[#f5f1ea] rounded-[20px] border border-[#e4e0d8] p-6 shadow-[0_4px_20px_rgba(46,50,48,0.04)] flex-1 flex flex-col">
+          <h3 className="text-xs font-bold text-[#74796e] uppercase tracking-wider mb-6">
             Interactions Timeline
           </h3>
           <div className="flex-1">
-            <InteractionTimeline
-              interactions={interactions}
-              contactId={contact.id}
-            />
+            <InteractionTimeline interactions={interactions} contactId={contact.id} />
           </div>
         </div>
       </div>

@@ -14,10 +14,10 @@ interface Props {
 }
 
 function SortIcon({ column, sortKey, sortDir }: { column: SortKey; sortKey: SortKey; sortDir: SortDir }) {
-  if (column !== sortKey) return <ChevronsUpDown className="h-3.5 w-3.5 text-gray-400" />
+  if (column !== sortKey) return <ChevronsUpDown className="h-3.5 w-3.5 text-[#74796e]" />
   return sortDir === 'asc'
-    ? <ChevronUp className="h-3.5 w-3.5 text-gray-700" />
-    : <ChevronDown className="h-3.5 w-3.5 text-gray-700" />
+    ? <ChevronUp className="h-3.5 w-3.5 text-[#2e3230]" />
+    : <ChevronDown className="h-3.5 w-3.5 text-[#2e3230]" />
 }
 
 function statusBadge(status: Database['public']['Enums']['pipeline_status']) {
@@ -28,7 +28,7 @@ function statusBadge(status: Database['public']['Enums']['pipeline_status']) {
 }
 
 function formatDate(iso: string | null) {
-  if (!iso) return <span className="text-gray-400">—</span>
+  if (!iso) return <span className="text-[#74796e]">—</span>
   return new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
 }
 
@@ -46,69 +46,68 @@ export default function ContactsDesktop({ contacts, sortKey, sortDir }: Props) {
   }
 
   return (
-    <div className="hidden md:block overflow-x-auto">
-      <table className="min-w-full divide-y divide-gray-200">
-        <thead className="bg-gray-50">
-          <tr>
-            {COLUMNS.map(({ key, label }) => (
-              <th
-                key={key}
-                scope="col"
-                className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider"
+    <div role="table" aria-label="Contacts list" className="hidden md:block px-6 py-4 space-y-2">
+      {/* Column headers */}
+      <div role="row" className="grid grid-cols-[2fr_2fr_1.5fr_1.5fr_80px] gap-4 px-4 mb-1">
+        {COLUMNS.map(({ key, label }) => (
+          <Link
+            key={key}
+            href={sortHref(key)}
+            role="columnheader"
+            className="inline-flex items-center gap-1 text-xs font-semibold text-[#74796e] uppercase tracking-wider hover:text-[#2e3230] transition-colors"
+          >
+            {label}
+            <SortIcon column={key} sortKey={sortKey} sortDir={sortDir} />
+          </Link>
+        ))}
+        <span role="columnheader" className="sr-only">Actions</span>
+      </div>
+
+      {/* Rows */}
+      {contacts.length === 0 ? (
+        <div className="py-16 text-center">
+          <p className="text-sm text-[#74796e]">No contacts yet.</p>
+          <Link href="/contacts/new" className="mt-2 inline-block text-sm font-semibold text-[#4a7c59] hover:underline">
+            Add your first contact →
+          </Link>
+        </div>
+      ) : (
+        contacts.map((c) => (
+          <div
+            key={c.id}
+            role="row"
+            className="grid grid-cols-[2fr_2fr_1.5fr_1.5fr_80px] gap-4 items-center px-4 py-3.5 rounded-[20px] bg-[#f5f1ea] hover:bg-[#eae6de] transition-colors shadow-[0_4px_20px_rgba(46,50,48,0.04)] group"
+          >
+            <div role="cell">
+              <Link
+                href={`/contacts/${c.id}`}
+                className="text-sm font-semibold text-[#2e3230] hover:text-[#4a7c59] transition-colors"
               >
-                <Link
-                  href={sortHref(key)}
-                  className="inline-flex items-center gap-1 hover:text-gray-700 transition-colors"
-                >
-                  {label}
-                  <SortIcon column={key} sortKey={sortKey} sortDir={sortDir} />
-                </Link>
-              </th>
-            ))}
-            <th scope="col" className="relative px-4 py-3">
-              <span className="sr-only">Actions</span>
-            </th>
-          </tr>
-        </thead>
-        <tbody className="bg-white divide-y divide-gray-100">
-          {contacts.length === 0 ? (
-            <tr>
-              <td colSpan={5} className="px-4 py-12 text-center text-sm text-gray-400">
-                No contacts yet. <Link href="/contacts/new" className="text-indigo-600 hover:underline">Add your first contact →</Link>
-              </td>
-            </tr>
-          ) : (
-            contacts.map((c) => (
-              <tr key={c.id} className="hover:bg-gray-50 transition-colors group">
-                <td className="px-4 py-3 whitespace-nowrap">
-                  <Link href={`/contacts/${c.id}`} className="text-sm font-medium text-gray-900 hover:text-indigo-600 transition-colors">
-                    {c.first_name} {c.last_name}
-                  </Link>
-                  {c.email && <div className="text-xs text-gray-400 mt-0.5">{c.email}</div>}
-                </td>
-                <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-600">
-                  {c.company || <span className="text-gray-300">—</span>}
-                  {c.job_title && <div className="text-xs text-gray-400 mt-0.5">{c.job_title}</div>}
-                </td>
-                <td className="px-4 py-3 whitespace-nowrap">
-                  {statusBadge(c.pipeline_status)}
-                </td>
-                <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
-                  {formatDate(c.last_contacted_at)}
-                </td>
-                <td className="px-4 py-3 whitespace-nowrap text-right">
-                  <Link
-                    href={`/contacts/${c.id}/edit`}
-                    className="text-xs text-gray-400 opacity-0 group-hover:opacity-100 hover:text-indigo-600 transition-all"
-                  >
-                    Edit
-                  </Link>
-                </td>
-              </tr>
-            ))
-          )}
-        </tbody>
-      </table>
+                {c.first_name} {c.last_name}
+              </Link>
+              {c.email && <div className="text-xs text-[#74796e] mt-0.5">{c.email}</div>}
+            </div>
+            <div role="cell" className="text-sm text-[#4a4e4a]">
+              {c.company || <span className="text-[#74796e]">—</span>}
+              {c.job_title && <div className="text-xs text-[#74796e] mt-0.5">{c.job_title}</div>}
+            </div>
+            <div role="cell">
+              {statusBadge(c.pipeline_status)}
+            </div>
+            <div role="cell" className="text-sm text-[#4a4e4a]">
+              {formatDate(c.last_contacted_at)}
+            </div>
+            <div role="cell" className="text-right">
+              <Link
+                href={`/contacts/${c.id}/edit`}
+                className="text-xs font-semibold text-[#74796e] opacity-0 group-hover:opacity-100 hover:text-[#4a7c59] transition-all"
+              >
+                Edit
+              </Link>
+            </div>
+          </div>
+        ))
+      )}
     </div>
   )
 }

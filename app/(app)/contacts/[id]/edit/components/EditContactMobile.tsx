@@ -37,17 +37,17 @@ export default function EditContactMobile({ contact }: Props) {
   }
 
   return (
-    <div className="md:hidden flex-1 overflow-y-auto px-4 py-6">
+    <div className="md:hidden flex-1 overflow-y-auto px-4 py-6 bg-[#faf6f0]">
       {error && (
-        <div className="mb-5 p-4 rounded-lg bg-red-50 border border-red-200 text-sm text-red-700 font-medium">
+        <div className="mb-5 p-4 rounded-xl bg-[#ffdad8]/50 border border-[#b83230]/20 text-sm text-[#b83230] font-medium">
           {error}
         </div>
       )}
 
       <form onSubmit={handleSubmit} id="edit-contact-form-mobile" className="space-y-4">
         <div>
-          <label htmlFor="ec-mobile-first_name" className="block text-sm font-medium text-gray-700 mb-1">
-            First name <span className="text-red-500">*</span>
+          <label htmlFor="ec-mobile-first_name" className="block text-sm font-medium text-[#2e3230] mb-1">
+            First name <span className="text-[#b83230]">*</span>
           </label>
           <input
             id="ec-mobile-first_name"
@@ -57,14 +57,12 @@ export default function EditContactMobile({ contact }: Props) {
             disabled={isPending}
             autoComplete="given-name"
             defaultValue={contact.first_name}
-            className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent disabled:bg-gray-100 disabled:text-gray-500"
+            className="w-full px-3 py-2.5 text-sm border border-[#e4e0d8] rounded-xl bg-[#f5f1ea] text-[#2e3230] focus:outline-none focus:ring-2 focus:ring-[#4a7c59] focus:border-transparent disabled:opacity-60"
           />
         </div>
 
         <div>
-          <label htmlFor="ec-mobile-last_name" className="block text-sm font-medium text-gray-700 mb-1">
-            Last name
-          </label>
+          <label htmlFor="ec-mobile-last_name" className="block text-sm font-medium text-[#2e3230] mb-1">Last name</label>
           <input
             id="ec-mobile-last_name"
             name="last_name"
@@ -72,14 +70,12 @@ export default function EditContactMobile({ contact }: Props) {
             disabled={isPending}
             autoComplete="family-name"
             defaultValue={contact.last_name ?? ''}
-            className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent disabled:bg-gray-100 disabled:text-gray-500"
+            className="w-full px-3 py-2.5 text-sm border border-[#e4e0d8] rounded-xl bg-[#f5f1ea] text-[#2e3230] focus:outline-none focus:ring-2 focus:ring-[#4a7c59] focus:border-transparent disabled:opacity-60"
           />
         </div>
 
         <div>
-          <label htmlFor="ec-mobile-email" className="block text-sm font-medium text-gray-700 mb-1">
-            Email
-          </label>
+          <label htmlFor="ec-mobile-email" className="block text-sm font-medium text-[#2e3230] mb-1">Email</label>
           <input
             id="ec-mobile-email"
             name="email"
@@ -87,14 +83,12 @@ export default function EditContactMobile({ contact }: Props) {
             disabled={isPending}
             autoComplete="email"
             defaultValue={contact.email ?? ''}
-            className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent disabled:bg-gray-100 disabled:text-gray-500"
+            className="w-full px-3 py-2.5 text-sm border border-[#e4e0d8] rounded-xl bg-[#f5f1ea] text-[#2e3230] focus:outline-none focus:ring-2 focus:ring-[#4a7c59] focus:border-transparent disabled:opacity-60"
           />
         </div>
 
         <div>
-          <label htmlFor="ec-mobile-company" className="block text-sm font-medium text-gray-700 mb-1">
-            Company
-          </label>
+          <label htmlFor="ec-mobile-company" className="block text-sm font-medium text-[#2e3230] mb-1">Company</label>
           <input
             id="ec-mobile-company"
             name="company"
@@ -102,14 +96,12 @@ export default function EditContactMobile({ contact }: Props) {
             disabled={isPending}
             autoComplete="organization"
             defaultValue={contact.company ?? ''}
-            className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent disabled:bg-gray-100 disabled:text-gray-500"
+            className="w-full px-3 py-2.5 text-sm border border-[#e4e0d8] rounded-xl bg-[#f5f1ea] text-[#2e3230] focus:outline-none focus:ring-2 focus:ring-[#4a7c59] focus:border-transparent disabled:opacity-60"
           />
         </div>
 
         <div>
-          <label htmlFor="ec-mobile-job_title" className="block text-sm font-medium text-gray-700 mb-1">
-            Job title
-          </label>
+          <label htmlFor="ec-mobile-job_title" className="block text-sm font-medium text-[#2e3230] mb-1">Job title</label>
           <input
             id="ec-mobile-job_title"
             name="job_title"
@@ -117,7 +109,7 @@ export default function EditContactMobile({ contact }: Props) {
             disabled={isPending}
             autoComplete="organization-title"
             defaultValue={contact.job_title ?? ''}
-            className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent disabled:bg-gray-100 disabled:text-gray-500"
+            className="w-full px-3 py-2.5 text-sm border border-[#e4e0d8] rounded-xl bg-[#f5f1ea] text-[#2e3230] focus:outline-none focus:ring-2 focus:ring-[#4a7c59] focus:border-transparent disabled:opacity-60"
           />
         </div>
 
@@ -126,13 +118,13 @@ export default function EditContactMobile({ contact }: Props) {
             id="ec-mobile-submit"
             type="submit"
             disabled={isPending}
-            className="w-full py-2.5 rounded-lg bg-indigo-600 text-white text-sm font-medium hover:bg-indigo-700 disabled:opacity-60 transition-colors"
+            className="w-full py-2.5 rounded-xl bg-[#4a7c59] text-white text-sm font-semibold hover:bg-[#3d6b4a] disabled:opacity-60 transition-colors shadow-sm"
           >
             {isPending ? 'Saving…' : 'Save changes'}
           </button>
           <Link
             href={`/contacts/${contact.id}`}
-            className="w-full py-2.5 rounded-lg bg-white border border-gray-200 text-gray-700 text-sm font-medium text-center hover:bg-gray-50 transition-colors"
+            className="w-full py-2.5 rounded-xl bg-[#eae6de] text-[#4a4e4a] text-sm font-semibold text-center hover:bg-[#dedad2] transition-colors"
           >
             Cancel
           </Link>
