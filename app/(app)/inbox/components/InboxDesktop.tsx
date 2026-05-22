@@ -61,7 +61,7 @@ export default function InboxDesktop({ items }: Props) {
           title: 'Contact Resurfaced',
           description: `Snooze expired. ${contactName} has resurfaced from their temporary status. Ready to follow up!`,
           icon: Clock,
-          iconBg: 'bg-amber-50/70 text-amber-700 border border-amber-200/50',
+          iconBg: 'bg-amber-50/70 text-amber-700 border-amber-200/50',
         }
       case 'working_list_changed':
         const action = item.payload.action === 'added' ? 'added to' : 'removed from'
@@ -69,21 +69,21 @@ export default function InboxDesktop({ items }: Props) {
           title: 'Focus List Update',
           description: `${contactName} was ${action} your active Working List.`,
           icon: TrendingUp,
-          iconBg: 'bg-terra-primary-fixed/30 text-terra-primary border border-terra-primary-container/30',
+          iconBg: 'bg-terra-primary-fixed/30 text-terra-primary border-terra-primary-container/30',
         }
       case 'sync_conflict':
         return {
           title: 'Google Sync Conflict',
           description: `A data sync conflict was identified on ${contactName}. Fields: ${Object.keys(item.payload.conflicts || {}).join(', ') || 'multiple fields'}.`,
           icon: AlertTriangle,
-          iconBg: 'bg-rose-50/70 text-rose-700 border border-rose-200/50',
+          iconBg: 'bg-rose-50/70 text-rose-700 border-rose-200/50',
         }
       default:
         return {
           title: 'System Alert',
           description: 'A general workspace notification occurred.',
           icon: Inbox,
-          iconBg: 'bg-terra-surface-container-high text-terra-on-surface-variant border border-terra-surface-container-highest',
+          iconBg: 'bg-terra-surface-container-high text-terra-on-surface-variant border-terra-surface-container-highest/40',
         }
     }
   }
@@ -164,8 +164,8 @@ export default function InboxDesktop({ items }: Props) {
               return (
                 <div 
                   key={item.id} 
-                  className={`bg-white border rounded-xl p-5 shadow-sm transition-all flex items-start gap-4 hover:shadow-md relative ${
-                    item.read ? 'border-terra-surface-container-highest/60 opacity-75 bg-terra-surface-container-low/50' : 'border-terra-surface-container-highest hover:border-terra-primary/30'
+                  className={`border rounded-xl p-5 shadow-sm transition-all flex items-start gap-4 hover:shadow-md relative ${
+                    item.read ? 'bg-terra-surface-container-low/50 border-terra-surface-container-highest/60 opacity-75' : 'bg-white border-terra-surface-container-highest hover:border-terra-primary/30'
                   }`}
                 >
                   {/* Left Side: Icon */}
@@ -242,7 +242,7 @@ export default function InboxDesktop({ items }: Props) {
             </div>
           </div>
           
-          <div className="bg-gradient-to-br from-[#2e4d37] to-[#1c3022] border border-[#2e4d37]/20 rounded-xl p-6 text-white shadow-sm font-body">
+          <div className="bg-gradient-to-br from-terra-snooze-from to-terra-snooze-to border border-terra-snooze-from/20 rounded-xl p-6 text-white shadow-sm font-body">
             <h3 className="text-xs font-bold uppercase tracking-wider text-terra-on-primary-container mb-2 flex items-center gap-1">
               <Sparkles className="h-3.5 w-3.5 animate-pulse" />
               Snooze Intelligence

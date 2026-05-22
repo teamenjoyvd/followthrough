@@ -60,7 +60,7 @@ export default function InboxMobile({ items }: Props) {
           title: 'Resurfaced',
           description: `${contactName} has resurfaced from snooze. Time to re-engage!`,
           icon: Clock,
-          iconBg: 'bg-amber-50/70 text-amber-700 border border-amber-200/50',
+          iconBg: 'bg-amber-50/70 text-amber-700 border-amber-200/50',
         }
       case 'working_list_changed':
         const action = item.payload.action === 'added' ? 'added to' : 'removed from'
@@ -68,21 +68,21 @@ export default function InboxMobile({ items }: Props) {
           title: 'Focus Update',
           description: `${contactName} was ${action} your focus list.`,
           icon: TrendingUp,
-          iconBg: 'bg-terra-primary-fixed/30 text-terra-primary border border-terra-primary-container/30',
+          iconBg: 'bg-terra-primary-fixed/30 text-terra-primary border-terra-primary-container/30',
         }
       case 'sync_conflict':
         return {
           title: 'Sync Conflict',
           description: `Conflict identified on ${contactName}'s data sync: ${Object.keys(item.payload.conflicts || {}).join(', ') || 'conflicting fields'}.`,
           icon: AlertTriangle,
-          iconBg: 'bg-rose-50/70 text-rose-700 border border-rose-200/50',
+          iconBg: 'bg-rose-50/70 text-rose-700 border-rose-200/50',
         }
       default:
         return {
           title: 'Alert',
           description: 'A general workspace action occurred.',
           icon: Inbox,
-          iconBg: 'bg-terra-surface-container-high text-terra-on-surface-variant border border-terra-surface-container-highest',
+          iconBg: 'bg-terra-surface-container-high text-terra-on-surface-variant border-terra-surface-container-highest/40',
         }
     }
   }
@@ -153,8 +153,8 @@ export default function InboxMobile({ items }: Props) {
             return (
               <div 
                 key={item.id} 
-                className={`bg-white border rounded-xl p-4 shadow-sm flex flex-col gap-3 relative font-body ${
-                  item.read ? 'border-terra-surface-container-highest/60 opacity-75 bg-terra-surface-container-low/50' : 'border-terra-surface-container-highest'
+                className={`border rounded-xl p-4 shadow-sm flex flex-col gap-3 relative font-body ${
+                  item.read ? 'bg-terra-surface-container-low/50 border-terra-surface-container-highest/60 opacity-75' : 'bg-white border-terra-surface-container-highest'
                 }`}
               >
                 <div className="flex items-start justify-between gap-3">
