@@ -42,7 +42,6 @@ export default async function DashboardPage() {
 
   let profile = profileResult
 
-
   // 2. If the profile does not exist, provision a new one
   if (!profile) {
     let email = (sessionClaims?.email as string) || (sessionClaims?.primary_email as string) || ''

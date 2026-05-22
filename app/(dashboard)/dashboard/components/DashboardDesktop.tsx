@@ -49,7 +49,6 @@ export default function DashboardDesktop({
   // Fallback to there if profile has no name, to maintain rooted friendly feeling
   const name = displayName || 'there'
 
-
   return (
     <div className="min-h-screen bg-[#faf6f0] pb-24 font-body">
       
