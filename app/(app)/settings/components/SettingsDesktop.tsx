@@ -2,9 +2,10 @@
 
 import { useState, useTransition } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { Switch } from '@/components/ui/switch'
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
-import { updateProfile, updatePreferences, updateFollowupRules } from '@/lib/actions/settings'
+import { updateProfile, updatePreferences, updateFollowupRules, disconnectGoogle } from '@/lib/actions/settings'
 import { SyncConflictList } from './SyncConflictList'
 import type { SyncConflictWithContact } from './SyncConflictList'
 import type { FollowupRules } from '@/lib/actions/settings'
@@ -36,9 +37,9 @@ export default function SettingsDesktop({
   flashError,
 }: Props) {
   return (
-    <div className="min-h-screen bg-background p-8">
+    <div className="min-h-screen bg-[#faf6f0] p-8 font-body">
       <div className="max-w-2xl mx-auto space-y-10">
-        <h1 className="font-headline text-3xl font-bold text-foreground">Settings</h1>
+        <h1 className="font-headline text-3xl font-bold text-[#2e3230]">Settings</h1>
 
         <ProfileSection displayName={profile.display_name} email={profile.email} />
         <PreferencesSection
@@ -82,30 +83,30 @@ function ProfileSection({ displayName, email }: { displayName: string | null; em
 
   return (
     <section className="space-y-4">
-      <h2 className="font-headline text-lg font-bold text-foreground">Profile</h2>
-      <div className="bg-card border border-border rounded-xl p-6 space-y-4">
+      <h2 className="font-headline text-lg font-bold text-[#2e3230]">Profile</h2>
+      <div className="bg-[#faf6f0] border border-[#e4e0d8] rounded-[20px] p-6 space-y-4 shadow-[0_4px_20px_rgba(46,50,48,0.04)]">
         <div className="space-y-1.5">
-          <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Display name</label>
+          <label className="text-xs font-semibold text-[#74796e] uppercase tracking-wide">Display name</label>
           <input
             value={name}
             onChange={e => setName(e.target.value)}
-            className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+            className="w-full rounded-xl border border-[#e4e0d8] bg-[#f5f1ea] px-3 py-2 text-sm text-[#2e3230] focus:outline-none focus:ring-2 focus:ring-[#4a7c59]"
           />
         </div>
         <div className="space-y-1.5">
-          <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Email</label>
-          <p className="text-sm text-muted-foreground">{email}</p>
+          <label className="text-xs font-semibold text-[#74796e] uppercase tracking-wide">Email</label>
+          <p className="text-sm text-[#4a4e4a]">{email}</p>
         </div>
         <div className="flex items-center gap-3">
           <button
             onClick={handleSave}
             disabled={isPending}
-            className="bg-primary text-primary-foreground text-sm font-bold px-4 py-2 rounded-lg hover:opacity-90 transition-opacity disabled:opacity-50"
+            className="bg-[#4a7c59] text-white text-sm font-bold px-4 py-2 rounded-xl hover:bg-[#3d664a] transition-colors disabled:opacity-50"
           >
             {isPending ? 'Saving…' : 'Save'}
           </button>
           {feedback && (
-            <span className={`text-xs font-medium ${feedback.ok ? 'text-primary' : 'text-destructive'}`}>
+            <span className={`text-xs font-medium ${feedback.ok ? 'text-[#4a7c59]' : 'text-destructive'}`}>
               {feedback.msg}
             </span>
           )}
@@ -143,19 +144,19 @@ function PreferencesSection({
 
   return (
     <section className="space-y-4">
-      <h2 className="font-headline text-lg font-bold text-foreground">Preferences</h2>
-      <div className="bg-card border border-border rounded-xl p-6 space-y-5">
+      <h2 className="font-headline text-lg font-bold text-[#2e3230]">Preferences</h2>
+      <div className="bg-[#faf6f0] border border-[#e4e0d8] rounded-[20px] p-6 space-y-5 shadow-[0_4px_20px_rgba(46,50,48,0.04)]">
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-sm font-medium text-foreground">Action confirmations</p>
-            <p className="text-xs text-muted-foreground mt-0.5">Show confirm dialogs before destructive actions</p>
+            <p className="text-sm font-medium text-[#2e3230]">Action confirmations</p>
+            <p className="text-xs text-[#74796e] mt-0.5">Show confirm dialogs before destructive actions</p>
           </div>
           <Switch checked={confirmation} onCheckedChange={setConfirmation} />
         </div>
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-sm font-medium text-foreground">Pipeline view</p>
-            <p className="text-xs text-muted-foreground mt-0.5">Default layout for the pipeline page</p>
+            <p className="text-sm font-medium text-[#2e3230]">Pipeline view</p>
+            <p className="text-xs text-[#74796e] mt-0.5">Default layout for the pipeline page</p>
           </div>
           <ToggleGroup type="single" value={view} onValueChange={v => v && setView(v)} size="sm">
             <ToggleGroupItem value="board">Board</ToggleGroupItem>
@@ -166,12 +167,12 @@ function PreferencesSection({
           <button
             onClick={handleSave}
             disabled={isPending}
-            className="bg-primary text-primary-foreground text-sm font-bold px-4 py-2 rounded-lg hover:opacity-90 transition-opacity disabled:opacity-50"
+            className="bg-[#4a7c59] text-white text-sm font-bold px-4 py-2 rounded-xl hover:bg-[#3d664a] transition-colors disabled:opacity-50"
           >
             {isPending ? 'Saving…' : 'Save preferences'}
           </button>
           {feedback && (
-            <span className={`text-xs font-medium ${feedback.ok ? 'text-primary' : 'text-destructive'}`}>
+            <span className={`text-xs font-medium ${feedback.ok ? 'text-[#4a7c59]' : 'text-destructive'}`}>
               {feedback.msg}
             </span>
           )}
@@ -214,13 +215,13 @@ function FollowupRulesSection({ rules }: { rules: FollowupRules }) {
 
   return (
     <section className="space-y-4">
-      <h2 className="font-headline text-lg font-bold text-foreground">Follow-up rules</h2>
-      <p className="text-sm text-muted-foreground">Days before a contact is considered overdue per pipeline stage.</p>
-      <div className="bg-card border border-border rounded-xl p-6 space-y-4">
+      <h2 className="font-headline text-lg font-bold text-[#2e3230]">Follow-up rules</h2>
+      <p className="text-sm text-[#74796e]">Days before a contact is considered overdue per pipeline stage.</p>
+      <div className="bg-[#faf6f0] border border-[#e4e0d8] rounded-[20px] p-6 space-y-4 shadow-[0_4px_20px_rgba(46,50,48,0.04)]">
         <div className="grid grid-cols-2 gap-4">
           {(Object.keys(RULE_LABELS) as (keyof FollowupRules)[]).map(field => (
             <div key={field} className="space-y-1.5">
-              <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+              <label className="text-xs font-semibold text-[#74796e] uppercase tracking-wide">
                 {RULE_LABELS[field]}
               </label>
               <div className="flex items-center gap-2">
@@ -230,9 +231,9 @@ function FollowupRulesSection({ rules }: { rules: FollowupRules }) {
                   max={365}
                   value={values[field]}
                   onChange={e => handleChange(field, e.target.value)}
-                  className="w-20 rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                  className="w-20 rounded-xl border border-[#e4e0d8] bg-[#f5f1ea] px-3 py-2 text-sm text-[#2e3230] focus:outline-none focus:ring-2 focus:ring-[#4a7c59]"
                 />
-                <span className="text-xs text-muted-foreground">days</span>
+                <span className="text-xs text-[#74796e]">days</span>
               </div>
             </div>
           ))}
@@ -241,12 +242,12 @@ function FollowupRulesSection({ rules }: { rules: FollowupRules }) {
           <button
             onClick={handleSave}
             disabled={isPending}
-            className="bg-primary text-primary-foreground text-sm font-bold px-4 py-2 rounded-lg hover:opacity-90 transition-opacity disabled:opacity-50"
+            className="bg-[#4a7c59] text-white text-sm font-bold px-4 py-2 rounded-xl hover:bg-[#3d664a] transition-colors disabled:opacity-50"
           >
             {isPending ? 'Saving…' : 'Save rules'}
           </button>
           {feedback && (
-            <span className={`text-xs font-medium ${feedback.ok ? 'text-primary' : 'text-destructive'}`}>
+            <span className={`text-xs font-medium ${feedback.ok ? 'text-[#4a7c59]' : 'text-destructive'}`}>
               {feedback.msg}
             </span>
           )}
@@ -275,17 +276,55 @@ function GoogleSyncSection({
   flashConnected: boolean
   flashError: string | undefined
 }) {
+  const router = useRouter()
+  const [isSyncing, startSyncTransition] = useTransition()
+  const [syncResult, setSyncResult] = useState<string | null>(null)
+  const [isDisconnecting, startDisconnectTransition] = useTransition()
+  const [disconnectError, setDisconnectError] = useState<string | null>(null)
+
+  function handleSync() {
+    setSyncResult(null)
+    startSyncTransition(async () => {
+      try {
+        const res = await fetch('/api/google/sync', { method: 'POST' })
+        const json = await res.json().catch(() => ({}))
+        if (!res.ok) {
+          setSyncResult('Sync failed. Please try again.')
+        } else {
+          const imported = json.imported ?? 0
+          const conflicts = json.conflicts ?? 0
+          setSyncResult(`Synced successfully: ${imported} contact${imported !== 1 ? 's' : ''} imported, ${conflicts} conflict${conflicts !== 1 ? 's' : ''} detected.`)
+          router.refresh()
+        }
+      } catch {
+        setSyncResult('Sync failed. Please try again.')
+      }
+    })
+  }
+
+  function handleDisconnect() {
+    setDisconnectError(null)
+    startDisconnectTransition(async () => {
+      const result = await disconnectGoogle()
+      if ('error' in result) {
+        setDisconnectError(result.error)
+      } else {
+        router.refresh()
+      }
+    })
+  }
+
   return (
     <section className="space-y-4">
-      <h2 className="font-headline text-lg font-bold text-foreground">Google Contacts</h2>
-      <div className="bg-card border border-border rounded-xl p-6 space-y-4">
+      <h2 className="font-headline text-lg font-bold text-[#2e3230]">Google Contacts</h2>
+      <div className="bg-[#faf6f0] border border-[#e4e0d8] rounded-[20px] p-6 space-y-4 shadow-[0_4px_20px_rgba(46,50,48,0.04)]">
         {flashConnected && (
-          <div className="rounded-lg bg-terra-primary-fixed border border-primary/20 px-4 py-2 text-sm text-primary font-medium">
+          <div className="rounded-xl bg-[#d8f0de] border border-[#4a7c59]/20 px-4 py-2 text-sm text-[#2e3230] font-medium">
             Google Contacts connected successfully.
           </div>
         )}
         {flashError && (
-          <div className="rounded-lg bg-destructive/10 border border-destructive/20 px-4 py-2 text-sm text-destructive">
+          <div className="rounded-xl bg-destructive/10 border border-destructive/20 px-4 py-2 text-sm text-destructive">
             {flashError === 'access_denied' && 'Google access was denied. Please try again.'}
             {flashError === 'token_exchange' && 'Failed to exchange OAuth token. Please try again.'}
             {flashError === 'save_failed' && 'Failed to save connection. Please try again.'}
@@ -293,45 +332,67 @@ function GoogleSyncSection({
             {!['access_denied', 'token_exchange', 'save_failed', 'profile_not_found'].includes(flashError) && 'An error occurred. Please try again.'}
           </div>
         )}
+        {syncResult && (
+          <div className={`rounded-xl px-4 py-2 text-sm font-medium border ${
+            syncResult.startsWith('Sync failed')
+              ? 'bg-destructive/10 border-destructive/20 text-destructive'
+              : 'bg-[#d8f0de] border-[#4a7c59]/20 text-[#2e3230]'
+          }`}>
+            {syncResult}
+          </div>
+        )}
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-sm font-medium text-foreground">{isConnected ? 'Connected' : 'Not connected'}</p>
+            <p className="text-sm font-medium text-[#2e3230]">{isConnected ? 'Connected' : 'Not connected'}</p>
             {syncState?.last_synced_at && (
-              <p className="text-xs text-muted-foreground mt-0.5" suppressHydrationWarning>
+              <p className="text-xs text-[#74796e] mt-0.5" suppressHydrationWarning>
                 Last synced {new Date(syncState.last_synced_at).toLocaleString()}
               </p>
             )}
           </div>
           <div className="flex items-center gap-2">
             {isConnected && (
-              <form action="/api/google/sync" method="POST">
-                <button
-                  type="submit"
-                  className="text-sm px-3 py-1.5 rounded-lg border border-border bg-background text-foreground hover:bg-muted transition-colors"
-                >
-                  Sync now
-                </button>
-              </form>
+              <button
+                onClick={handleSync}
+                disabled={isSyncing}
+                className="text-sm px-3 py-1.5 rounded-xl border border-[#e4e0d8] bg-[#f5f1ea] text-[#2e3230] hover:bg-[#eae6de] transition-colors disabled:opacity-50"
+              >
+                {isSyncing ? 'Syncing…' : 'Sync now'}
+              </button>
             )}
             <Link
               href="/api/google/oauth"
-              className="text-sm px-3 py-1.5 rounded-lg bg-primary text-primary-foreground hover:opacity-90 transition-opacity font-medium"
+              className="text-sm px-3 py-1.5 rounded-xl bg-[#4a7c59] text-white hover:bg-[#3d664a] transition-colors font-medium"
             >
               {isConnected ? 'Reconnect' : 'Connect Google'}
             </Link>
           </div>
         </div>
         {isConnected && (
-          <div className="space-y-3 pt-2 border-t border-border">
-            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-              Sync conflicts{conflictCount > 0 && (
-                <span className="ml-2 inline-flex items-center justify-center w-5 h-5 rounded-full bg-destructive/10 text-destructive text-[10px] font-bold">
-                  {conflictCount}
-                </span>
+          <>
+            <div className="space-y-3 pt-2 border-t border-[#e4e0d8]">
+              <p className="text-xs font-semibold text-[#74796e] uppercase tracking-wide">
+                Sync conflicts{conflictCount > 0 && (
+                  <span className="ml-2 inline-flex items-center justify-center w-5 h-5 rounded-full bg-destructive/10 text-destructive text-[10px] font-bold">
+                    {conflictCount}
+                  </span>
+                )}
+              </p>
+              <SyncConflictList conflicts={conflicts} profileId={profileId} />
+            </div>
+            <div className="pt-2 border-t border-[#e4e0d8]">
+              {disconnectError && (
+                <p className="text-xs text-destructive mb-2">{disconnectError}</p>
               )}
-            </p>
-            <SyncConflictList conflicts={conflicts} profileId={profileId} />
-          </div>
+              <button
+                onClick={handleDisconnect}
+                disabled={isDisconnecting}
+                className="text-sm font-medium text-destructive hover:opacity-80 transition-opacity disabled:opacity-50"
+              >
+                {isDisconnecting ? 'Disconnecting…' : 'Disconnect Google'}
+              </button>
+            </div>
+          </>
         )}
       </div>
     </section>
@@ -343,9 +404,9 @@ function GoogleSyncSection({
 function DangerZoneSection() {
   return (
     <section className="space-y-4">
-      <h2 className="font-headline text-lg font-bold text-foreground">Danger zone</h2>
-      <div className="bg-card border border-destructive/30 rounded-xl p-6 space-y-3">
-        <p className="text-sm text-muted-foreground">
+      <h2 className="font-headline text-lg font-bold text-[#2e3230]">Danger zone</h2>
+      <div className="bg-[#faf6f0] border border-destructive/30 rounded-[20px] p-6 space-y-3 shadow-[0_4px_20px_rgba(46,50,48,0.04)]">
+        <p className="text-sm text-[#74796e]">
           Sign out of your account on this device.
         </p>
         <Link

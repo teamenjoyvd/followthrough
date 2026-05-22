@@ -111,3 +111,25 @@ export async function updateFollowupRules(
   revalidatePath('/settings')
   return { success: true }
 }
+
+export async function disconnectGoogle(): Promise<{ success: true } | { error: string }> {
+  const { userId } = await auth()
+  if (!userId) return { error: 'Unauthorized' }
+
+  const supabase = await createSupabaseServerClient()
+  const profileId = await getProfileId(supabase, userId)
+  if (!profileId) return { error: 'Profile not found' }
+
+  const { error } = await (supabase as any)
+    .from('google_sync_state')
+    .delete()
+    .eq('profile_id', profileId)
+
+  if (error) {
+    console.error('disconnectGoogle error:', error)
+    return { error: 'Failed to disconnect Google. Please try again.' }
+  }
+
+  revalidatePath('/settings')
+  return { success: true }
+}

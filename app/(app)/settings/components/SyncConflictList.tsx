@@ -51,46 +51,46 @@ function ConflictRow({
   }
 
   return (
-    <div className="border border-gray-200 rounded-lg p-4 space-y-3">
+    <div className="border border-[#e4e0d8] rounded-[16px] p-4 space-y-3 bg-[#f5f1ea]">
       <div className="flex items-start justify-between gap-2">
         <div>
-          <p className="text-sm font-medium text-gray-900">{contactName}</p>
-          <p className="text-xs text-gray-500 capitalize">{conflict.field_name.replace(/_/g, ' ')}</p>
+          <p className="text-sm font-medium text-[#2e3230]">{contactName}</p>
+          <p className="text-xs text-[#74796e] capitalize">{conflict.field_name.replace(/_/g, ' ')}</p>
         </div>
       </div>
 
       {/* Side-by-side comparison */}
       <div className="grid grid-cols-2 gap-3">
         <div className="space-y-1">
-          <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Our value</p>
-          <p className="text-sm text-gray-900 bg-gray-50 rounded px-2 py-1.5 min-h-8">
-            {conflict.our_value ?? <span className="text-gray-400 italic">empty</span>}
+          <p className="text-xs font-medium text-[#74796e] uppercase tracking-wide">Our value</p>
+          <p className="text-sm text-[#2e3230] bg-[#eae6de] rounded-xl px-2 py-1.5 min-h-8">
+            {conflict.our_value ?? <span className="text-[#74796e] italic">empty</span>}
           </p>
           <button
             onClick={() => handleResolve('ours')}
             disabled={isPending}
-            className="w-full text-xs font-medium px-3 py-1.5 rounded-md border border-gray-200 bg-white text-gray-700 hover:bg-gray-50 disabled:opacity-50 transition-colors"
+            className="w-full text-xs font-medium px-3 py-1.5 rounded-xl border border-[#e4e0d8] bg-[#faf6f0] text-[#2e3230] hover:bg-[#eae6de] disabled:opacity-50 transition-colors"
           >
             Keep ours
           </button>
         </div>
 
         <div className="space-y-1">
-          <p className="text-xs font-medium text-indigo-600 uppercase tracking-wide">Google value</p>
-          <p className="text-sm text-gray-900 bg-indigo-50 rounded px-2 py-1.5 min-h-8">
-            {conflict.google_value ?? <span className="text-gray-400 italic">empty</span>}
+          <p className="text-xs font-medium text-[#4a7c59] uppercase tracking-wide">Google value</p>
+          <p className="text-sm text-[#2e3230] bg-[#d8f0de] rounded-xl px-2 py-1.5 min-h-8">
+            {conflict.google_value ?? <span className="text-[#74796e] italic">empty</span>}
           </p>
           <button
             onClick={() => handleResolve('google')}
             disabled={isPending}
-            className="w-full text-xs font-medium px-3 py-1.5 rounded-md border border-indigo-200 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 disabled:opacity-50 transition-colors"
+            className="w-full text-xs font-medium px-3 py-1.5 rounded-xl border border-[#4a7c59]/30 bg-[#d8f0de] text-[#2e3230] hover:bg-[#c8e8ce] disabled:opacity-50 transition-colors"
           >
             Use Google
           </button>
         </div>
       </div>
 
-      {error && <p className="text-xs text-red-600">{error}</p>}
+      {error && <p className="text-xs text-destructive">{error}</p>}
     </div>
   )
 }
@@ -104,7 +104,7 @@ export function SyncConflictList({ conflicts, profileId }: Props) {
 
   if (items.length === 0) {
     return (
-      <p className="text-sm text-gray-500 py-4 text-center">No unresolved conflicts.</p>
+      <p className="text-sm text-[#74796e] py-4 text-center">No unresolved conflicts.</p>
     )
   }
 
