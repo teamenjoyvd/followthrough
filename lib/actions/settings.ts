@@ -120,7 +120,7 @@ export async function disconnectGoogle(): Promise<{ success: true } | { error: s
   const profileId = await getProfileId(supabase, userId)
   if (!profileId) return { error: 'Profile not found' }
 
-  const { error } = await (supabase as any)
+  const { error } = await supabase
     .from('google_sync_state')
     .delete()
     .eq('profile_id', profileId)

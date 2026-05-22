@@ -3,8 +3,6 @@
 import { useState, useTransition } from 'react'
 import { resolveConflict } from '@/lib/actions/sync-conflicts'
 
-// Explicit interface — avoids Database['...']['Row'] & { contacts } intersection
-// which collapses the joined relation to `never` under strict TS.
 export interface SyncConflictWithContact {
   id: string
   profile_id: string
@@ -51,39 +49,39 @@ function ConflictRow({
   }
 
   return (
-    <div className="border border-[#e4e0d8] rounded-[16px] p-4 space-y-3 bg-[#f5f1ea]">
+    <div className="border border-terra-surface-container-highest rounded-[16px] p-4 space-y-3 bg-terra-surface-container-low">
       <div className="flex items-start justify-between gap-2">
         <div>
-          <p className="text-sm font-medium text-[#2e3230]">{contactName}</p>
-          <p className="text-xs text-[#74796e] capitalize">{conflict.field_name.replace(/_/g, ' ')}</p>
+          <p className="text-sm font-medium text-terra-on-surface">{contactName}</p>
+          <p className="text-xs text-terra-outline capitalize">{conflict.field_name.replace(/_/g, ' ')}</p>
         </div>
       </div>
 
       {/* Side-by-side comparison */}
       <div className="grid grid-cols-2 gap-3">
         <div className="space-y-1">
-          <p className="text-xs font-medium text-[#74796e] uppercase tracking-wide">Our value</p>
-          <p className="text-sm text-[#2e3230] bg-[#eae6de] rounded-xl px-2 py-1.5 min-h-8">
-            {conflict.our_value ?? <span className="text-[#74796e] italic">empty</span>}
+          <p className="text-xs font-medium text-terra-outline uppercase tracking-wide">Our value</p>
+          <p className="text-sm text-terra-on-surface bg-terra-surface-container-high rounded-xl px-2 py-1.5 min-h-8">
+            {conflict.our_value ?? <span className="text-terra-outline italic">empty</span>}
           </p>
           <button
             onClick={() => handleResolve('ours')}
             disabled={isPending}
-            className="w-full text-xs font-medium px-3 py-1.5 rounded-xl border border-[#e4e0d8] bg-[#faf6f0] text-[#2e3230] hover:bg-[#eae6de] disabled:opacity-50 transition-colors"
+            className="w-full text-xs font-medium px-3 py-1.5 rounded-xl border border-terra-surface-container-highest bg-terra-surface text-terra-on-surface hover:bg-terra-surface-container-high disabled:opacity-50 transition-colors"
           >
             Keep ours
           </button>
         </div>
 
         <div className="space-y-1">
-          <p className="text-xs font-medium text-[#4a7c59] uppercase tracking-wide">Google value</p>
-          <p className="text-sm text-[#2e3230] bg-[#d8f0de] rounded-xl px-2 py-1.5 min-h-8">
-            {conflict.google_value ?? <span className="text-[#74796e] italic">empty</span>}
+          <p className="text-xs font-medium text-terra-primary uppercase tracking-wide">Google value</p>
+          <p className="text-sm text-terra-on-surface bg-terra-on-primary-container rounded-xl px-2 py-1.5 min-h-8">
+            {conflict.google_value ?? <span className="text-terra-outline italic">empty</span>}
           </p>
           <button
             onClick={() => handleResolve('google')}
             disabled={isPending}
-            className="w-full text-xs font-medium px-3 py-1.5 rounded-xl border border-[#4a7c59]/30 bg-[#d8f0de] text-[#2e3230] hover:bg-[#c8e8ce] disabled:opacity-50 transition-colors"
+            className="w-full text-xs font-medium px-3 py-1.5 rounded-xl border border-terra-primary/30 bg-terra-on-primary-container text-terra-on-surface hover:bg-terra-primary-fixed disabled:opacity-50 transition-colors"
           >
             Use Google
           </button>
@@ -104,7 +102,7 @@ export function SyncConflictList({ conflicts, profileId }: Props) {
 
   if (items.length === 0) {
     return (
-      <p className="text-sm text-[#74796e] py-4 text-center">No unresolved conflicts.</p>
+      <p className="text-sm text-terra-outline py-4 text-center">No unresolved conflicts.</p>
     )
   }
 
