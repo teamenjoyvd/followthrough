@@ -60,7 +60,7 @@ export default function InboxMobile({ items }: Props) {
           title: 'Resurfaced',
           description: `${contactName} has resurfaced from snooze. Time to re-engage!`,
           icon: Clock,
-          iconBg: 'bg-amber-50 text-amber-600 border-amber-100',
+          iconBg: 'bg-amber-50/70 text-amber-700 border border-amber-200/50',
         }
       case 'working_list_changed':
         const action = item.payload.action === 'added' ? 'added to' : 'removed from'
@@ -68,35 +68,35 @@ export default function InboxMobile({ items }: Props) {
           title: 'Focus Update',
           description: `${contactName} was ${action} your focus list.`,
           icon: TrendingUp,
-          iconBg: 'bg-indigo-50 text-indigo-600 border-indigo-100',
+          iconBg: 'bg-terra-primary-fixed/30 text-terra-primary border border-terra-primary-container/30',
         }
       case 'sync_conflict':
         return {
           title: 'Sync Conflict',
           description: `Conflict identified on ${contactName}'s data sync: ${Object.keys(item.payload.conflicts || {}).join(', ') || 'conflicting fields'}.`,
           icon: AlertTriangle,
-          iconBg: 'bg-rose-50 text-rose-600 border-rose-100',
+          iconBg: 'bg-rose-50/70 text-rose-700 border border-rose-200/50',
         }
       default:
         return {
           title: 'Alert',
           description: 'A general workspace action occurred.',
           icon: Inbox,
-          iconBg: 'bg-gray-50 text-gray-600 border-gray-100',
+          iconBg: 'bg-terra-surface-container-high text-terra-on-surface-variant border border-terra-surface-container-highest',
         }
     }
   }
 
   return (
-    <div className="min-h-screen bg-gray-50/50 px-4 pt-6 pb-24">
+    <div className="min-h-screen bg-terra-surface px-4 pt-6 pb-24 text-terra-on-surface">
       {/* Mobile Header */}
       <div className="flex items-center justify-between mb-5">
         <div>
-          <h1 className="text-xl font-bold text-gray-900">Inbox</h1>
-          <p className="text-xs text-gray-500 mt-0.5">Workspace alerts feed</p>
+          <h1 className="text-xl font-bold text-terra-primary font-headline">Inbox</h1>
+          <p className="text-xs text-terra-on-surface-variant font-body mt-0.5">Workspace alerts feed</p>
         </div>
         {unreadItems.length > 0 && (
-          <span className="inline-flex items-center justify-center bg-red-100 text-red-700 text-[10px] font-extrabold h-5 px-2 rounded-full border border-red-200">
+          <span className="inline-flex items-center justify-center bg-red-100 text-red-700 text-[10px] font-extrabold h-5 px-2 rounded-full border border-red-200 font-body">
             {unreadItems.length} New
           </span>
         )}
@@ -106,10 +106,10 @@ export default function InboxMobile({ items }: Props) {
       <div className="flex gap-2 mb-5" role="group" aria-label="Notification filters">
         <button
           onClick={() => setFilter('unread')}
-          className={`px-3 py-1.5 rounded-full text-xs font-bold border transition-colors flex items-center gap-1.5 ${
+          className={`px-3 py-1.5 rounded-full text-xs font-bold border transition-colors flex items-center gap-1.5 font-body ${
             filter === 'unread'
-              ? 'bg-gray-900 text-white border-gray-900'
-              : 'bg-white text-gray-600 border-gray-200 active:bg-gray-50'
+              ? 'bg-terra-primary text-white border-terra-primary'
+              : 'bg-white text-terra-on-surface-variant border-terra-surface-container-highest active:bg-terra-surface-container'
           }`}
         >
           Unread
@@ -123,10 +123,10 @@ export default function InboxMobile({ items }: Props) {
         </button>
         <button
           onClick={() => setFilter('all')}
-          className={`px-3 py-1.5 rounded-full text-xs font-bold border transition-colors ${
+          className={`px-3 py-1.5 rounded-full text-xs font-bold border transition-colors font-body ${
             filter === 'all'
-              ? 'bg-gray-900 text-white border-gray-900'
-              : 'bg-white text-gray-600 border-gray-200 active:bg-gray-50'
+              ? 'bg-terra-primary text-white border-terra-primary'
+              : 'bg-white text-terra-on-surface-variant border-terra-surface-container-highest active:bg-terra-surface-container'
           }`}
         >
           All Archives ({items.length})
@@ -136,12 +136,12 @@ export default function InboxMobile({ items }: Props) {
       {/* Feed Stack */}
       <div className={`space-y-3.5 ${isPending ? 'opacity-65 pointer-events-none' : ''} transition-opacity`}>
         {displayedItems.length === 0 ? (
-          <div className="bg-white border border-gray-200 rounded-xl py-12 px-4 text-center shadow-sm">
-            <div className="p-3 bg-emerald-50 text-emerald-500 rounded-full w-fit mx-auto mb-3 border border-emerald-100">
+          <div className="bg-terra-surface-container-low border border-terra-surface-container-highest rounded-xl py-12 px-4 text-center shadow-sm">
+            <div className="p-3 bg-terra-primary-fixed/30 text-terra-primary rounded-full w-fit mx-auto mb-3 border border-terra-primary-container/20">
               <ShieldCheck className="h-6 w-6" />
             </div>
-            <h3 className="text-sm font-bold text-gray-900">Inbox is clear!</h3>
-            <p className="text-xs text-gray-500 mt-1 max-w-[200px] mx-auto leading-relaxed">
+            <h3 className="text-sm font-bold text-terra-on-surface font-headline">Inbox is clear!</h3>
+            <p className="text-xs text-terra-on-surface-variant font-body mt-1 max-w-[200px] mx-auto leading-relaxed">
               {filter === 'unread' 
                 ? 'All notifications marked as read.' 
                 : 'No notification records present.'}
@@ -153,8 +153,8 @@ export default function InboxMobile({ items }: Props) {
             return (
               <div 
                 key={item.id} 
-                className={`bg-white border rounded-xl p-4 shadow-sm flex flex-col gap-3 relative ${
-                  item.read ? 'border-gray-200/60 opacity-75' : 'border-gray-200'
+                className={`bg-white border rounded-xl p-4 shadow-sm flex flex-col gap-3 relative font-body ${
+                  item.read ? 'border-terra-surface-container-highest/60 opacity-75 bg-terra-surface-container-low/50' : 'border-terra-surface-container-highest'
                 }`}
               >
                 <div className="flex items-start justify-between gap-3">
@@ -165,11 +165,11 @@ export default function InboxMobile({ items }: Props) {
                     </div>
                     {/* Details */}
                     <div className="min-w-0">
-                      <h3 className="font-bold text-xs text-gray-950 flex items-center gap-1.5 truncate">
+                      <h3 className="font-bold text-xs text-terra-on-surface flex items-center gap-1.5 truncate font-body">
                         {title}
                         {!item.read && <span className="h-1.5 w-1.5 rounded-full bg-red-500"></span>}
                       </h3>
-                      <span className="text-[9px] text-gray-400 font-semibold mt-0.5 block">
+                      <span className="text-[9px] text-terra-outline font-semibold mt-0.5 block font-body">
                         {formatDate(item.created_at)}
                       </span>
                     </div>
@@ -179,7 +179,7 @@ export default function InboxMobile({ items }: Props) {
                   {!item.read && (
                     <button
                       onClick={() => handleMarkRead(item.id)}
-                      className="p-1.5 rounded-lg text-gray-400 active:text-indigo-600 active:bg-indigo-50 border border-transparent transition-colors"
+                      className="p-1.5 rounded-lg text-terra-outline active:text-terra-primary active:bg-terra-surface-container-high border border-transparent transition-colors"
                       title="Mark read"
                     >
                       <Check className="h-4 w-4" />
@@ -188,16 +188,16 @@ export default function InboxMobile({ items }: Props) {
                 </div>
 
                 {/* Description */}
-                <p className="text-xs text-gray-600 leading-relaxed font-semibold">
+                <p className="text-xs text-terra-on-surface-variant leading-relaxed font-semibold font-body">
                   {description}
                 </p>
 
                 {/* Action CTA */}
                 {item.contact_id && (
-                  <div className="pt-2.5 border-t border-gray-100 flex items-center">
+                  <div className="pt-2.5 border-t border-terra-surface-container-highest flex items-center">
                     <Link 
                       href={`/contacts/${item.contact_id}`}
-                      className="inline-flex items-center gap-1 text-[10px] font-extrabold text-indigo-600 active:text-indigo-700 group"
+                      className="inline-flex items-center gap-1 text-[10px] font-extrabold text-terra-primary active:text-terra-primary/80 group font-body"
                     >
                       View Profile
                       <ChevronRight className="h-3 w-3 group-hover:translate-x-0.5 transition-transform" />
