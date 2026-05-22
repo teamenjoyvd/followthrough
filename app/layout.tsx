@@ -1,6 +1,8 @@
 import type { Metadata } from 'next'
 import { ClerkProvider } from '@clerk/nextjs'
 import { Literata, Nunito_Sans } from 'next/font/google'
+import { branding } from '@/config/branding'
+import { InjectBrandingStyles } from '@/components/InjectBrandingStyles'
 import './globals.css'
 
 const literata = Literata({
@@ -17,7 +19,7 @@ const nunitoSans = Nunito_Sans({
 })
 
 export const metadata: Metadata = {
-  title: 'Followthrough',
+  title: branding.appName,
   description: 'Contact follow-up, done right.',
 }
 
@@ -29,8 +31,12 @@ export default function RootLayout({
   return (
     <ClerkProvider>
       <html lang="en" className={`${literata.variable} ${nunitoSans.variable}`}>
+        <head>
+          <InjectBrandingStyles />
+        </head>
         <body>{children}</body>
       </html>
     </ClerkProvider>
   )
 }
+
