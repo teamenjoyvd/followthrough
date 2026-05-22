@@ -1,13 +1,10 @@
 'use client'
 
 import { useRouter } from 'next/navigation'
-import { useCallback } from 'react'
+import { useCallback, useState, useEffect, useTransition } from 'react'
 import Link from 'next/link'
 import { X } from 'lucide-react'
 import { PIPELINE_STATUSES } from '@/app/(app)/contacts/components/PipelineStatusControl'
-import type { Database } from '@/types/supabase'
-
-type PipelineStatus = Database['public']['Enums']['pipeline_status']
 
 const LAST_CONTACTED_OPTIONS = [
   { value: '', label: 'Any time' },
@@ -22,6 +19,8 @@ interface Props {
   currentLastContacted: string
   currentCompany: string
   currentQuery: string
+  currentSort: string
+  currentDir: string
   basePath: string
 }
 
@@ -30,9 +29,18 @@ export function ContactFilterBar({
   currentLastContacted,
   currentCompany,
   currentQuery,
+  currentSort,
+  currentDir,
   basePath,
 }: Props) {
   const router = useRouter()
+  const [company, setCompany] = useState(currentCompany)
+  const [isPending, startTransition] = useTransition()
+
+  // Sync internal company search state if updated externally
+  useEffect(() => {
+    setCompany(currentCompany)
+  }, [currentCompany])
 
   const buildHref = useCallback(
     (overrides: Record<string, string>) => {
@@ -42,6 +50,8 @@ export function ContactFilterBar({
         status: currentStatus,
         last_contacted: currentLastContacted,
         company: currentCompany,
+        sort: currentSort,
+        dir: currentDir,
         ...overrides,
       }
       Object.entries(merged).forEach(([k, v]) => {
@@ -50,21 +60,33 @@ export function ContactFilterBar({
       const qs = params.toString()
       return qs ? `${basePath}?${qs}` : basePath
     },
-    [currentQuery, currentStatus, currentLastContacted, currentCompany, basePath],
+    [currentQuery, currentStatus, currentLastContacted, currentCompany, currentSort, currentDir, basePath],
   )
+
+  useEffect(() => {
+    if (company === currentCompany) return
+
+    const timer = setTimeout(() => {
+      startTransition(() => {
+        router.push(buildHref({ company: company.trim() }))
+      })
+    }, 300)
+
+    return () => clearTimeout(timer)
+  }, [company, currentCompany, buildHref, router])
 
   const hasActiveFilters = !!(currentStatus || currentLastContacted || currentCompany)
 
   return (
-    <div className="flex flex-col gap-2">
+    <div className="flex flex-col gap-2 bg-transparent">
       {/* Status chips */}
       <div className="flex flex-wrap gap-1.5" role="group" aria-label="Filter by pipeline status">
         <Link
           href={buildHref({ status: '' })}
           className={`px-3 py-1 rounded-full text-xs font-medium border transition-colors ${
             !currentStatus
-              ? 'bg-gray-900 text-white border-gray-900'
-              : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300'
+              ? 'bg-[#4a7c59] text-white border-[#4a7c59]'
+              : 'bg-[#f5f1ea] text-[#74796e] border-[#e4e0d8] hover:bg-[#eae6de] hover:text-[#2e3230]'
           }`}
         >
           All
@@ -76,7 +98,7 @@ export function ContactFilterBar({
             className={`px-3 py-1 rounded-full text-xs font-medium border transition-colors ${
               currentStatus === value
                 ? color
-                : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300'
+                : 'bg-[#f5f1ea] text-[#74796e] border-[#e4e0d8] hover:bg-[#eae6de] hover:text-[#2e3230]'
             }`}
           >
             {label}
@@ -89,8 +111,12 @@ export function ContactFilterBar({
         {/* Last contacted dropdown */}
         <select
           value={currentLastContacted}
-          onChange={(e) => router.push(buildHref({ last_contacted: e.target.value }))}
-          className="text-xs border border-gray-200 rounded-md px-2 py-1.5 bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+          onChange={(e) => {
+            startTransition(() => {
+              router.push(buildHref({ last_contacted: e.target.value }))
+            })
+          }}
+          className="text-xs border border-[#e4e0d8] rounded-xl px-2.5 py-1.5 bg-[#f5f1ea] text-[#2e3230] focus:outline-none focus:ring-2 focus:ring-[#4a7c59] focus:border-transparent transition-all cursor-pointer shadow-sm"
           aria-label="Filter by last contacted"
         >
           {LAST_CONTACTED_OPTIONS.map((opt) => (
@@ -100,27 +126,32 @@ export function ContactFilterBar({
           ))}
         </select>
 
-        {/* Company search — Enter key to apply */}
-        <input
-          type="search"
-          placeholder="Filter by company…"
-          defaultValue={currentCompany}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter') {
-              router.push(buildHref({ company: (e.target as HTMLInputElement).value }))
-            }
-          }}
-          className="text-xs border border-gray-200 rounded-md px-2 py-1.5 bg-white text-gray-700 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 w-40"
-          aria-label="Filter by company"
-        />
+        {/* Company search — Dynamic debounced */}
+        <div className="relative inline-block">
+          <input
+            type="search"
+            placeholder="Filter by company…"
+            value={company}
+            onChange={(e) => setCompany(e.target.value)}
+            className="text-xs border border-[#e4e0d8] rounded-xl px-2.5 py-1.5 bg-[#f5f1ea] text-[#2e3230] placeholder-[#74796e] focus:outline-none focus:ring-2 focus:ring-[#4a7c59] focus:border-transparent transition-all w-40 shadow-sm"
+            aria-label="Filter by company"
+          />
+          {isPending && (
+            <span className="absolute right-2.5 top-2 flex h-3 w-3 animate-spin rounded-full border border-[#4a7c59] border-t-transparent" />
+          )}
+        </div>
 
         {/* Clear all */}
         {hasActiveFilters && (
           <Link
-            href={currentQuery ? `${basePath}?q=${encodeURIComponent(currentQuery)}` : basePath}
-            className="inline-flex items-center gap-1 text-xs text-gray-500 hover:text-gray-800 transition-colors"
+            href={
+              currentQuery
+                ? `/contacts?q=${encodeURIComponent(currentQuery)}${currentSort ? `&sort=${currentSort}` : ''}${currentDir ? `&dir=${currentDir}` : ''}`
+                : `/contacts${currentSort ? `?sort=${currentSort}&dir=${currentDir}` : ''}`
+            }
+            className="inline-flex items-center gap-1 text-xs text-[#74796e] hover:text-[#2e3230] font-semibold transition-colors ml-1"
           >
-            <X className="h-3 w-3" />
+            <X className="h-3.5 w-3.5" />
             Clear filters
           </Link>
         )}

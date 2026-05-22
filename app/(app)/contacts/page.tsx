@@ -8,6 +8,7 @@ import ContactsMobile from './components/ContactsMobile'
 import { PIPELINE_STATUSES } from './components/PipelineStatusControl'
 import { ContactFilterBar } from '@/components/ContactFilterBar'
 import { FilterShortcuts } from '@/components/FilterShortcuts'
+import { SearchInput } from './components/SearchInput'
 import type { Database } from '@/types/supabase'
 
 type PipelineStatus = Database['public']['Enums']['pipeline_status']
@@ -103,12 +104,12 @@ export default async function ContactsPage({
   return (
     <div className="flex flex-col h-full bg-[#faf6f0]">
       {/* Header */}
-      <div className="flex items-center justify-between px-4 md:px-6 py-4 border-b border-[#e4e0d8] bg-[#faf6f0]">
-        <h1 className="text-lg font-semibold text-[#2e3230]">Contacts</h1>
+      <div className="flex items-center justify-between px-4 md:px-6 py-4 border-b border-[#e4e0d8] bg-[#faf6f0] shrink-0">
+        <h1 className="font-headline text-2xl font-bold text-[#2e3230]">Contacts</h1>
         <Link
           href="/contacts/new"
           id="new-contact-btn"
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#4a7c59] text-white text-sm font-semibold hover:bg-[#3d6b4a] transition-colors shadow-sm"
+          className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-[#4a7c59] text-white text-sm font-semibold hover:bg-[#3d6b4a] transition-all duration-200 hover:scale-[1.02] shadow-sm"
         >
           <Plus className="h-4 w-4" />
           <span className="hidden sm:inline">New contact</span>
@@ -116,26 +117,23 @@ export default async function ContactsPage({
       </div>
 
       {/* Search + Filters */}
-      <div className="px-4 md:px-6 py-3 bg-[#faf6f0] border-b border-[#e4e0d8] space-y-3">
-        <form method="GET">
-          {statusFilter && <input type="hidden" name="status" value={statusFilter} />}
-          {lastContactedFilter && <input type="hidden" name="last_contacted" value={lastContactedFilter} />}
-          {companyFilter && <input type="hidden" name="company" value={companyFilter} />}
-          <input
-            id="contact-search"
-            type="search"
-            name="q"
-            defaultValue={query}
-            placeholder="Search contacts…"
-            className="w-full md:max-w-sm px-3 py-2 text-sm border border-[#e4e0d8] rounded-xl bg-[#f5f1ea] placeholder-[#74796e] text-[#2e3230] focus:outline-none focus:ring-2 focus:ring-[#4a7c59] focus:border-transparent"
-          />
-        </form>
+      <div className="px-4 md:px-6 py-4 bg-[#faf6f0] border-b border-[#e4e0d8] space-y-4 shrink-0">
+        <SearchInput
+          defaultValue={query}
+          currentStatus={statusFilter}
+          currentLastContacted={lastContactedFilter}
+          currentCompany={companyFilter}
+          currentSort={sortKey}
+          currentDir={sortDir}
+        />
 
         <ContactFilterBar
           currentStatus={statusFilter}
           currentLastContacted={lastContactedFilter}
           currentCompany={companyFilter}
           currentQuery={query}
+          currentSort={sortKey}
+          currentDir={sortDir}
           basePath="/contacts"
         />
 
@@ -144,13 +142,21 @@ export default async function ContactsPage({
 
       {/* Contact list */}
       <div className="flex-1 overflow-y-auto bg-[#faf6f0]">
-        <ContactsDesktop contacts={contacts ?? []} sortKey={sortKey} sortDir={sortDir} />
+        <ContactsDesktop
+          contacts={contacts ?? []}
+          sortKey={sortKey}
+          sortDir={sortDir}
+          currentQuery={query}
+          currentStatus={statusFilter}
+          currentLastContacted={lastContactedFilter}
+          currentCompany={companyFilter}
+        />
         <ContactsMobile contacts={contacts ?? []} />
       </div>
 
       {/* Footer count */}
-      <div className="px-4 md:px-6 py-2 border-t border-[#e4e0d8] bg-[#faf6f0]">
-        <p className="text-xs text-[#74796e]">
+      <div className="px-4 md:px-6 py-3 border-t border-[#e4e0d8] bg-[#faf6f0] shrink-0">
+        <p className="text-xs text-[#74796e] font-body">
           {contacts?.length ?? 0} contact{contacts?.length !== 1 ? 's' : ''}
           {statusFilter ? ` · ${PIPELINE_STATUSES.find(s => s.value === statusFilter)?.label}` : ''}
           {lastContactedFilter ? ` · not contacted in ${lastContactedFilter}` : ''}
