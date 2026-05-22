@@ -21,34 +21,49 @@ export default async function DashboardPage() {
   const { userId, sessionClaims } = await auth()
   if (!userId) redirect('/sign-in')
 
-  // Resolve email and full display name for profile provisioning
-  let email = (sessionClaims?.email as string) || (sessionClaims?.primary_email as string) || ''
-  let fullName = (sessionClaims?.name as string) || (sessionClaims?.full_name as string) || ''
-
-  if (!email || !fullName) {
-    const user = await currentUser()
-    email = email || (user?.emailAddresses?.[0]?.emailAddress ?? '')
-    fullName =
-      fullName ||
-      [user?.firstName, user?.lastName].filter(Boolean).join(' ') ||
-      email ||
-      userId
-  }
-
-  // Ensure the profile exists in Supabase before querying it
-  await ensureProfile(userId, email, fullName)
-
-  const displayName = fullName.split(' ')[0] || 'there'
-
   const supabase = await createSupabaseServerClient()
 
-  const { data: profile } = await (supabase as any)
+  // 1. Try to fetch the profile first to see if it already exists
+  let { data: profile } = await (supabase as any)
     .from('profiles')
-    .select('id')
+    .select('id, display_name')
     .eq('clerk_id', userId)
-    .maybeSingle() as { data: { id: string } | null }
+    .maybeSingle() as { data: { id: string; display_name: string | null } | null }
 
-  if (!profile) redirect('/sign-in')
+  // 2. If the profile does not exist, provision a new one
+  if (!profile) {
+    let email = (sessionClaims?.email as string) || (sessionClaims?.primary_email as string) || ''
+    let fullName = (sessionClaims?.name as string) || (sessionClaims?.full_name as string) || ''
+
+    if (!email || !fullName) {
+      const user = await currentUser()
+      email = email || (user?.emailAddresses?.[0]?.emailAddress ?? '')
+      fullName =
+        fullName ||
+        [user?.firstName, user?.lastName].filter(Boolean).join(' ') ||
+        email ||
+        userId
+    }
+
+    // Provision the profile using the service client
+    await ensureProfile(userId, email, fullName)
+
+    // Re-fetch the profile to make sure it was successfully created
+    const { data: refetched } = await (supabase as any)
+      .from('profiles')
+      .select('id, display_name')
+      .eq('clerk_id', userId)
+      .maybeSingle() as { data: { id: string; display_name: string | null } | null }
+
+    profile = refetched
+  }
+
+  // 3. Throw a robust error if profile still doesn't exist to prevent infinite redirect loops
+  if (!profile) {
+    throw new Error('Failed to guarantee user profile. Please check database connectivity.')
+  }
+
+  const displayName = (profile.display_name ?? '').split(' ')[0] || 'there'
 
   await checkResurfaced()
 
