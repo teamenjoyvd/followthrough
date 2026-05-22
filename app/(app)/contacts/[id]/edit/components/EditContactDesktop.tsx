@@ -37,13 +37,13 @@ export default function EditContactDesktop({ contact }: Props) {
   }
 
   return (
-    <div className="hidden md:flex h-full">
+    <div className="hidden md:flex h-full bg-[#faf6f0]">
       <div className="flex-1 overflow-y-auto px-8 py-8">
         <div className="max-w-xl">
-          <h2 className="text-lg font-semibold text-gray-900 mb-6">Edit details</h2>
+          <h2 className="text-lg font-semibold text-[#2e3230] mb-6">Edit details</h2>
 
           {error && (
-            <div className="mb-6 p-4 rounded-lg bg-red-50 border border-red-200 text-sm text-red-700 font-medium">
+            <div className="mb-6 p-4 rounded-xl bg-[#ffdad8]/50 border border-[#b83230]/20 text-sm text-[#b83230] font-medium">
               {error}
             </div>
           )}
@@ -51,8 +51,8 @@ export default function EditContactDesktop({ contact }: Props) {
           <form onSubmit={handleSubmit} id="edit-contact-form-desktop" className="space-y-5">
             <div className="grid grid-cols-2 gap-5">
               <div>
-                <label htmlFor="ec-desktop-first_name" className="block text-sm font-medium text-gray-700 mb-1">
-                  First name <span className="text-red-500">*</span>
+                <label htmlFor="ec-desktop-first_name" className="block text-sm font-medium text-[#2e3230] mb-1">
+                  First name <span className="text-[#b83230]">*</span>
                 </label>
                 <input
                   id="ec-desktop-first_name"
@@ -62,13 +62,11 @@ export default function EditContactDesktop({ contact }: Props) {
                   disabled={isPending}
                   autoComplete="given-name"
                   defaultValue={contact.first_name}
-                  className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent disabled:bg-gray-100 disabled:text-gray-500"
+                  className="w-full px-3 py-2 text-sm border border-[#e4e0d8] rounded-xl bg-[#f5f1ea] text-[#2e3230] focus:outline-none focus:ring-2 focus:ring-[#4a7c59] focus:border-transparent disabled:opacity-60"
                 />
               </div>
               <div>
-                <label htmlFor="ec-desktop-last_name" className="block text-sm font-medium text-gray-700 mb-1">
-                  Last name
-                </label>
+                <label htmlFor="ec-desktop-last_name" className="block text-sm font-medium text-[#2e3230] mb-1">Last name</label>
                 <input
                   id="ec-desktop-last_name"
                   name="last_name"
@@ -76,15 +74,13 @@ export default function EditContactDesktop({ contact }: Props) {
                   disabled={isPending}
                   autoComplete="family-name"
                   defaultValue={contact.last_name ?? ''}
-                  className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent disabled:bg-gray-100 disabled:text-gray-500"
+                  className="w-full px-3 py-2 text-sm border border-[#e4e0d8] rounded-xl bg-[#f5f1ea] text-[#2e3230] focus:outline-none focus:ring-2 focus:ring-[#4a7c59] focus:border-transparent disabled:opacity-60"
                 />
               </div>
             </div>
 
             <div>
-              <label htmlFor="ec-desktop-email" className="block text-sm font-medium text-gray-700 mb-1">
-                Email
-              </label>
+              <label htmlFor="ec-desktop-email" className="block text-sm font-medium text-[#2e3230] mb-1">Email</label>
               <input
                 id="ec-desktop-email"
                 name="email"
@@ -92,14 +88,12 @@ export default function EditContactDesktop({ contact }: Props) {
                 disabled={isPending}
                 autoComplete="email"
                 defaultValue={contact.email ?? ''}
-                className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent disabled:bg-gray-100 disabled:text-gray-500"
+                className="w-full px-3 py-2 text-sm border border-[#e4e0d8] rounded-xl bg-[#f5f1ea] text-[#2e3230] focus:outline-none focus:ring-2 focus:ring-[#4a7c59] focus:border-transparent disabled:opacity-60"
               />
             </div>
 
             <div>
-              <label htmlFor="ec-desktop-company" className="block text-sm font-medium text-gray-700 mb-1">
-                Company
-              </label>
+              <label htmlFor="ec-desktop-company" className="block text-sm font-medium text-[#2e3230] mb-1">Company</label>
               <input
                 id="ec-desktop-company"
                 name="company"
@@ -107,14 +101,12 @@ export default function EditContactDesktop({ contact }: Props) {
                 disabled={isPending}
                 autoComplete="organization"
                 defaultValue={contact.company ?? ''}
-                className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent disabled:bg-gray-100 disabled:text-gray-500"
+                className="w-full px-3 py-2 text-sm border border-[#e4e0d8] rounded-xl bg-[#f5f1ea] text-[#2e3230] focus:outline-none focus:ring-2 focus:ring-[#4a7c59] focus:border-transparent disabled:opacity-60"
               />
             </div>
 
             <div>
-              <label htmlFor="ec-desktop-job_title" className="block text-sm font-medium text-gray-700 mb-1">
-                Job title
-              </label>
+              <label htmlFor="ec-desktop-job_title" className="block text-sm font-medium text-[#2e3230] mb-1">Job title</label>
               <input
                 id="ec-desktop-job_title"
                 name="job_title"
@@ -122,7 +114,7 @@ export default function EditContactDesktop({ contact }: Props) {
                 disabled={isPending}
                 autoComplete="organization-title"
                 defaultValue={contact.job_title ?? ''}
-                className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent disabled:bg-gray-100 disabled:text-gray-500"
+                className="w-full px-3 py-2 text-sm border border-[#e4e0d8] rounded-xl bg-[#f5f1ea] text-[#2e3230] focus:outline-none focus:ring-2 focus:ring-[#4a7c59] focus:border-transparent disabled:opacity-60"
               />
             </div>
 
@@ -131,13 +123,13 @@ export default function EditContactDesktop({ contact }: Props) {
                 id="ec-desktop-submit"
                 type="submit"
                 disabled={isPending}
-                className="px-6 py-2 rounded-lg bg-indigo-600 text-white text-sm font-medium hover:bg-indigo-700 disabled:opacity-60 transition-colors"
+                className="px-6 py-2 rounded-xl bg-[#4a7c59] text-white text-sm font-semibold hover:bg-[#3d6b4a] disabled:opacity-60 transition-colors shadow-sm"
               >
                 {isPending ? 'Saving…' : 'Save changes'}
               </button>
               <Link
                 href={`/contacts/${contact.id}`}
-                className="px-6 py-2 rounded-lg bg-white border border-gray-200 text-gray-700 text-sm font-medium hover:bg-gray-50 transition-colors"
+                className="px-6 py-2 rounded-xl bg-[#eae6de] text-[#4a4e4a] text-sm font-semibold hover:bg-[#dedad2] transition-colors"
               >
                 Cancel
               </Link>

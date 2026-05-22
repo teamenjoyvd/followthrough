@@ -49,7 +49,6 @@ export default async function ContactsPage({
 
   const params = await searchParams
   const query = (params.q ?? '').trim()
-  // Validate status against known values to prevent invalid DB queries
   const statusFilter = (PIPELINE_STATUSES.some(s => s.value === params.status) ? params.status : '') as PipelineStatus | ''
   const lastContactedFilter = params.last_contacted ?? ''
   const companyFilter = (params.company ?? '').trim()
@@ -94,7 +93,6 @@ export default async function ContactsPage({
     const days = LAST_CONTACTED_DAYS[lastContactedFilter]
     const cutoff = new Date()
     cutoff.setDate(cutoff.getDate() - days)
-    // "Not contacted in Xd" = last_contacted_at is older than cutoff OR null (never contacted)
     dbQuery = dbQuery.or(
       `last_contacted_at.lte.${cutoff.toISOString()},last_contacted_at.is.null`
     )
@@ -102,17 +100,15 @@ export default async function ContactsPage({
 
   const { data: contacts = [] } = await dbQuery
 
-  const activeFilterCount = [statusFilter, lastContactedFilter, companyFilter].filter(Boolean).length
-
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full bg-[#faf6f0]">
       {/* Header */}
-      <div className="flex items-center justify-between px-4 md:px-6 py-4 border-b border-gray-200 bg-white">
-        <h1 className="text-lg font-semibold text-gray-900">Contacts</h1>
+      <div className="flex items-center justify-between px-4 md:px-6 py-4 border-b border-[#e4e0d8] bg-[#faf6f0]">
+        <h1 className="text-lg font-semibold text-[#2e3230]">Contacts</h1>
         <Link
           href="/contacts/new"
           id="new-contact-btn"
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-indigo-600 text-white text-sm font-medium hover:bg-indigo-700 transition-colors"
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#4a7c59] text-white text-sm font-semibold hover:bg-[#3d6b4a] transition-colors shadow-sm"
         >
           <Plus className="h-4 w-4" />
           <span className="hidden sm:inline">New contact</span>
@@ -120,8 +116,7 @@ export default async function ContactsPage({
       </div>
 
       {/* Search + Filters */}
-      <div className="px-4 md:px-6 py-3 bg-white border-b border-gray-100 space-y-3">
-        {/* Search input */}
+      <div className="px-4 md:px-6 py-3 bg-[#faf6f0] border-b border-[#e4e0d8] space-y-3">
         <form method="GET">
           {statusFilter && <input type="hidden" name="status" value={statusFilter} />}
           {lastContactedFilter && <input type="hidden" name="last_contacted" value={lastContactedFilter} />}
@@ -132,11 +127,10 @@ export default async function ContactsPage({
             name="q"
             defaultValue={query}
             placeholder="Search contacts…"
-            className="w-full md:max-w-sm px-3 py-2 text-sm border border-gray-200 rounded-lg bg-gray-50 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+            className="w-full md:max-w-sm px-3 py-2 text-sm border border-[#e4e0d8] rounded-xl bg-[#f5f1ea] placeholder-[#74796e] text-[#2e3230] focus:outline-none focus:ring-2 focus:ring-[#4a7c59] focus:border-transparent"
           />
         </form>
 
-        {/* Filter bar (client component for dropdowns/inputs) */}
         <ContactFilterBar
           currentStatus={statusFilter}
           currentLastContacted={lastContactedFilter}
@@ -145,19 +139,18 @@ export default async function ContactsPage({
           basePath="/contacts"
         />
 
-        {/* Shortcuts */}
         <FilterShortcuts />
       </div>
 
       {/* Contact list */}
-      <div className="flex-1 overflow-y-auto bg-white">
+      <div className="flex-1 overflow-y-auto bg-[#faf6f0]">
         <ContactsDesktop contacts={contacts ?? []} sortKey={sortKey} sortDir={sortDir} />
         <ContactsMobile contacts={contacts ?? []} />
       </div>
 
       {/* Footer count */}
-      <div className="px-4 md:px-6 py-2 border-t border-gray-100 bg-white">
-        <p className="text-xs text-gray-400">
+      <div className="px-4 md:px-6 py-2 border-t border-[#e4e0d8] bg-[#faf6f0]">
+        <p className="text-xs text-[#74796e]">
           {contacts?.length ?? 0} contact{contacts?.length !== 1 ? 's' : ''}
           {statusFilter ? ` · ${PIPELINE_STATUSES.find(s => s.value === statusFilter)?.label}` : ''}
           {lastContactedFilter ? ` · not contacted in ${lastContactedFilter}` : ''}
