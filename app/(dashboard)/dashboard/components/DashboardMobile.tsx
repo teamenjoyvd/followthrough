@@ -5,7 +5,7 @@ import * as React from 'react'
 import Link from 'next/link'
 import WorkingListMobileClient from './WorkingListMobileClient'
 import type { Database } from '@/types/supabase'
-import { Menu, Heart, MoreHorizontal, Plus, LayoutDashboard, Users, GitBranch, History } from 'lucide-react'
+import { Menu, Heart, MoreHorizontal, Plus, LayoutDashboard, Users, GitBranch, History, Settings } from 'lucide-react'
 import QuickNoteDialog from './QuickNoteDialog'
 import { formatSnoozedDate } from '@/lib/utils/date'
 import { UserAvatar } from '@/components/UserAvatar'
@@ -237,6 +237,14 @@ export default function DashboardMobile({
         >
           <History className="h-4 w-4" />
           <span className="font-label text-[10px] font-medium font-sans">Inbox</span>
+        </Link>
+
+        <Link
+          href="/settings"
+          className="flex flex-col items-center justify-center text-[#4a4e4a] opacity-70 hover:opacity-100 transition-all active:scale-90 transition-transform duration-150 gap-0.5"
+        >
+          <Settings className="h-4 w-4" />
+          <span className="font-label text-[10px] font-medium font-sans">Settings</span>
         </Link>
       </nav>
 

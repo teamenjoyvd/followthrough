@@ -5,7 +5,7 @@ import * as React from 'react'
 import Link from 'next/link'
 import WorkingListDesktopClient from './WorkingListDesktopClient'
 import type { Database } from '@/types/supabase'
-import { Menu, Heart, MoreHorizontal, LayoutDashboard, Users, GitBranch, History } from 'lucide-react'
+import { Menu, Heart, MoreHorizontal, Settings, LayoutDashboard, Users, GitBranch, History } from 'lucide-react'
 import QuickNoteDialog from './QuickNoteDialog'
 import { formatSnoozedDate } from '@/lib/utils/date'
 import { UserAvatar } from '@/components/UserAvatar'
@@ -75,6 +75,9 @@ export default function DashboardDesktop({
             </Link>
             <Link className="text-[#4a4e4a] hover:bg-[#f0ece4] hover:text-[#2e3230] transition-colors px-3 py-1.5 rounded-xl text-sm font-medium" href="/inbox">
               Inbox
+            </Link>
+            <Link className="text-[#4a4e4a] hover:bg-[#f0ece4] hover:text-[#2e3230] transition-colors px-3 py-1.5 rounded-xl text-sm font-medium" href="/settings">
+              Settings
             </Link>
           </nav>
         </div>
