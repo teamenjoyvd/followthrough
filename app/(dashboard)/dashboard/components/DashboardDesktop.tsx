@@ -8,6 +8,7 @@ import type { Database } from '@/types/supabase'
 import { Menu, Heart, MoreHorizontal, LayoutDashboard, Users, GitBranch, History } from 'lucide-react'
 import QuickNoteDialog from './QuickNoteDialog'
 import { formatSnoozedDate } from '@/lib/utils/date'
+import { UserAvatar } from '@/components/UserAvatar'
 
 type Contact = Database['public']['Tables']['contacts']['Row']
 
@@ -79,19 +80,7 @@ export default function DashboardDesktop({
         </div>
         
         <div className="active:scale-95 duration-200">
-          {avatarUrl ? (
-            <img
-              alt="User Profile"
-              className="w-10 h-10 rounded-full border-2 border-[#c8e8d0] shadow-sm object-cover"
-              src={avatarUrl}
-            />
-          ) : (
-            <div className="w-10 h-10 rounded-full border-2 border-[#c8e8d0] shadow-sm bg-[#4a7c59] flex items-center justify-center">
-              <span className="text-white text-sm font-bold font-headline">
-                {name.charAt(0).toUpperCase()}
-              </span>
-            </div>
-          )}
+          <UserAvatar avatarUrl={avatarUrl} name={name} />
         </div>
       </header>
 
