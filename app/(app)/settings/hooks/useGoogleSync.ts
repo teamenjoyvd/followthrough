@@ -1,4 +1,4 @@
-import { useState, useTransition } from 'react'
+import { useState, useTransition, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { disconnectGoogle } from '@/lib/actions/settings'
 
@@ -16,7 +16,7 @@ export function useGoogleSync(options: UseGoogleSyncOptions = {}) {
   const [isDisconnecting, startDisconnectTransition] = useTransition()
   const [disconnectError, setDisconnectError] = useState<string | null>(null)
 
-  function handleSync() {
+  const handleSync = useCallback(() => {
     setSyncResult(null)
     startSyncTransition(async () => {
       try {
@@ -39,9 +39,9 @@ export function useGoogleSync(options: UseGoogleSyncOptions = {}) {
         setSyncResult('Sync failed. Please try again.')
       }
     })
-  }
+  }, [syncSuccessPrefix, router])
 
-  function handleDisconnect() {
+  const handleDisconnect = useCallback(() => {
     setDisconnectError(null)
     startDisconnectTransition(async () => {
       const result = await disconnectGoogle()
@@ -51,7 +51,7 @@ export function useGoogleSync(options: UseGoogleSyncOptions = {}) {
         router.refresh()
       }
     })
-  }
+  }, [router])
 
   return {
     isSyncing,

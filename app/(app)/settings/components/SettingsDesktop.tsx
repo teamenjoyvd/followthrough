@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useTransition, useEffect } from 'react'
+import { useState, useTransition, useEffect, useRef } from 'react'
 import Link from 'next/link'
 import { Switch } from '@/components/ui/switch'
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
@@ -285,8 +285,11 @@ function GoogleSyncSection({
     handleDisconnect,
   } = useGoogleSync({ syncSuccessPrefix: 'Synced successfully' })
 
+  const hasAutoSynced = useRef(false)
+
   useEffect(() => {
-    if (flashConnected) {
+    if (flashConnected && !hasAutoSynced.current) {
+      hasAutoSynced.current = true
       const url = new URL(window.location.href)
       url.searchParams.delete('google_connected')
       window.history.replaceState({}, '', url.toString())
