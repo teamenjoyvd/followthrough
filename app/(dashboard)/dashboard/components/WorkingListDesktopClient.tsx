@@ -3,63 +3,50 @@
 import { useState, useTransition } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { CheckCircle2, Clock, Trash2, ChevronRight } from 'lucide-react'
-import { PIPELINE_STATUSES } from '@/app/(app)/contacts/components/PipelineStatusControl'
+import { CheckCircle2, Clock, Trash2, Mail, Phone, Calendar } from 'lucide-react'
 import { markDone, removeFromWorkingList } from '@/lib/actions/working-list'
 import { snoozeContact } from '@/lib/actions/snooze'
 import type { Database } from '@/types/supabase'
+import { getInitials, getAvatarUrl, getContactDescription, getPreferredContactMethods, formatRelativeTime } from '@/lib/utils/dashboard'
 
 type Contact = Database['public']['Tables']['contacts']['Row']
-
-function getInitials(first: string, last: string | null) {
-  return `${first[0] || ''}${last ? last[0] || '' : ''}`.toUpperCase()
-}
 
 export default function WorkingListDesktopClient({ workingList }: { workingList: Contact[] }) {
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
   const [activeSnoozeId, setActiveSnoozeId] = useState<string | null>(null)
 
-  function statusBadge(status: Database['public']['Enums']['pipeline_status']) {
-    const found = PIPELINE_STATUSES.find((s) => s.value === status)
-    return found ? (
-      <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold border ${found.color}`}>
-        {found.label}
-      </span>
-    ) : null
-  }
-
-  function handleMarkDone(id: string) {
+  function handleMarkDone(contactId: string) {
     startTransition(async () => {
-      const res = await markDone(id)
+      const res = await markDone(contactId)
       if ('error' in res) alert(res.error)
       else router.refresh()
     })
   }
 
-  function handleRemove(id: string) {
+  function handleRemove(contactId: string) {
     startTransition(async () => {
-      const res = await removeFromWorkingList(id)
+      const res = await removeFromWorkingList(contactId)
       if ('error' in res) alert(res.error)
       else router.refresh()
     })
   }
 
-  function handleQuickSnooze(id: string, days: number) {
+  function handleQuickSnooze(contactId: string, days: number) {
     const date = new Date()
     date.setDate(date.getDate() + days)
     setActiveSnoozeId(null)
     startTransition(async () => {
-      const res = await snoozeContact(id, date)
+      const res = await snoozeContact(contactId, date)
       if ('error' in res) alert(res.error)
       else router.refresh()
     })
   }
 
-  function handleCustomSnooze(id: string, date: Date) {
+  function handleCustomSnooze(contactId: string, date: Date) {
     setActiveSnoozeId(null)
     startTransition(async () => {
-      const res = await snoozeContact(id, date)
+      const res = await snoozeContact(contactId, date)
       if ('error' in res) alert(res.error)
       else router.refresh()
     })
@@ -67,16 +54,16 @@ export default function WorkingListDesktopClient({ workingList }: { workingList:
 
   if (workingList.length === 0) {
     return (
-      <div className="bg-terra-surface-container-low border border-terra-outline-variant/40 rounded-xl py-16 flex flex-col items-center text-center">
-        <div className="p-4 bg-terra-primary-fixed text-primary rounded-full mb-4">
+      <div className="bg-[#f5f1ea] rounded-[20px] py-16 flex flex-col items-center text-center border border-[#e4e0d8]/40 shadow-[0_4px_20px_rgba(46,50,48,0.02)]">
+        <div className="p-4 bg-[#c8e8d0] text-[#4a7c59] rounded-full mb-4">
           <CheckCircle2 className="h-7 w-7" />
         </div>
-        <h3 className="text-base font-bold text-foreground">All caught up!</h3>
-        <p className="text-sm text-muted-foreground max-w-sm mt-1.5">
+        <h3 className="text-base font-bold text-[#2e3230]">All caught up!</h3>
+        <p className="text-sm text-[#4a4e4a] max-w-sm mt-1.5 font-sans">
           Go to{' '}
-          <Link href="/contacts" className="text-primary font-semibold hover:underline">Contacts</Link>
+          <Link href="/contacts" className="text-[#4a7c59] font-bold hover:underline">Contacts</Link>
           {' '}or{' '}
-          <Link href="/pipeline" className="text-primary font-semibold hover:underline">Pipeline</Link>
+          <Link href="/pipeline" className="text-[#4a7c59] font-bold hover:underline">Pipeline</Link>
           {' '}to pin contacts here.
         </p>
       </div>
@@ -84,101 +71,153 @@ export default function WorkingListDesktopClient({ workingList }: { workingList:
   }
 
   return (
-    <div
-      className={`bg-terra-surface-container-low border border-terra-outline-variant/40 rounded-xl overflow-hidden shadow-sm divide-y divide-terra-outline-variant/30 ${
-        isPending ? 'opacity-60 pointer-events-none' : ''
-      } transition-opacity`}
-    >
-      {workingList.map((c) => (
-        <div key={c.id} className="p-5 flex items-center justify-between hover:bg-terra-surface-container-high transition-colors group">
-          <div className="flex items-center gap-4 min-w-0 flex-1">
-            <div className="h-10 w-10 shrink-0 rounded-full bg-terra-primary-fixed text-primary font-bold text-sm flex items-center justify-center">
-              {getInitials(c.first_name, c.last_name)}
-            </div>
-            <div className="min-w-0">
-              <div className="flex items-center gap-2">
-                <Link
-                  href={`/contacts/${c.id}`}
-                  className="font-bold text-sm text-foreground hover:text-primary hover:underline transition-colors truncate"
-                >
-                  {c.first_name} {c.last_name}
+    <div className={`flex flex-col gap-4 ${
+      isPending ? 'opacity-60 pointer-events-none' : ''
+    } transition-opacity`}>
+      {workingList.map((c) => {
+        const avatarUrl = getAvatarUrl(c)
+        const description = getContactDescription(c)
+        const preferredMethods = getPreferredContactMethods(c)
+        const relativeTime = formatRelativeTime(c.last_contacted_at)
+
+        return (
+          <div
+            key={c.id}
+            className="group bg-[#f5f1ea] p-5 rounded-[20px] flex flex-col hover:bg-[#e4e0d8]/70 active:scale-[0.99] transition-all duration-300 shadow-[0_4px_20px_rgba(46,50,48,0.02)] border border-[#e4e0d8]/30"
+          >
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-4 min-w-0 flex-1">
+                <Link href={`/contacts/${c.id}`} className="flex items-center gap-4 flex-grow min-w-0">
+                  <div className="h-12 w-12 shrink-0 rounded-full overflow-hidden flex-shrink-0">
+                    {avatarUrl ? (
+                      <img alt={`${c.first_name} avatar`} className="w-full h-full object-cover" src={avatarUrl} />
+                    ) : (
+                      <div className="w-full h-full bg-[#f8e0a8] text-[#221a05] font-bold text-sm flex items-center justify-center font-sans">
+                        {getInitials(c.first_name, c.last_name)}
+                      </div>
+                    )}
+                  </div>
+                  <div className="min-w-0">
+                    <h4 className="font-bold text-[#2e3230] text-base leading-snug">
+                      {c.first_name} {c.last_name}
+                    </h4>
+                    <p className="text-sm text-[#4a4e4a] mt-0.5 font-sans leading-relaxed truncate">
+                      {description}
+                    </p>
+                  </div>
                 </Link>
-                {statusBadge(c.pipeline_status)}
               </div>
-              <div className="text-xs text-muted-foreground mt-0.5 truncate">
-                {c.job_title && <span>{c.job_title}</span>}
-                {c.job_title && c.company && <span> at </span>}
-                {c.company && <span className="font-medium">{c.company}</span>}
-                {!c.job_title && !c.company && <span className="opacity-40">—</span>}
-              </div>
-            </div>
-          </div>
 
-          <div className="flex items-center gap-1.5 shrink-0 ml-4">
-            <button
-              onClick={() => handleMarkDone(c.id)}
-              title="Mark done"
-              className="p-2 rounded-lg text-primary hover:bg-terra-primary-fixed transition-colors"
-            >
-              <CheckCircle2 className="h-4 w-4" />
-            </button>
+              {/* Action Buttons */}
+              <div className="flex items-center gap-2 shrink-0 ml-4">
+                {relativeTime && (
+                  <span className="text-sm font-sans text-[#4a4e4a]/60 mr-2">{relativeTime}</span>
+                )}
 
-            <div className="relative">
-              <button
-                onClick={() => setActiveSnoozeId(activeSnoozeId === c.id ? null : c.id)}
-                title="Snooze"
-                className={`p-2 rounded-lg transition-colors ${
-                  activeSnoozeId === c.id
-                    ? 'bg-accent text-accent-foreground'
-                    : 'text-terra-tertiary hover:bg-accent/40'
-                }`}
-              >
-                <Clock className="h-4 w-4" />
-              </button>
-
-              {activeSnoozeId === c.id && (
-                <>
-                  <div className="fixed inset-0 z-10" onClick={() => setActiveSnoozeId(null)} />
-                  <div className="absolute right-0 mt-2 z-20 w-52 bg-background border border-border rounded-xl shadow-xl p-3.5 space-y-2 animate-in fade-in slide-in-from-top-2 duration-150">
-                    <div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Snooze until</div>
-                    <div className="flex flex-col gap-1">
-                      {[{ label: 'Tomorrow', days: 1 }, { label: 'In 3 days', days: 3 }, { label: 'In 1 week', days: 7 }].map(
-                        ({ label, days }) => (
+                {preferredMethods.length > 0 ? (
+                  <>
+                    {preferredMethods.map((method) => {
+                      if (method === 'email') {
+                        return (
                           <button
-                            key={days}
-                            onClick={() => handleQuickSnooze(c.id, days)}
-                            className="w-full text-left px-2.5 py-1.5 text-xs font-semibold hover:bg-terra-primary-fixed hover:text-primary rounded-lg transition-colors flex items-center justify-between"
+                            key="email"
+                            onClick={() => handleMarkDone(c.id)}
+                            title="Send email (Mark Done)"
+                            className="p-2.5 rounded-full bg-[#eae6de] text-[#4a7c59] hover:bg-[#4a7c59] hover:text-white transition-colors duration-200"
                           >
-                            <span>{label}</span>
-                            <ChevronRight className="h-3 w-3 opacity-40" />
+                            <Mail className="h-4 w-4" />
                           </button>
                         )
-                      )}
-                    </div>
-                    <div className="border-t border-border pt-2">
-                      <label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block mb-1">Custom date</label>
-                      <input
-                        type="date"
-                        min={new Date(Date.now() + 86400000).toISOString().split('T')[0]}
-                        onChange={(e) => { if (e.target.value) handleCustomSnooze(c.id, new Date(e.target.value)) }}
-                        className="w-full text-xs border border-border rounded-lg px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-ring bg-muted"
-                      />
-                    </div>
-                  </div>
-                </>
-              )}
+                      }
+                      if (method === 'call' || method === 'phone') {
+                        return (
+                          <button
+                            key="call"
+                            onClick={() => setActiveSnoozeId(activeSnoozeId === c.id ? null : c.id)}
+                            title="Call (Snooze)"
+                            className="p-2.5 rounded-full bg-[#eae6de] text-[#4a7c59] hover:bg-[#4a7c59] hover:text-white transition-colors duration-200"
+                          >
+                            <Phone className="h-4 w-4" />
+                          </button>
+                        )
+                      }
+                      if (method === 'calendar' || method === 'invite') {
+                        return (
+                          <button
+                            key="calendar"
+                            onClick={() => setActiveSnoozeId(activeSnoozeId === c.id ? null : c.id)}
+                            title="Invite (Snooze)"
+                            className="p-2.5 rounded-full bg-[#eae6de] text-[#4a7c59] hover:bg-[#4a7c59] hover:text-white transition-colors duration-200"
+                          >
+                            <Calendar className="h-4 w-4" />
+                          </button>
+                        )
+                      }
+                      return null
+                    })}
+                  </>
+                ) : (
+                  <>
+                    <button
+                      onClick={() => handleMarkDone(c.id)}
+                      className="p-2 rounded-lg text-[#4a7c59] hover:bg-[#c8e8d0] transition-colors"
+                      title="Mark Done"
+                    >
+                      <CheckCircle2 className="h-4 w-4" />
+                    </button>
+                    <button
+                      onClick={() => setActiveSnoozeId(activeSnoozeId === c.id ? null : c.id)}
+                      className={`p-2 rounded-lg transition-colors ${
+                        activeSnoozeId === c.id
+                          ? 'bg-[#c4a66a] text-[#554020]'
+                          : 'text-[#705c30] hover:bg-[#f8e0a8]/40'
+                      }`}
+                      title="Snooze"
+                    >
+                      <Clock className="h-4 w-4" />
+                    </button>
+                    <button
+                      onClick={() => handleRemove(c.id)}
+                      className="p-2 rounded-lg text-[#74796e] hover:text-[#b83230] hover:bg-[#ffdad8]/50 transition-colors"
+                      title="Remove"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </>
+                )}
+              </div>
             </div>
 
-            <button
-              onClick={() => handleRemove(c.id)}
-              title="Remove"
-              className="p-2 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
-            >
-              <Trash2 className="h-4 w-4" />
-            </button>
+            {activeSnoozeId === c.id && (
+              <div className="mt-4 p-4 bg-[#faf6f0] rounded-[16px] border border-[#e4e0d8] space-y-3 animate-in slide-in-from-top-2 duration-150 relative z-20 max-w-md self-end">
+                <div className="text-[10px] font-bold uppercase tracking-wider text-[#4a4e4a] font-sans">Snooze until</div>
+                <div className="grid grid-cols-3 gap-2">
+                  {[{ label: '1 Day', days: 1 }, { label: '3 Days', days: 3 }, { label: '1 Week', days: 7 }].map(
+                    ({ label, days }) => (
+                      <button
+                        key={days}
+                        onClick={() => handleQuickSnooze(c.id, days)}
+                        className="py-2 px-3 text-center text-xs font-semibold bg-[#faf6f0] border border-[#e4e0d8] text-[#2e3230] hover:bg-[#c8e8d0] hover:text-[#4a7c59] hover:border-[#4a7c59]/30 rounded-xl transition-colors font-sans"
+                      >
+                        {label}
+                      </button>
+                    )
+                  )}
+                </div>
+                <div className="pt-2 border-t border-[#e4e0d8]">
+                  <label className="text-[10px] font-bold uppercase tracking-wider text-[#4a4e4a] block mb-1 font-sans">Custom date</label>
+                  <input
+                    type="date"
+                    min={new Date(Date.now() + 86400000).toISOString().split('T')[0]}
+                    onChange={(e) => { if (e.target.value) handleCustomSnooze(c.id, new Date(e.target.value)) }}
+                    className="w-full text-xs border border-[#e4e0d8] rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#4a7c59] bg-[#faf6f0] font-sans text-[#2e3230]"
+                  />
+                </div>
+              </div>
+            )}
           </div>
-        </div>
-      ))}
+        )
+      })}
     </div>
   )
 }
