@@ -1,8 +1,12 @@
+'use client'
+
 // Desktop Dashboard Component — Styled to match the Terra "Rooted Warmth" design specifications (Image 2 & reference HTML).
+import * as React from 'react'
 import Link from 'next/link'
 import WorkingListDesktopClient from './WorkingListDesktopClient'
 import type { Database } from '@/types/supabase'
 import { Menu, Heart, MoreHorizontal, LayoutDashboard, Users, GitBranch, History } from 'lucide-react'
+import QuickNoteDialog from './QuickNoteDialog'
 import { formatSnoozedDate } from '@/lib/utils/date'
 
 type Contact = Database['public']['Tables']['contacts']['Row']
@@ -22,6 +26,7 @@ interface Props {
   avatarUrl: string | null
   healthPercentage: number
   upcomingContacts: Contact[]
+  allContacts: Contact[]
 }
 
 export default function DashboardDesktop({
@@ -32,11 +37,17 @@ export default function DashboardDesktop({
   avatarUrl,
   healthPercentage,
   upcomingContacts,
+  allContacts,
 }: Props) {
+  const [isQuickNoteOpen, setIsQuickNoteOpen] = React.useState(false)
+  const [mounted, setMounted] = React.useState(false)
+
+  React.useEffect(() => {
+    setMounted(true)
+  }, [])
+
   // Fallback to there if profile has no name, to maintain rooted friendly feeling
   const name = displayName || 'there'
-
-
 
   return (
     <div className="min-h-screen bg-[#faf6f0] pb-24 font-body">
@@ -97,12 +108,12 @@ export default function DashboardDesktop({
                 >
                   View Due Today
                 </Link>
-                <Link
-                  href="/contacts"
-                  className="bg-transparent border border-white/30 text-white font-bold text-sm px-6 py-3 rounded-xl hover:bg-white/10 transition-colors"
+                <button
+                  onClick={() => setIsQuickNoteOpen(true)}
+                  className="bg-transparent border border-white/30 text-white font-bold text-sm px-6 py-3 rounded-xl hover:bg-white/10 transition-colors active:scale-95 duration-200"
                 >
                   Quick Note
-                </Link>
+                </button>
               </div>
             </div>
             
@@ -170,7 +181,7 @@ export default function DashboardDesktop({
                   </div>
                 ) : (
                   upcomingContacts.map((contact) => {
-                    const formattedDate = formatSnoozedDate(contact.snoozed_until)
+                    const formattedDate = mounted ? formatSnoozedDate(contact.snoozed_until) : '...'
                     const isSoon = formattedDate === 'Today' || formattedDate === 'Tomorrow'
                     
                     return (
@@ -220,6 +231,12 @@ export default function DashboardDesktop({
 
       </main>
 
+      <QuickNoteDialog
+        allContacts={allContacts}
+        profileId={profileId}
+        open={isQuickNoteOpen}
+        onOpenChange={setIsQuickNoteOpen}
+      />
     </div>
   )
 }

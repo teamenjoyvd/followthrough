@@ -172,6 +172,7 @@ export default async function DashboardPage() {
           avatarUrl={avatarUrl}
           healthPercentage={healthPercentage}
           upcomingContacts={upcomingContacts || []}
+          allContacts={contactsList}
         />
       </div>
 
@@ -185,6 +186,7 @@ export default async function DashboardPage() {
           avatarUrl={avatarUrl}
           healthPercentage={healthPercentage}
           upcomingContacts={upcomingContacts || []}
+          allContacts={contactsList}
         />
       </div>
     </>
