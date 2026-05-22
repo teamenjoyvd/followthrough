@@ -68,7 +68,7 @@ export function ContactFilterBar({
 
     const timer = setTimeout(() => {
       startTransition(() => {
-        router.push(buildHref({ company: company.trim() }))
+        router.replace(buildHref({ company: company.trim() }))
       })
     }, 300)
 
@@ -113,7 +113,7 @@ export function ContactFilterBar({
           value={currentLastContacted}
           onChange={(e) => {
             startTransition(() => {
-              router.push(buildHref({ last_contacted: e.target.value }))
+              router.replace(buildHref({ last_contacted: e.target.value }))
             })
           }}
           className="text-xs border border-[#e4e0d8] rounded-xl px-2.5 py-1.5 bg-[#f5f1ea] text-[#2e3230] focus:outline-none focus:ring-2 focus:ring-[#4a7c59] focus:border-transparent transition-all cursor-pointer shadow-sm"
@@ -144,11 +144,7 @@ export function ContactFilterBar({
         {/* Clear all */}
         {hasActiveFilters && (
           <Link
-            href={
-              currentQuery
-                ? `/contacts?q=${encodeURIComponent(currentQuery)}${currentSort ? `&sort=${currentSort}` : ''}${currentDir ? `&dir=${currentDir}` : ''}`
-                : `/contacts${currentSort ? `?sort=${currentSort}&dir=${currentDir}` : ''}`
-            }
+            href={buildHref({ status: '', last_contacted: '', company: '' })}
             className="inline-flex items-center gap-1 text-xs text-[#74796e] hover:text-[#2e3230] font-semibold transition-colors ml-1"
           >
             <X className="h-3.5 w-3.5" />

@@ -43,7 +43,7 @@ export function SearchInput({
         if (currentDir) params.set('dir', currentDir)
 
         const qs = params.toString()
-        router.push(qs ? `/contacts?${qs}` : '/contacts')
+        router.replace(qs ? `/contacts?${qs}` : '/contacts')
       })
     }, 300)
 
