@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useTransition } from 'react'
+import { useState, useTransition, useEffect, useRef } from 'react'
 import Link from 'next/link'
 import { Switch } from '@/components/ui/switch'
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
@@ -274,10 +274,31 @@ function GoogleSyncSectionMobile({
     handleDisconnect,
   } = useGoogleSync({ syncSuccessPrefix: 'Synced' })
 
+  const hasAutoSynced = useRef(false)
+
+  useEffect(() => {
+    if (flashConnected && !hasAutoSynced.current) {
+      hasAutoSynced.current = true
+      const url = new URL(window.location.href)
+      url.searchParams.delete('google_connected')
+      window.history.replaceState({}, '', url.toString())
+      handleSync()
+    }
+  }, [flashConnected, handleSync])
+
   return (
     <section className="space-y-3">
       <h2 className="font-headline text-base font-bold text-terra-on-surface">Google Contacts</h2>
       <div className="bg-terra-surface border border-terra-surface-container-highest rounded-[20px] p-4 space-y-4 shadow-[0_4px_20px_rgba(46,50,48,0.04)]">
+        {isSyncing && (
+          <div className="rounded-xl border border-terra-primary/20 bg-terra-on-primary-container/30 px-3 py-2.5 text-sm text-terra-on-surface font-medium flex items-center gap-3">
+            <span className="relative flex h-3 w-3">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-terra-primary opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-3 w-3 bg-terra-primary"></span>
+            </span>
+            <span className="animate-pulse">Syncing in real-time...</span>
+          </div>
+        )}
         {flashConnected && (
           <div className="rounded-xl bg-terra-on-primary-container border border-terra-primary/20 px-3 py-2 text-sm text-terra-on-surface font-medium">
             Connected successfully.
