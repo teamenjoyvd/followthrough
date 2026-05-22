@@ -1,8 +1,13 @@
+'use client'
+
 // Desktop Dashboard Component — Styled to match the Terra "Rooted Warmth" design specifications (Image 2 & reference HTML).
+import * as React from 'react'
 import Link from 'next/link'
 import WorkingListDesktopClient from './WorkingListDesktopClient'
 import type { Database } from '@/types/supabase'
 import { Menu, Heart, MoreHorizontal, LayoutDashboard, Users, GitBranch, History } from 'lucide-react'
+import QuickNoteDialog from './QuickNoteDialog'
+import { formatSnoozedDate } from '@/lib/utils/date'
 
 type Contact = Database['public']['Tables']['contacts']['Row']
 
@@ -20,11 +25,30 @@ interface Props {
   stats: Stats
   avatarUrl: string | null
   healthPercentage: number
+  upcomingContacts: Contact[]
+  allContacts: Contact[]
 }
 
-export default function DashboardDesktop({ profileId, displayName, workingList, stats, avatarUrl, healthPercentage }: Props) {
+export default function DashboardDesktop({
+  profileId,
+  displayName,
+  workingList,
+  stats,
+  avatarUrl,
+  healthPercentage,
+  upcomingContacts,
+  allContacts,
+}: Props) {
+  const [isQuickNoteOpen, setIsQuickNoteOpen] = React.useState(false)
+  const [mounted, setMounted] = React.useState(false)
+
+  React.useEffect(() => {
+    setMounted(true)
+  }, [])
+
   // Fallback to there if profile has no name, to maintain rooted friendly feeling
   const name = displayName || 'there'
+
 
   return (
     <div className="min-h-screen bg-[#faf6f0] pb-24 font-body">
@@ -50,7 +74,7 @@ export default function DashboardDesktop({ profileId, displayName, workingList, 
               Queue
             </Link>
             <Link className="text-[#4a4e4a] hover:bg-[#f0ece4] hover:text-[#2e3230] transition-colors px-3 py-1.5 rounded-xl text-sm font-medium" href="/inbox">
-              History
+              Inbox
             </Link>
           </nav>
         </div>
@@ -85,12 +109,12 @@ export default function DashboardDesktop({ profileId, displayName, workingList, 
                 >
                   View Due Today
                 </Link>
-                <Link
-                  href="/contacts"
-                  className="bg-transparent border border-white/30 text-white font-bold text-sm px-6 py-3 rounded-xl hover:bg-white/10 transition-colors"
+                <button
+                  onClick={() => setIsQuickNoteOpen(true)}
+                  className="bg-transparent border border-white/30 text-white font-bold text-sm px-6 py-3 rounded-xl hover:bg-white/10 transition-colors active:scale-95 duration-200"
                 >
                   Quick Note
-                </Link>
+                </button>
               </div>
             </div>
             
@@ -117,7 +141,7 @@ export default function DashboardDesktop({ profileId, displayName, workingList, 
                 </div>
               </div>
               <p className="mt-4 text-xs text-center text-[#4a4e4a] leading-relaxed px-4">
-                Up 5% from last month. You're staying consistent with your inner circle.
+                Based on follow-up rule intervals. You're staying consistent with your inner circle.
               </p>
             </div>
           </div>
@@ -152,41 +176,44 @@ export default function DashboardDesktop({ profileId, displayName, workingList, 
               </div>
               
               <div className="space-y-4">
-                {/* Team Sync-up */}
-                <div className="bg-[#faf6f0] p-5 rounded-[20px] relative overflow-hidden border-l-4 border-[#705c30] shadow-[0_4px_20px_rgba(46,50,48,0.02)] border border-[#e4e0d8]/50">
-                  <p className="text-[10px] font-bold text-[#705c30] uppercase tracking-widest mb-1 font-sans">Tomorrow</p>
-                  <h4 className="font-headline text-base font-semibold text-[#2e3230] mb-3">Team Sync-up</h4>
-                  
-                  <div className="flex -space-x-2 items-center">
-                    <img
-                      alt="Team member"
-                      className="w-6 h-6 rounded-full border-2 border-[#faf6f0] object-cover"
-                      src="https://lh3.googleusercontent.com/aida-public/AB6AXuAwQwIvivkauD3UBt9MGdMBo5Dk5HU6mW4rkrElMqduJql-TVXVfqqrfsY9E08D-R7cK0xWZsQQbukKZB9V9E3ZDmVQVCX734dXJe9BlCrR9UUeF2TYuFfg4DiV8tMEoe0Y0WZsDT7UM5STOAF-vjcwY2DVllZMBKcQqHc4iOj2h2vZT3G_Zc83qOF2nCdPC3aGlPg34OqmujLmq_SWfyTkNgzTaDEOS5AnTZADNjjjziuDKrEtrgmKnRi6TPn0FEGdW2ssVw2GrA"
-                    />
-                    <img
-                      alt="Team member"
-                      className="w-6 h-6 rounded-full border-2 border-[#faf6f0] object-cover"
-                      src="https://lh3.googleusercontent.com/aida-public/AB6AXuCN3Xyqj-6CP-V80X_jZ7Hb6vn0PeqQbKaz3GekZU7gx5t8yG3L__-oYTNDHHyWt6fbs03a2JMS477vXNRe014O7JF9Xaxb6KaAZfBZPCFzGoJUWnmXh-LcdBvaQjq0qotP2jvuvdIuR1V7TTR4Z1V8ArqNGjLclQITirDHGbr-egxnvWjMjFFIBexzgyBO0wAMvqEk-m0rH5hKKRgFhjCqV0hFinGWrZTIEM-Vx8ksANf4dCNcGtbAINDLx4TZMMX-uaFQ2P_Jww"
-                    />
-                    <div className="w-6 h-6 rounded-full border-2 border-[#faf6f0] bg-[#f0ece4] flex items-center justify-center text-[10px] font-bold text-[#4a4e4a] font-sans">
-                      +3
-                    </div>
+                {upcomingContacts.length === 0 ? (
+                  <div className="bg-[#f5f1ea]/50 border border-dashed border-[#e4e0d8] p-8 rounded-[20px] text-center flex flex-col items-center justify-center min-h-[140px] text-[#74796e]">
+                    <p className="text-sm font-medium">No contacts resurfacing soon.</p>
                   </div>
-                </div>
-
-                {/* Quarterly Review */}
-                <div className="bg-[#f5f1ea] p-5 rounded-[20px] border-l-4 border-[#4a7c59]/40 shadow-[0_4px_20px_rgba(46,50,48,0.02)] border border-[#e4e0d8]/30">
-                  <p className="text-[10px] font-bold text-[#4a4e4a] uppercase tracking-widest mb-1 font-sans">Oct 24</p>
-                  <h4 className="font-headline text-base font-semibold text-[#2e3230]">Quarterly Review</h4>
-                  <p className="text-xs text-[#4a4e4a] mt-1 font-sans">Dr. Aris Vancamp</p>
-                </div>
-
-                {/* Podcast Introduction */}
-                <div className="bg-[#f5f1ea] p-5 rounded-[20px] border-l-4 border-[#4a7c59]/40 shadow-[0_4px_20px_rgba(46,50,48,0.02)] border border-[#e4e0d8]/30">
-                  <p className="text-[10px] font-bold text-[#4a4e4a] uppercase tracking-widest mb-1 font-sans">Oct 26</p>
-                  <h4 className="font-headline text-base font-semibold text-[#2e3230]">Podcast Introduction</h4>
-                  <p className="text-xs text-[#4a4e4a] mt-1 font-sans">Lina S. & David M.</p>
-                </div>
+                ) : (
+                  upcomingContacts.map((contact) => {
+                    const formattedDate = mounted ? formatSnoozedDate(contact.snoozed_until) : '...'
+                    const isSoon = formattedDate === 'Today' || formattedDate === 'Tomorrow'
+                    
+                    return (
+                      <Link
+                        key={contact.id}
+                        href={`/contacts/${contact.id}`}
+                        className="block active:scale-[0.98] transition-transform duration-150"
+                      >
+                        <div className={`p-5 rounded-[20px] border-l-4 shadow-[0_4px_20px_rgba(46,50,48,0.02)] border transition-all duration-200 hover:shadow-[0_6px_24px_rgba(46,50,48,0.05)] hover:bg-[#eae6de]/40 ${
+                          isSoon 
+                            ? 'bg-[#faf6f0] border-l-[#705c30] border-[#e4e0d8]/50' 
+                            : 'bg-[#f5f1ea] border-l-[#4a7c59]/40 border-[#e4e0d8]/30'
+                        }`}>
+                          <p className={`text-[10px] font-bold uppercase tracking-widest mb-1 font-sans ${
+                            isSoon ? 'text-[#705c30]' : 'text-[#4a4e4a]'
+                          }`}>
+                            {formattedDate}
+                          </p>
+                          <h4 className="font-headline text-base font-semibold text-[#2e3230]">
+                            {contact.first_name} {contact.last_name || ''}
+                          </h4>
+                          {(contact.job_title || contact.company) && (
+                            <p className="text-xs text-[#4a4e4a] mt-1 font-sans">
+                              {[contact.job_title, contact.company].filter(Boolean).join(' at ')}
+                            </p>
+                          )}
+                        </div>
+                      </Link>
+                    )
+                  })
+                )}
               </div>
             </div>
 
@@ -205,6 +232,12 @@ export default function DashboardDesktop({ profileId, displayName, workingList, 
 
       </main>
 
+      <QuickNoteDialog
+        allContacts={allContacts}
+        profileId={profileId}
+        open={isQuickNoteOpen}
+        onOpenChange={setIsQuickNoteOpen}
+      />
     </div>
   )
 }

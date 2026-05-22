@@ -23,12 +23,25 @@ export default async function DashboardPage() {
 
   const supabase = await createSupabaseServerClient()
 
+  interface ProfileResult {
+    id: string
+    display_name: string | null
+    followup_rules: any
+  }
+
   // 1. Try to fetch the profile first to see if it already exists
-  let { data: profile } = await (supabase as any)
+  const { data: profileResult, error: profileError } = await (supabase as any)
     .from('profiles')
     .select('id, display_name, followup_rules')
     .eq('clerk_id', userId)
-    .maybeSingle() as { data: { id: string; display_name: string | null; followup_rules: any } | null }
+    .maybeSingle() as { data: ProfileResult | null; error: any }
+
+  if (profileError) {
+    console.error('[DashboardPage] Error fetching profile:', profileError)
+  }
+
+  let profile = profileResult
+
 
   // 2. If the profile does not exist, provision a new one
   if (!profile) {
@@ -49,11 +62,15 @@ export default async function DashboardPage() {
     await ensureProfile(userId, email, fullName)
 
     // Re-fetch the profile to make sure it was successfully created
-    const { data: refetched } = await (supabase as any)
+    const { data: refetched, error: refetchError } = await (supabase as any)
       .from('profiles')
       .select('id, display_name, followup_rules')
       .eq('clerk_id', userId)
-      .maybeSingle() as { data: { id: string; display_name: string | null; followup_rules: any } | null }
+      .maybeSingle() as { data: ProfileResult | null; error: any }
+
+    if (refetchError) {
+      console.error('[DashboardPage] Error re-fetching profile:', refetchError)
+    }
 
     profile = refetched
   }
@@ -72,12 +89,35 @@ export default async function DashboardPage() {
   const avatarUrl = clerkUser?.imageUrl || null
 
   // Fetch all contacts for relationship health calculation and working list filter
-  const { data: allContacts } = await (supabase as any)
+  const { data: allContacts, error: allContactsError } = await (supabase as any)
     .from('contacts')
     .select('*')
-    .eq('profile_id', profile.id) as { data: Contact[] | null }
+    .eq('profile_id', profile.id) as { data: Contact[] | null; error: any }
+
+  if (allContactsError) {
+    console.error('[DashboardPage] Error fetching all contacts:', allContactsError)
+  }
 
   const contactsList = allContacts || []
+
+  // Fetch upcoming snoozed contacts resurfacing in the next 7 days
+  const todayStr = new Date().toISOString().split('T')[0]
+  const sevenDaysLater = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+  const sevenDaysLaterStr = sevenDaysLater.toISOString().split('T')[0]
+
+  const { data: upcomingContacts, error: upcomingContactsError } = await (supabase as any)
+    .from('contacts')
+    .select('*')
+    .eq('profile_id', profile.id)
+    .eq('pipeline_status', 'snoozed')
+    .gte('snoozed_until', todayStr)
+    .lte('snoozed_until', sevenDaysLaterStr)
+    .order('snoozed_until', { ascending: true })
+    .limit(5) as { data: Contact[] | null; error: any }
+
+  if (upcomingContactsError) {
+    console.error('[DashboardPage] Error fetching upcoming contacts:', upcomingContactsError)
+  }
 
   // Filter and sort the working list contacts in memory
   const workingListContacts = contactsList
@@ -101,7 +141,7 @@ export default async function DashboardPage() {
   }
 
   // Calculate relationship health dynamically: compare last_contacted_at/created_at with rule thresholds to find overdue contacts
-  const followupRules = (profile as any).followup_rules || { lead: 14, qualified: 7, bought: 30, leave_alone: 90 }
+  const followupRules = (profile.followup_rules as Record<string, number> | null) || { lead: 14, qualified: 7, bought: 30, leave_alone: 90 }
   let overdueCount = 0
 
   for (const contact of contactsList) {
@@ -132,6 +172,8 @@ export default async function DashboardPage() {
           stats={stats}
           avatarUrl={avatarUrl}
           healthPercentage={healthPercentage}
+          upcomingContacts={upcomingContacts || []}
+          allContacts={contactsList}
         />
       </div>
 
@@ -144,6 +186,8 @@ export default async function DashboardPage() {
           stats={stats}
           avatarUrl={avatarUrl}
           healthPercentage={healthPercentage}
+          upcomingContacts={upcomingContacts || []}
+          allContacts={contactsList}
         />
       </div>
     </>
