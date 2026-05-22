@@ -46,20 +46,21 @@ export default function ContactsDesktop({ contacts, sortKey, sortDir }: Props) {
   }
 
   return (
-    <div className="hidden md:block px-6 py-4 space-y-2">
+    <div role="table" aria-label="Contacts list" className="hidden md:block px-6 py-4 space-y-2">
       {/* Column headers */}
-      <div className="grid grid-cols-[2fr_2fr_1.5fr_1.5fr_80px] gap-4 px-4 mb-1">
+      <div role="row" className="grid grid-cols-[2fr_2fr_1.5fr_1.5fr_80px] gap-4 px-4 mb-1">
         {COLUMNS.map(({ key, label }) => (
           <Link
             key={key}
             href={sortHref(key)}
+            role="columnheader"
             className="inline-flex items-center gap-1 text-xs font-semibold text-[#74796e] uppercase tracking-wider hover:text-[#2e3230] transition-colors"
           >
             {label}
             <SortIcon column={key} sortKey={sortKey} sortDir={sortDir} />
           </Link>
         ))}
-        <span className="sr-only">Actions</span>
+        <span role="columnheader" className="sr-only">Actions</span>
       </div>
 
       {/* Rows */}
@@ -74,9 +75,10 @@ export default function ContactsDesktop({ contacts, sortKey, sortDir }: Props) {
         contacts.map((c) => (
           <div
             key={c.id}
+            role="row"
             className="grid grid-cols-[2fr_2fr_1.5fr_1.5fr_80px] gap-4 items-center px-4 py-3.5 rounded-[20px] bg-[#f5f1ea] hover:bg-[#eae6de] transition-colors shadow-[0_4px_20px_rgba(46,50,48,0.04)] group"
           >
-            <div>
+            <div role="cell">
               <Link
                 href={`/contacts/${c.id}`}
                 className="text-sm font-semibold text-[#2e3230] hover:text-[#4a7c59] transition-colors"
@@ -85,17 +87,17 @@ export default function ContactsDesktop({ contacts, sortKey, sortDir }: Props) {
               </Link>
               {c.email && <div className="text-xs text-[#74796e] mt-0.5">{c.email}</div>}
             </div>
-            <div className="text-sm text-[#4a4e4a]">
+            <div role="cell" className="text-sm text-[#4a4e4a]">
               {c.company || <span className="text-[#74796e]">—</span>}
               {c.job_title && <div className="text-xs text-[#74796e] mt-0.5">{c.job_title}</div>}
             </div>
-            <div>
+            <div role="cell">
               {statusBadge(c.pipeline_status)}
             </div>
-            <div className="text-sm text-[#4a4e4a]">
+            <div role="cell" className="text-sm text-[#4a4e4a]">
               {formatDate(c.last_contacted_at)}
             </div>
-            <div className="text-right">
+            <div role="cell" className="text-right">
               <Link
                 href={`/contacts/${c.id}/edit`}
                 className="text-xs font-semibold text-[#74796e] opacity-0 group-hover:opacity-100 hover:text-[#4a7c59] transition-all"
