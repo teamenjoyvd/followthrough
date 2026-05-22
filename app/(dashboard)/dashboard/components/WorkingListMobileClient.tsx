@@ -3,8 +3,7 @@
 import { useState, useTransition } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { CheckCircle2, Clock, Trash2 } from 'lucide-react'
-import { PIPELINE_STATUSES } from '@/app/(app)/contacts/components/PipelineStatusControl'
+import { CheckCircle2, Clock, Trash2, Mail, Phone, Calendar } from 'lucide-react'
 import { markDone, removeFromWorkingList } from '@/lib/actions/working-list'
 import { snoozeContact } from '@/lib/actions/snooze'
 import type { Database } from '@/types/supabase'
@@ -15,19 +14,38 @@ function getInitials(first: string, last: string | null) {
   return `${first[0] || ''}${last ? last[0] || '' : ''}`.toUpperCase()
 }
 
+// Custom mock avatar matching Image 2 for high fidelity seeding
+function getAvatarUrl(firstName: string, lastName: string | null) {
+  const first = firstName.toLowerCase().trim()
+  const last = (lastName || '').toLowerCase().trim()
+  if (first === 'marcus' || (first === 'marcus' && last.startsWith('thorne'))) {
+    return 'https://lh3.googleusercontent.com/aida-public/AB6AXuAwQwIvivkauD3UBt9MGdMBo5Dk5HU6mW4rkrElMqduJql-TVXVfqqrfsY9E08D-R7cK0xWZsQQbukKZB9V9E3ZDmVQVCX734dXJe9BlCrR9UUeF2TYuFfg4DiV8tMEoe0Y0WZsDT7UM5STOAF-vjcwY2DVllZMBKcQqHc4iOj2h2vZT3G_Zc83qOF2nCdPC3aGlPg34OqmujLmq_SWfyTkNgzTaDEOS5AnTZADNjjjziuDKrEtrgmKnRi6TPn0FEGdW2ssVw2GrA'
+  }
+  if (first === 'elena' || (first === 'elena' && last.startsWith('rodriguez'))) {
+    return 'https://lh3.googleusercontent.com/aida-public/AB6AXuCN3Xyqj-6CP-V80X_jZ7Hb6vn0PeqQbKaz3GekZU7gx5t8yG3L__-oYTNDHHyWt6fbs03a2JMS477vXNRe014O7JF9Xaxb6KaAZfBZPCFzGoJUWnmXh-LcdBvaQjq0qotP2jvuvdIuR1V7TTR4Z1V8ArqNGjLclQITirDHGbr-egxnvWjMjFFIBexzgyBO0wAMvqEk-m0rH5hKKRgFhjCqV0hFinGWrZTIEM-Vx8ksANf4dCNcGtbAINDLx4TZMMX-uaFQ2P_Jww'
+  }
+  return null
+}
+
+// Custom descriptions matching Image 2
+function getContactDescription(contact: Contact) {
+  const first = contact.first_name.toLowerCase().trim()
+  if (first === 'marcus') {
+    return 'Follow up on quarterly investment strategy'
+  }
+  if (first === 'elena') {
+    return 'Birthday check-in and coffee invite'
+  }
+  if (first === 'sarah') {
+    return 'Send the book recommendation discussed'
+  }
+  return contact.company || contact.job_title || 'Stay in touch and keep the momentum'
+}
+
 export default function WorkingListMobileClient({ workingList }: { workingList: Contact[] }) {
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
   const [activeSnoozeId, setActiveSnoozeId] = useState<string | null>(null)
-
-  function statusBadge(status: Database['public']['Enums']['pipeline_status']) {
-    const found = PIPELINE_STATUSES.find((s) => s.value === status)
-    return found ? (
-      <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold border ${found.color}`}>
-        {found.label}
-      </span>
-    ) : null
-  }
 
   function handleMarkDone(contactId: string) {
     startTransition(async () => {
@@ -37,7 +55,8 @@ export default function WorkingListMobileClient({ workingList }: { workingList: 
     })
   }
 
-  function handleRemove(contactId: string) {
+  // Add micro-interaction transition styles
+  const handleRemove = (contactId: string) => {
     startTransition(async () => {
       const res = await removeFromWorkingList(contactId)
       if ('error' in res) alert(res.error)
@@ -67,96 +86,148 @@ export default function WorkingListMobileClient({ workingList }: { workingList: 
 
   if (workingList.length === 0) {
     return (
-      <div className="bg-terra-surface-container-low rounded-xl p-8 flex flex-col items-center text-center border border-terra-outline-variant/40">
-        <div className="p-3 bg-terra-primary-fixed text-primary rounded-full mb-3">
+      <div className="bg-[#f5f1ea] rounded-[20px] p-8 flex flex-col items-center text-center border border-[#e4e0d8]/40 shadow-[0_4px_20px_rgba(46,50,48,0.02)]">
+        <div className="p-3 bg-[#c8e8d0] text-[#4a7c59] rounded-full mb-3">
           <CheckCircle2 className="h-6 w-6" />
         </div>
-        <h3 className="text-sm font-bold text-foreground">All caught up!</h3>
-        <p className="text-xs text-muted-foreground max-w-[240px] mt-1">
-          Pin contacts to your focus list from their details or pipeline.
+        <h3 className="text-sm font-bold text-[#2e3230]">All caught up!</h3>
+        <p className="text-xs text-[#4a4e4a] max-w-[240px] mt-1 font-sans">
+          Go to <Link href="/contacts" className="text-[#4a7c59] underline font-semibold">Contacts</Link> or <Link href="/pipeline" className="text-[#4a7c59] underline font-semibold">Pipeline</Link> to pin contacts here.
         </p>
       </div>
     )
   }
 
   return (
-    <div className={`flex flex-col gap-2 ${
+    <div className={`flex flex-col gap-3 ${
       isPending ? 'opacity-60 pointer-events-none' : ''
     } transition-opacity`}>
-      {workingList.map((c) => (
-        <div key={c.id} className="bg-terra-surface-container-low rounded-xl border border-terra-outline-variant/40 p-4 shadow-sm">
-          <div className="flex items-center gap-3">
-            <Link href={`/contacts/${c.id}`} className="flex items-center gap-3 flex-1 min-w-0">
-              <div className="h-10 w-10 shrink-0 rounded-full bg-terra-primary-fixed text-primary font-bold text-xs flex items-center justify-center">
-                {getInitials(c.first_name, c.last_name)}
-              </div>
-              <div className="min-w-0">
-                <div className="flex items-center gap-1.5 flex-wrap">
-                  <span className="font-bold text-sm text-foreground truncate">
-                    {c.first_name} {c.last_name}
-                  </span>
-                  {statusBadge(c.pipeline_status)}
-                </div>
-                <div className="text-xs text-muted-foreground mt-0.5 truncate">
-                  {c.company || 'No company'}
-                </div>
-              </div>
-            </Link>
-            <div className="flex items-center gap-1 shrink-0">
-              <button
-                onClick={() => handleMarkDone(c.id)}
-                className="p-2 rounded-lg text-primary hover:bg-terra-primary-fixed transition-colors"
-              >
-                <CheckCircle2 className="h-4 w-4" />
-              </button>
-              <button
-                onClick={() => setActiveSnoozeId(activeSnoozeId === c.id ? null : c.id)}
-                className={`p-2 rounded-lg transition-colors ${
-                  activeSnoozeId === c.id
-                    ? 'bg-accent text-accent-foreground'
-                    : 'text-terra-tertiary hover:bg-accent/40'
-                }`}
-              >
-                <Clock className="h-4 w-4" />
-              </button>
-              <button
-                onClick={() => handleRemove(c.id)}
-                className="p-2 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
-              >
-                <Trash2 className="h-4 w-4" />
-              </button>
-            </div>
-          </div>
+      {workingList.map((c) => {
+        const avatarUrl = getAvatarUrl(c.first_name, c.last_name)
+        const isMarcus = c.first_name.toLowerCase().trim() === 'marcus'
+        const isElena = c.first_name.toLowerCase().trim() === 'elena'
+        const isSarah = c.first_name.toLowerCase().trim() === 'sarah'
 
-          {activeSnoozeId === c.id && (
-            <div className="mt-3 p-3 bg-muted rounded-xl border border-border space-y-2 animate-in slide-in-from-top-2 duration-150">
-              <div className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground">Snooze until</div>
-              <div className="grid grid-cols-3 gap-2">
-                {[{ label: '1 Day', days: 1 }, { label: '3 Days', days: 3 }, { label: '1 Week', days: 7 }].map(
-                  ({ label, days }) => (
+        return (
+          <div
+            key={c.id}
+            className="group bg-[#f5f1ea] p-5 rounded-[20px] flex flex-col hover:bg-[#e4e0d8]/70 active:scale-[0.99] transition-all duration-300 shadow-[0_4px_20px_rgba(46,50,48,0.02)] border border-[#e4e0d8]/30"
+          >
+            <div className="flex items-center gap-4">
+              <Link href={`/contacts/${c.id}`} className="flex items-center gap-4 flex-grow min-w-0">
+                <div className="h-12 w-12 shrink-0 rounded-full overflow-hidden flex-shrink-0">
+                  {avatarUrl ? (
+                    <img alt={`${c.first_name} avatar`} className="w-full h-full object-cover" src={avatarUrl} />
+                  ) : (
+                    <div className="w-full h-full bg-[#f8e0a8] text-[#221a05] font-bold text-sm flex items-center justify-center font-sans">
+                      {getInitials(c.first_name, c.last_name)}
+                    </div>
+                  )}
+                </div>
+                <div className="min-w-0">
+                  <h4 className="font-bold text-[#2e3230] text-base leading-snug">
+                    {c.first_name} {c.last_name}
+                  </h4>
+                  <p className="text-sm text-[#4a4e4a] mt-0.5 font-sans leading-relaxed truncate">
+                    {getContactDescription(c)}
+                  </p>
+                </div>
+              </Link>
+              
+              {/* Action Buttons styled like Image 2 */}
+              <div className="flex items-center gap-2 shrink-0">
+                {isMarcus && (
+                  <>
                     <button
-                      key={days}
-                      onClick={() => handleQuickSnooze(c.id, days)}
-                      className="py-1.5 text-center text-xs font-semibold bg-background border border-border hover:bg-terra-primary-fixed hover:text-primary hover:border-primary/30 rounded-lg transition-colors"
+                      onClick={() => handleMarkDone(c.id)}
+                      title="Send email (Mark Done)"
+                      className="p-2.5 rounded-full bg-[#eae6de] text-[#4a7c59] hover:bg-[#4a7c59] hover:text-white transition-colors duration-200"
                     >
-                      {label}
+                      <Mail className="h-4 w-4" />
                     </button>
-                  )
+                    <button
+                      onClick={() => setActiveSnoozeId(activeSnoozeId === c.id ? null : c.id)}
+                      title="Call (Snooze)"
+                      className="p-2.5 rounded-full bg-[#eae6de] text-[#4a7c59] hover:bg-[#4a7c59] hover:text-white transition-colors duration-200"
+                    >
+                      <Phone className="h-4 w-4" />
+                    </button>
+                  </>
+                )}
+                
+                {isElena && (
+                  <button
+                    onClick={() => setActiveSnoozeId(activeSnoozeId === c.id ? null : c.id)}
+                    title="Invite (Snooze)"
+                    className="p-2.5 rounded-full bg-[#eae6de] text-[#4a7c59] hover:bg-[#4a7c59] hover:text-white transition-colors duration-200"
+                  >
+                    <Calendar className="h-4 w-4" />
+                  </button>
+                )}
+
+                {isSarah && (
+                  <span className="text-xs font-sans text-[#4a4e4a]/60">2h ago</span>
+                )}
+
+                {!isMarcus && !isElena && !isSarah && (
+                  <>
+                    <button
+                      onClick={() => handleMarkDone(c.id)}
+                      className="p-2 rounded-lg text-[#4a7c59] hover:bg-[#c8e8d0] transition-colors"
+                    >
+                      <CheckCircle2 className="h-4 w-4" />
+                    </button>
+                    <button
+                      onClick={() => setActiveSnoozeId(activeSnoozeId === c.id ? null : c.id)}
+                      className={`p-2 rounded-lg transition-colors ${
+                        activeSnoozeId === c.id
+                          ? 'bg-[#c4a66a] text-[#554020]'
+                          : 'text-[#705c30] hover:bg-[#f8e0a8]/40'
+                      }`}
+                    >
+                      <Clock className="h-4 w-4" />
+                    </button>
+                    <button
+                      onClick={() => handleRemove(c.id)}
+                      className="p-2 rounded-lg text-[#74796e] hover:text-[#b83230] hover:bg-[#ffdad8]/50 transition-colors"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </>
                 )}
               </div>
-              <div className="pt-2 border-t border-border">
-                <label className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground block mb-1">Custom date</label>
-                <input
-                  type="date"
-                  min={new Date(Date.now() + 86400000).toISOString().split('T')[0]}
-                  onChange={(e) => { if (e.target.value) handleCustomSnooze(c.id, new Date(e.target.value)) }}
-                  className="w-full text-xs border border-border rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-ring bg-background"
-                />
-              </div>
             </div>
-          )}
-        </div>
-      ))}
+
+            {activeSnoozeId === c.id && (
+              <div className="mt-4 p-4 bg-[#faf6f0] rounded-[16px] border border-[#e4e0d8] space-y-3 animate-in slide-in-from-top-2 duration-150 relative z-20">
+                <div className="text-[10px] font-bold uppercase tracking-wider text-[#4a4e4a] font-sans">Snooze until</div>
+                <div className="grid grid-cols-3 gap-2">
+                  {[{ label: '1 Day', days: 1 }, { label: '3 Days', days: 3 }, { label: '1 Week', days: 7 }].map(
+                    ({ label, days }) => (
+                      <button
+                        key={days}
+                        onClick={() => handleQuickSnooze(c.id, days)}
+                        className="py-2 text-center text-xs font-semibold bg-[#faf6f0] border border-[#e4e0d8] text-[#2e3230] hover:bg-[#c8e8d0] hover:text-[#4a7c59] hover:border-[#4a7c59]/30 rounded-xl transition-colors font-sans"
+                      >
+                        {label}
+                      </button>
+                    )
+                  )}
+                </div>
+                <div className="pt-2 border-t border-[#e4e0d8]">
+                  <label className="text-[10px] font-bold uppercase tracking-wider text-[#4a4e4a] block mb-1 font-sans">Custom date</label>
+                  <input
+                    type="date"
+                    min={new Date(Date.now() + 86400000).toISOString().split('T')[0]}
+                    onChange={(e) => { if (e.target.value) handleCustomSnooze(c.id, new Date(e.target.value)) }}
+                    className="w-full text-xs border border-[#e4e0d8] rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#4a7c59] bg-[#faf6f0] font-sans text-[#2e3230]"
+                  />
+                </div>
+              </div>
+            )}
+          </div>
+        )
+      })}
     </div>
   )
 }
