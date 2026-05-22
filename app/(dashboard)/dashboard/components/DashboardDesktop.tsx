@@ -3,6 +3,7 @@ import Link from 'next/link'
 import WorkingListDesktopClient from './WorkingListDesktopClient'
 import type { Database } from '@/types/supabase'
 import { Menu, Heart, MoreHorizontal, LayoutDashboard, Users, GitBranch, History } from 'lucide-react'
+import { formatSnoozedDate } from '@/lib/utils/date'
 
 type Contact = Database['public']['Tables']['contacts']['Row']
 
@@ -35,23 +36,7 @@ export default function DashboardDesktop({
   // Fallback to there if profile has no name, to maintain rooted friendly feeling
   const name = displayName || 'there'
 
-  // Timezone-safe date formatter
-  const formatSnoozedDate = (dateStr: string | null) => {
-    if (!dateStr) return ''
-    const [year, month, day] = dateStr.split('-').map(Number)
-    const targetDate = new Date(year, month - 1, day)
-    
-    const now = new Date()
-    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
-    
-    const diffTime = targetDate.getTime() - today.getTime()
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
-    
-    if (diffDays === 0) return 'Today'
-    if (diffDays === 1) return 'Tomorrow'
-    
-    return targetDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
-  }
+
 
   return (
     <div className="min-h-screen bg-[#faf6f0] pb-24 font-body">
