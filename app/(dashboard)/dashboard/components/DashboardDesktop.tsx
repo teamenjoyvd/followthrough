@@ -79,11 +79,19 @@ export default function DashboardDesktop({
         </div>
         
         <div className="active:scale-95 duration-200">
-          <img
-            alt="User Profile"
-            className="w-10 h-10 rounded-full border-2 border-[#c8e8d0] shadow-sm object-cover"
-            src={avatarUrl || "https://lh3.googleusercontent.com/aida-public/AB6AXuBgmqZ-naMC68qyB-8YDoi7m3XwER_oXB6HHtUYgDcXHeZ_uA1WzMzixSyP2IRtf9IKlR0X3ablr-Gn97Xrtx13-Oq-SRLdXF4GQY7-manjSaQV4_k3r4uOfTW7GtQ94NZ_cGHL2bma4C6-08LoNUNrfeJolIuf8ynkxHOp7VefkgBNr1oO2PIjhE4OZpSzYVuelHWp7I6pzuPQcrmsLdOvmIEZ5_2ILbyvtKcfayNUAtIQPNgQWPU0hUUmwj1dvwBSQX_4tmWhUw"}
-          />
+          {avatarUrl ? (
+            <img
+              alt="User Profile"
+              className="w-10 h-10 rounded-full border-2 border-[#c8e8d0] shadow-sm object-cover"
+              src={avatarUrl}
+            />
+          ) : (
+            <div className="w-10 h-10 rounded-full border-2 border-[#c8e8d0] shadow-sm bg-[#4a7c59] flex items-center justify-center">
+              <span className="text-white text-sm font-bold font-headline">
+                {name.charAt(0).toUpperCase()}
+              </span>
+            </div>
+          )}
         </div>
       </header>
 
@@ -133,7 +141,7 @@ export default function DashboardDesktop({
               <div className="relative w-32 h-32 flex items-center justify-center">
                 <svg className="w-full h-full transform -rotate-90">
                   <circle className="text-[#dbd7cf]" cx="64" cy="64" fill="transparent" r="58" stroke="currentColor" strokeWidth="8"></circle>
-                  <circle className="text-[#4a7c59] transition-all duration-1000" cx="64" cy="64" fill="transparent" r="58" stroke="currentColor" strokeDasharray="364" stroke-dashoffset={364 * (1 - healthPercentage / 100)} strokeWidth="8"></circle>
+                  <circle className="text-[#4a7c59] transition-all duration-1000" cx="64" cy="64" fill="transparent" r="58" stroke="currentColor" strokeDasharray="364" strokeDashoffset={364 * (1 - healthPercentage / 100)} strokeWidth="8"></circle>
                 </svg>
                 <div className="absolute inset-0 flex flex-col items-center justify-center">
                   <span className="text-3xl font-headline font-bold text-[#4a7c59]">{healthPercentage}%</span>
@@ -220,7 +228,7 @@ export default function DashboardDesktop({
             <div className="bg-[#c4a66a] text-[#554020] p-6 rounded-[20px] shadow-inner relative overflow-hidden">
               <span className="font-headline text-4xl leading-none absolute top-4 left-4 opacity-15 select-none font-serif">“</span>
               <p className="font-headline italic text-lg leading-relaxed relative z-10 pl-2">
-                "The quality of your life is the quality of your relationships."
+                “The quality of your life is the quality of your relationships.”
               </p>
               <p className="text-xs mt-4 opacity-80 pl-2 font-sans">— Tony Robbins</p>
             </div>

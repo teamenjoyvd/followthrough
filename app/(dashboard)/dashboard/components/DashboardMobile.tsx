@@ -61,11 +61,19 @@ export default function DashboardMobile({
           <h1 className="font-headline text-xl font-bold text-[#4a7c59] tracking-tight">FollowThrough</h1>
         </div>
         <div className="active:scale-95 duration-200">
-          <img
-            alt="User Profile"
-            className="w-10 h-10 rounded-full border-2 border-[#c8e8d0] shadow-sm object-cover"
-            src={avatarUrl || "https://lh3.googleusercontent.com/aida-public/AB6AXuBgmqZ-naMC68qyB-8YDoi7m3XwER_oXB6HHtUYgDcXHeZ_uA1WzMzixSyP2IRtf9IKlR0X3ablr-Gn97Xrtx13-Oq-SRLdXF4GQY7-manjSaQV4_k3r4uOfTW7GtQ94NZ_cGHL2bma4C6-08LoNUNrfeJolIuf8ynkxHOp7VefkgBNr1oO2PIjhE4OZpSzYVuelHWp7I6pzuPQcrmsLdOvmIEZ5_2ILbyvtKcfayNUAtIQPNgQWPU0hUUmwj1dvwBSQX_4tmWhUw"}
-          />
+          {avatarUrl ? (
+            <img
+              alt="User Profile"
+              className="w-10 h-10 rounded-full border-2 border-[#c8e8d0] shadow-sm object-cover"
+              src={avatarUrl}
+            />
+          ) : (
+            <div className="w-10 h-10 rounded-full border-2 border-[#c8e8d0] shadow-sm bg-[#4a7c59] flex items-center justify-center">
+              <span className="text-white text-sm font-bold font-headline">
+                {name.charAt(0).toUpperCase()}
+              </span>
+            </div>
+          )}
         </div>
       </header>
 
@@ -191,7 +199,7 @@ export default function DashboardMobile({
         <div className="bg-[#c4a66a] text-[#554020] p-6 rounded-[20px] mt-8 shadow-inner relative overflow-hidden">
           <span className="font-headline text-4xl leading-none absolute top-4 left-4 opacity-15 select-none font-serif">“</span>
           <p className="font-headline italic text-lg leading-relaxed relative z-10 pl-2">
-            "The quality of your life is the quality of your relationships."
+            “The quality of your life is the quality of your relationships.”
           </p>
           <p className="text-xs mt-4 opacity-80 pl-2 font-sans">— Tony Robbins</p>
         </div>
