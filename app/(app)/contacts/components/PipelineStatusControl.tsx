@@ -37,10 +37,10 @@ export function PipelineStatusControl({ contact }: Props) {
             key={value}
             onClick={() => handleChange(value)}
             disabled={isPending || isActive}
-            className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-all ${
+            className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition-all ${
               isActive
                 ? `${color} shadow-sm ring-2 ring-offset-1 ring-current`
-                : 'bg-white text-gray-500 border-gray-200 hover:border-gray-300 hover:text-gray-700'
+                : 'bg-[#eae6de] text-[#4a7c59] border-[#e4e0d8] hover:bg-[#dedad2] hover:text-[#3d6b4a]'
             } disabled:opacity-60 disabled:cursor-not-allowed`}
             aria-pressed={isActive}
           >
