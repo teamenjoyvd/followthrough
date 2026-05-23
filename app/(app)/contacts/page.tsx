@@ -1,10 +1,8 @@
 import { auth } from '@clerk/nextjs/server'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
-import { Plus } from 'lucide-react'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
-import ContactsDesktop from './components/ContactsDesktop'
-import ContactsMobile from './components/ContactsMobile'
+import ContactsClient from './components/ContactsClient'
 import { PIPELINE_STATUSES } from './components/constants'
 import { ContactFilterBar } from '@/components/ContactFilterBar'
 import { FilterShortcuts } from '@/components/FilterShortcuts'
@@ -46,6 +44,7 @@ interface SearchParams {
   has_email?: string
   has_phone?: string
   source?: string
+  labels?: string // comma-separated active label IDs
   page?: string
 }
 
@@ -53,7 +52,7 @@ export const dynamic = 'force-dynamic'
 
 export const metadata = {
   title: 'Contacts — Followthrough',
-  description: 'Manage your contacts and track pipeline status.',
+  description: 'Manage your corporate contacts, bulk edit, and assign relationship labels.',
 }
 
 const PAGE_SIZE = 50
@@ -83,6 +82,9 @@ export default async function ContactsPage({
   const hasPhoneFilter = params.has_phone ?? ''
   const sourceFilter = params.source ?? ''
   
+  // Relational Labels Filters
+  const labelsFilter = params.labels ? params.labels.split(',').filter(Boolean) : []
+  
   const sortKey: SortKey = VALID_SORT_KEYS.includes(params.sort as SortKey)
     ? (params.sort as SortKey)
     : 'first_name'
@@ -98,10 +100,19 @@ export default async function ContactsPage({
 
   if (!profile) redirect('/sign-in')
 
-  // Fetch all contacts under the profile along with their phone numbers to perform fully-featured, ultra-fast CRM searches & filters
+  // 1. Fetch available custom labels for the user profile
+  const { data: rawLabels } = await supabase
+    .from('labels')
+    .select('*')
+    .eq('profile_id', profile.id)
+    .order('name', { ascending: true })
+
+  const userLabels = (rawLabels as any[]) || []
+
+  // 2. Fetch all contacts along with their phone numbers AND relational many-to-many labels
   const { data: rawData, error } = await supabase
     .from('contacts')
-    .select('*, phone_numbers(number)')
+    .select('*, phone_numbers(number), contact_labels(label_id)')
     .eq('profile_id', profile.id)
     .limit(5000)
 
@@ -137,9 +148,11 @@ export default async function ContactsPage({
   // Synced Source Filter
   if (sourceFilter) {
     if (sourceFilter === 'google') {
-      filteredContacts = filteredContacts.filter(c => !!c.google_contact_id)
+      filteredContacts = filteredContacts.filter(c => c.created_by_source === 'google_sync')
+    } else if (sourceFilter === 'csv') {
+      filteredContacts = filteredContacts.filter(c => c.created_by_source === 'csv_import')
     } else if (sourceFilter === 'manual') {
-      filteredContacts = filteredContacts.filter(c => !c.google_contact_id)
+      filteredContacts = filteredContacts.filter(c => c.created_by_source === 'manual')
     }
   }
 
@@ -159,6 +172,14 @@ export default async function ContactsPage({
     } else if (hasPhoneFilter === 'no') {
       filteredContacts = filteredContacts.filter(c => !c.phone_numbers || c.phone_numbers.length === 0)
     }
+  }
+
+  // Relational Many-to-Many Labels Filter
+  if (labelsFilter.length > 0) {
+    // Show contacts that match ANY of the selected labels
+    filteredContacts = filteredContacts.filter(c =>
+      c.contact_labels?.some((cl: any) => labelsFilter.includes(cl.label_id))
+    )
   }
 
   // Field Specific Filters
@@ -251,19 +272,6 @@ export default async function ContactsPage({
 
   return (
     <div className="flex flex-col h-full bg-[#faf6f0]">
-      {/* Header */}
-      <div className="flex items-center justify-between px-4 md:px-6 py-4 border-b border-[#e4e0d8] bg-[#faf6f0] shrink-0">
-        <h1 className="font-headline text-2xl font-bold text-[#2e3230]">Contacts</h1>
-        <Link
-          href="/contacts/new"
-          id="new-contact-btn"
-          className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-[#4a7c59] text-white text-sm font-semibold hover:bg-[#3d6b4a] transition-all duration-200 hover:scale-[1.02] shadow-sm"
-        >
-          <Plus className="h-4 w-4" />
-          <span className="hidden sm:inline">New contact</span>
-        </Link>
-      </div>
-
       {/* Search + Filters */}
       <div className="px-4 md:px-6 py-4 bg-[#faf6f0] border-b border-[#e4e0d8] space-y-4 shrink-0">
         <SearchInput
@@ -290,19 +298,17 @@ export default async function ContactsPage({
         <FilterShortcuts />
       </div>
 
-      {/* Contact list */}
-      <div className="flex-1 overflow-y-auto bg-[#faf6f0]">
-        <ContactsDesktop
-          contacts={paginatedContacts}
-          sortKey={sortKey}
-          sortDir={sortDir}
-          currentQuery={query}
-          currentStatus={statusFilter}
-          currentLastContacted={lastContactedFilter}
-          currentCompany={companyFilter}
-        />
-        <ContactsMobile contacts={paginatedContacts} />
-      </div>
+      {/* Contacts List Client Component Orchestrator */}
+      <ContactsClient
+        contacts={paginatedContacts}
+        labels={userLabels}
+        sortKey={sortKey}
+        sortDir={sortDir}
+        currentQuery={query}
+        currentStatus={statusFilter}
+        currentLastContacted={lastContactedFilter}
+        currentCompany={companyFilter}
+      />
 
       {/* Pagination Bar */}
       {totalPages > 1 && (
@@ -354,7 +360,8 @@ export default async function ContactsPage({
           {phoneFilter ? ` · phone "${phoneFilter}"` : ''}
           {hasEmailFilter ? ` · email: ${hasEmailFilter === 'yes' ? 'has email' : 'no email'}` : ''}
           {hasPhoneFilter ? ` · phone: ${hasPhoneFilter === 'yes' ? 'has phone' : 'no phone'}` : ''}
-          {sourceFilter ? ` · source: ${sourceFilter === 'google' ? 'Google sync' : 'manual'}` : ''}
+          {sourceFilter ? ` · source: ${sourceFilter === 'google' ? 'Google sync' : sourceFilter === 'csv' ? 'CSV Import' : 'manual'}` : ''}
+          {labelsFilter.length > 0 ? ` · matching labels: ${labelsFilter.length} active` : ''}
           {query ? ` · matching "${query}"` : ''}
         </p>
       </div>

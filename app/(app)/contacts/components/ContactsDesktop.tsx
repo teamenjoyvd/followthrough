@@ -2,12 +2,25 @@ import Link from 'next/link'
 import { ChevronUp, ChevronDown, ChevronsUpDown } from 'lucide-react'
 import { PIPELINE_STATUSES } from './constants'
 import type { Database } from '@/types/supabase'
+import { getLabelColorClass, type Label } from '@/components/LabelManager'
 
 type SortKey = 'first_name' | 'company' | 'pipeline_status' | 'last_contacted_at'
 type SortDir = 'asc' | 'desc'
 
+type ContactRow = Database['public']['Tables']['contacts']['Row'] & {
+  phone_numbers?: { number: string }[]
+  contact_labels?: { label_id: string }[]
+  created_by_source?: string
+  last_updated_by_source?: string
+  source_detail?: string | null
+}
+
 interface Props {
-  contacts: (Database['public']['Tables']['contacts']['Row'] & { phone_numbers?: { number: string }[] })[]
+  contacts: ContactRow[]
+  selectedIds: string[]
+  onToggleSelect: (id: string) => void
+  onSelectAll: () => void
+  labels: Label[]
   sortKey: SortKey
   sortDir: SortDir
   currentQuery: string
@@ -26,15 +39,29 @@ function SortIcon({ column, sortKey, sortDir }: { column: SortKey; sortKey: Sort
 function statusBadge(status: Database['public']['Enums']['pipeline_status']) {
   const found = PIPELINE_STATUSES.find((s: { value: string }) => s.value === status)
   return found
-    ? <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border ${found.color}`}>{found.label}</span>
+    ? <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold border ${found.color}`}>{found.label}</span>
     : null
 }
 
-function sourceBadge(googleContactId: string | null) {
-  if (googleContactId) {
+function sourceBadge(source: string, detail: string | null) {
+  if (source === 'google_sync') {
     return (
-      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold border bg-[#eaf4ec] text-[#335c3d] border-[#cce3d2]">
+      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold border bg-[#eaf4ec] text-[#335c3d] border-[#cce3d2]" title="Synced from Google Contacts">
         Google Sync
+      </span>
+    )
+  }
+  if (source === 'csv_import') {
+    return (
+      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold border bg-[#f0f4fb] text-[#3e649e] border-[#d8e3f2]" title={detail ? `Imported from CSV file: ${detail}` : 'Imported via CSV file'}>
+        CSV Import
+      </span>
+    )
+  }
+  if (source === 'api') {
+    return (
+      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold border bg-[#fbf0f0] text-[#a14b49] border-[#f2d8d7]" title="Added via External Developer API">
+        API Link
       </span>
     )
   }
@@ -59,6 +86,10 @@ const COLUMNS: { key: SortKey; label: string }[] = [
 
 export default function ContactsDesktop({
   contacts,
+  selectedIds,
+  onToggleSelect,
+  onSelectAll,
+  labels,
   sortKey,
   sortDir,
   currentQuery,
@@ -78,10 +109,23 @@ export default function ContactsDesktop({
     return `/contacts?${params.toString()}`
   }
 
+  const allSelected = contacts.length > 0 && selectedIds.length === contacts.length
+
   return (
     <div role="table" aria-label="Contacts list" className="hidden md:block px-6 py-4 space-y-2">
       {/* Column headers */}
-      <div role="row" className="grid grid-cols-[2fr_2fr_1.5fr_1.5fr_80px] gap-4 px-4 mb-1">
+      <div role="row" className="grid grid-cols-[40px_2fr_2fr_1.5fr_1.5fr_80px] gap-4 px-4 mb-1 items-center">
+        {/* Bulk select checkbox */}
+        <div className="flex items-center justify-center">
+          <input
+            type="checkbox"
+            checked={allSelected}
+            onChange={onSelectAll}
+            className="h-4 w-4 rounded-md border-[#e4e0d8] text-[#4a7c59] focus:ring-[#4a7c59] bg-[#f5f1ea] transition-all cursor-pointer"
+            aria-label="Select all contacts on current page"
+          />
+        </div>
+
         {COLUMNS.map(({ key, label }) => (
           <Link
             key={key}
@@ -107,37 +151,77 @@ export default function ContactsDesktop({
       ) : (
         contacts.map((c) => {
           const primaryPhone = c.phone_numbers?.[0]?.number
+          const isRowChecked = selectedIds.includes(c.id)
+          
           return (
             <div
               key={c.id}
               role="row"
-              className="grid grid-cols-[2fr_2fr_1.5fr_1.5fr_80px] gap-4 items-center px-4 py-3.5 rounded-[20px] bg-[#f5f1ea] hover:bg-[#eae6de] transition-all hover:scale-[1.005] duration-200 shadow-[0_4px_20px_rgba(46,50,48,0.04)] group"
+              className={`grid grid-cols-[40px_2fr_2fr_1.5fr_1.5fr_80px] gap-4 items-center px-4 py-3.5 rounded-[20px] transition-all duration-200 shadow-[0_4px_20px_rgba(46,50,48,0.04)] group ${
+                isRowChecked
+                  ? 'bg-[#eae6de] border-2 border-[#4a7c59]/40 scale-[1.002]'
+                  : 'bg-[#f5f1ea] hover:bg-[#eae6de] hover:scale-[1.005]'
+              }`}
             >
-              <div role="cell" className="space-y-0.5">
-                <div className="flex items-center gap-2">
+              {/* Row Select Checkbox */}
+              <div className="flex items-center justify-center">
+                <input
+                  type="checkbox"
+                  checked={isRowChecked}
+                  onChange={() => onToggleSelect(c.id)}
+                  className="h-4 w-4 rounded-md border-[#e4e0d8] text-[#4a7c59] focus:ring-[#4a7c59] bg-[#f5f1ea] transition-all cursor-pointer"
+                  aria-label={`Select contact ${c.first_name} ${c.last_name || ''}`}
+                />
+              </div>
+
+              <div role="cell" className="space-y-1">
+                <div className="flex flex-wrap items-center gap-1.5">
                   <Link
                     href={`/contacts/${c.id}`}
                     className="text-sm font-semibold text-[#2e3230] hover:text-[#4a7c59] transition-colors font-body"
                   >
                     {c.first_name} {c.last_name}
                   </Link>
-                  {sourceBadge(c.google_contact_id)}
+                  {sourceBadge(c.created_by_source || 'manual', c.source_detail ?? null)}
                 </div>
-                <div className="flex flex-col text-xs text-[#74796e] font-body space-y-0.5">
-                  {c.email && <span>{c.email}</span>}
+
+                {/* Display assigned many-to-many labels */}
+                {c.contact_labels && c.contact_labels.length > 0 && (
+                  <div className="flex flex-wrap gap-1 mt-1">
+                    {c.contact_labels.map((cl: any) => {
+                      const matched = labels.find((l) => l.id === cl.label_id)
+                      if (!matched) return null
+                      return (
+                        <span
+                          key={matched.id}
+                          className={`inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold border leading-none ${getLabelColorClass(matched.color)}`}
+                        >
+                          {matched.name}
+                        </span>
+                      )
+                    })}
+                  </div>
+                )}
+
+                <div className="flex flex-col text-xs text-[#74796e] font-body space-y-0.5 pt-0.5">
+                  {c.email && <span className="truncate">{c.email}</span>}
                   {primaryPhone && <span className="text-[#595e55] font-medium">{primaryPhone}</span>}
                 </div>
               </div>
+              
               <div role="cell" className="text-sm text-[#4a4e4a] font-body">
                 {c.company || <span className="text-[#74796e]">—</span>}
                 {c.job_title && <div className="text-xs text-[#74796e] mt-0.5 font-body">{c.job_title}</div>}
               </div>
+              
               <div role="cell">
                 {statusBadge(c.pipeline_status)}
               </div>
+              
               <div role="cell" className="text-sm text-[#4a4e4a] font-body">
                 {formatDate(c.last_contacted_at)}
               </div>
+              
               <div role="cell" className="text-right">
                 <Link
                   href={`/contacts/${c.id}/edit`}
