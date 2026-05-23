@@ -13,6 +13,7 @@ export interface GooglePerson {
   names?: Array<{ givenName?: string; familyName?: string; displayName?: string }>
   emailAddresses?: Array<{ value?: string }>
   organizations?: Array<{ name?: string; title?: string }>
+  phoneNumbers?: Array<{ value?: string; type?: string }>
 }
 
 /** Map a Google People API person to our contact shape */
@@ -24,6 +25,14 @@ export function mapPersonToContact(
   const email = person.emailAddresses?.[0]?.value ?? null
   const org = person.organizations?.[0]
 
+  const rawPhones = person.phoneNumbers ?? []
+  const formattedPhones = rawPhones
+    .map(p => ({
+      number: p.value ?? '',
+      type: (p.type === 'home' || p.type === 'work' || p.type === 'mobile') ? p.type : 'mobile'
+    }))
+    .filter(p => !!p.number)
+
   return {
     profile_id: profileId,
     first_name: name?.givenName ?? name?.displayName ?? 'Unknown',
@@ -32,6 +41,7 @@ export function mapPersonToContact(
     company: org?.name ?? null,
     job_title: org?.title ?? null,
     google_contact_id: person.resourceName,
+    phone_numbers: formattedPhones,
   }
 }
 
@@ -119,6 +129,7 @@ export async function syncPeople(
   const conflictsToInsert: any[] = []
   const inboxItemsToInsert: any[] = []
   const updatesToRun: Promise<any>[] = []
+  const existingPhonesMap = new Map<string, any[]>()
 
   // 3. Process each incoming contact
   for (const { person, mapped } of mappedPeople) {
@@ -169,6 +180,11 @@ export async function syncPeople(
               .eq('profile_id', profileId)
           )
         }
+
+        // Collect phone numbers for existing contact if they have incoming phone numbers
+        if (mapped.phone_numbers && mapped.phone_numbers.length > 0) {
+          existingPhonesMap.set(existing.id, mapped.phone_numbers)
+        }
       }
     } else {
       // New contact from Google — collect for batch insert
@@ -179,11 +195,88 @@ export async function syncPeople(
   }
 
   // 4. Perform database writes in batch
+
+  // Bulk update existing contacts' phone numbers (Address GCR N+1 query issue)
+  if (existingPhonesMap.size > 0) {
+    const existingContactIds = Array.from(existingPhonesMap.keys())
+    
+    // 1 bulk select instead of N selects!
+    const { data: phoneRecords, error: phoneFetchError } = await (supabase as any)
+      .from('phone_numbers')
+      .select('contact_id')
+      .in('contact_id', existingContactIds)
+      
+    if (phoneFetchError) throw phoneFetchError
+
+    const contactsWithPhones = new Set<string>()
+    if (phoneRecords) {
+      phoneRecords.forEach((r: any) => contactsWithPhones.add(r.contact_id))
+    }
+
+    const phoneBulkInserts: any[] = []
+    existingPhonesMap.forEach((phones, contactId) => {
+      if (!contactsWithPhones.has(contactId)) {
+        phones.forEach((p, idx) => {
+          phoneBulkInserts.push({
+            contact_id: contactId,
+            profile_id: profileId,
+            number: p.number,
+            type: p.type,
+            is_primary: idx === 0
+          })
+        })
+      }
+    })
+
+    if (phoneBulkInserts.length > 0) {
+      // 1 bulk insert instead of N inserts!
+      const { error: phoneInsertError } = await (supabase as any)
+        .from('phone_numbers')
+        .insert(phoneBulkInserts)
+      if (phoneInsertError) throw phoneInsertError
+    }
+  }
+
   if (newContactsToInsert.length > 0) {
-    const { error } = await (supabase as any)
+    // Strip temporary phone_numbers fields from the contacts insert payload
+    const contactsPayload = newContactsToInsert.map(({ phone_numbers, ...rest }) => rest)
+    const { data: insertedContacts, error } = await (supabase as any)
       .from('contacts')
-      .insert(newContactsToInsert)
+      .insert(contactsPayload)
+      .select('id, google_contact_id')
+    
     if (error) throw error
+
+    // Insert phone records for the newly created contacts
+    if (insertedContacts && insertedContacts.length > 0) {
+      const phoneInserts: any[] = []
+      const idMap = new Map<string, string>()
+      insertedContacts.forEach((c: any) => {
+        if (c.google_contact_id) idMap.set(c.google_contact_id, c.id)
+      })
+
+      newContactsToInsert.forEach((c: any) => {
+        const contactId = idMap.get(c.google_contact_id)
+        if (contactId && c.phone_numbers && c.phone_numbers.length > 0) {
+          c.phone_numbers.forEach((p: any, idx: number) => {
+            phoneInserts.push({
+              contact_id: contactId,
+              profile_id: profileId,
+              number: p.number,
+              type: p.type,
+              is_primary: idx === 0
+            })
+          })
+        }
+      })
+
+      if (phoneInserts.length > 0) {
+        const { error: phoneError } = await (supabase as any)
+          .from('phone_numbers')
+          .insert(phoneInserts)
+        if (phoneError) throw phoneError
+      }
+    }
   }
 
   if (conflictsToInsert.length > 0) {

@@ -56,7 +56,7 @@ export async function POST() {
   // Fetch contacts from Google People API
   const buildUrl = (syncToken: string | null, pageToken?: string) => {
     const params = new URLSearchParams({
-      personFields: 'names,emailAddresses,organizations',
+      personFields: 'names,emailAddresses,organizations,phoneNumbers',
       pageSize: '1000',
     })
     if (syncToken) params.set('syncToken', syncToken)

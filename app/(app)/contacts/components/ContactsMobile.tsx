@@ -61,10 +61,16 @@ export default function ContactsMobile({ contacts }: Props) {
                 </span>
               </div>
               <div className="text-xs text-[#74796e] truncate mt-0.5">
-                {[c.company, c.job_title].filter(Boolean).join(' · ') || c.email || ''}
+                {[c.company, c.job_title].filter(Boolean).join(' · ') || ''}
+              </div>
+              <div className="flex flex-col text-[11px] text-[#74796e] mt-0.5 space-y-0.5">
+                {c.email && <span className="truncate">{c.email}</span>}
+                {c.phone_numbers?.[0]?.number && (
+                  <span className="text-[#4a7c59] font-medium truncate">{c.phone_numbers[0].number}</span>
+                )}
               </div>
               {c.last_contacted_at && (
-                <div className="text-[10px] text-[#74796e] mt-0.5">
+                <div className="text-[10px] text-[#74796e] mt-1">
                   Last contacted {formatDate(c.last_contacted_at)}
                 </div>
               )}
