@@ -43,6 +43,7 @@ export async function createContact(formData: FormData): Promise<{ success: true
   const firstName = formData.get('first_name') as string
   const lastName = (formData.get('last_name') as string) || null
   const email = (formData.get('email') as string) || null
+  const phone = (formData.get('phone') as string) || null
   const company = (formData.get('company') as string) || null
   const jobTitle = (formData.get('job_title') as string) || null
 
@@ -68,8 +69,26 @@ export async function createContact(formData: FormData): Promise<{ success: true
       return { error: error.message || 'Failed to create contact' }
     }
 
+    const contactId = (data as { id: string }).id
+
+    // Insert phone record if provided
+    if (phone?.trim()) {
+      const { error: phoneError } = await (supabase as any)
+        .from('phone_numbers')
+        .insert({
+          contact_id: contactId,
+          profile_id: profileId,
+          number: phone.trim(),
+          type: 'mobile',
+          is_primary: true
+        })
+      if (phoneError) {
+        return { error: phoneError.message || 'Failed to add phone number' }
+      }
+    }
+
     revalidatePath('/contacts')
-    return { success: true, id: (data as { id: string }).id }
+    return { success: true, id: contactId }
   } catch (err: any) {
     return { error: err.message || 'An unexpected error occurred' }
   }
@@ -88,6 +107,8 @@ export async function updateContact(contactId: string, formData: FormData): Prom
   if (!profileId) return { error: 'Profile not found' }
 
   const firstName = formData.get('first_name') as string
+  const phone = (formData.get('phone') as string) || null
+
   if (!firstName?.trim()) {
     return { error: 'First name is required' }
   }
@@ -107,6 +128,39 @@ export async function updateContact(contactId: string, formData: FormData): Prom
 
     if (error) {
       return { error: error.message || 'Failed to update contact' }
+    }
+
+    // Dynamic phone numbers updating logic
+    const { data: existingPrimary } = await (supabase as any)
+      .from('phone_numbers')
+      .select('id')
+      .eq('contact_id', contactId)
+      .eq('profile_id', profileId)
+      .eq('is_primary', true)
+      .maybeSingle()
+
+    if (phone?.trim()) {
+      if (existingPrimary) {
+        await (supabase as any)
+          .from('phone_numbers')
+          .update({ number: phone.trim() })
+          .eq('id', existingPrimary.id)
+      } else {
+        await (supabase as any)
+          .from('phone_numbers')
+          .insert({
+            contact_id: contactId,
+            profile_id: profileId,
+            number: phone.trim(),
+            type: 'mobile',
+            is_primary: true
+          })
+      }
+    } else if (existingPrimary) {
+      await (supabase as any)
+        .from('phone_numbers')
+        .delete()
+        .eq('id', existingPrimary.id)
     }
 
     revalidatePath('/contacts')

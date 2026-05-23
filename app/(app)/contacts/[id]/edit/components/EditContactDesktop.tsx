@@ -4,18 +4,18 @@ import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { updateContact } from '@/lib/actions/contacts'
-import type { Database } from '@/types/supabase'
-
-type ContactRow = Database['public']['Tables']['contacts']['Row']
+import type { ContactDetail } from '@/lib/contacts-data'
 
 interface Props {
-  contact: ContactRow
+  contact: ContactDetail
 }
 
 export default function EditContactDesktop({ contact }: Props) {
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
   const [error, setError] = useState<string | null>(null)
+
+  const primaryPhone = contact.phoneNumbers.find(p => p.is_primary)?.number ?? contact.phoneNumbers[0]?.number ?? ''
 
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
@@ -77,6 +77,20 @@ export default function EditContactDesktop({ contact }: Props) {
                   className="w-full px-3 py-2 text-sm border border-[#e4e0d8] rounded-xl bg-[#f5f1ea] text-[#2e3230] focus:outline-none focus:ring-2 focus:ring-[#4a7c59] focus:border-transparent disabled:opacity-60"
                 />
               </div>
+            </div>
+
+            <div>
+              <label htmlFor="ec-desktop-phone" className="block text-sm font-medium text-[#2e3230] mb-1">Phone number</label>
+              <input
+                id="ec-desktop-phone"
+                name="phone"
+                type="tel"
+                disabled={isPending}
+                autoComplete="tel"
+                defaultValue={primaryPhone}
+                className="w-full px-3 py-2 text-sm border border-[#e4e0d8] rounded-xl bg-[#f5f1ea] text-[#2e3230] focus:outline-none focus:ring-2 focus:ring-[#4a7c59] focus:border-transparent disabled:opacity-60"
+                placeholder="+1 (555) 019-2834"
+              />
             </div>
 
             <div>

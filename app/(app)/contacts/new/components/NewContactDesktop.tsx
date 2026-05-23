@@ -75,6 +75,19 @@ export default function NewContactDesktop() {
             </div>
 
             <div>
+              <label htmlFor="nc-desktop-phone" className="block text-sm font-medium text-[#2e3230] mb-1">Phone number</label>
+              <input
+                id="nc-desktop-phone"
+                name="phone"
+                type="tel"
+                disabled={isPending}
+                autoComplete="tel"
+                className="w-full px-3 py-2 text-sm border border-[#e4e0d8] rounded-xl bg-[#f5f1ea] text-[#2e3230] placeholder-[#74796e] focus:outline-none focus:ring-2 focus:ring-[#4a7c59] focus:border-transparent disabled:opacity-60"
+                placeholder="+1 (555) 019-2834"
+              />
+            </div>
+
+            <div>
               <label htmlFor="nc-desktop-email" className="block text-sm font-medium text-[#2e3230] mb-1">Email</label>
               <input
                 id="nc-desktop-email"
