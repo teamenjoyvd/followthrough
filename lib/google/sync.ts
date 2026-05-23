@@ -130,7 +130,7 @@ export async function syncPeople(
   const newContactsToInsert: any[] = []
   const conflictsToInsert: any[] = []
   const inboxItemsToInsert: any[] = []
-  const updatesToRun: Promise<any>[] = []
+  const groupedUpdates = new Map<string, any[]>()
   const existingPhonesMap = new Map<string, any[]>()
 
   // 3. Process each incoming contact
@@ -174,14 +174,15 @@ export async function syncPeople(
 
         // Only run update if there is actually a field to update
         if (Object.keys(update).length > 0) {
+          update.id = existing.id
+          update.profile_id = profileId
           update.last_updated_by_source = 'google_sync'
-          updatesToRun.push(
-            (supabase as any)
-              .from('contacts')
-              .update(update)
-              .eq('id', existing.id)
-              .eq('profile_id', profileId)
-          )
+          
+          const payloadKeys = Object.keys(update).filter(k => k !== 'id' && k !== 'profile_id').sort().join(',')
+          if (!groupedUpdates.has(payloadKeys)) {
+            groupedUpdates.set(payloadKeys, [])
+          }
+          groupedUpdates.get(payloadKeys)!.push(update)
         }
 
         // Collect phone numbers for existing contact if they have incoming phone numbers
@@ -296,8 +297,14 @@ export async function syncPeople(
     if (error) throw error
   }
 
-  if (updatesToRun.length > 0) {
-    await Promise.all(updatesToRun)
+  // Execute grouped bulk updates using Supabase upsert to guarantee O(1) database queries
+  if (groupedUpdates.size > 0) {
+    for (const [_, updatesList] of groupedUpdates.entries()) {
+      const { error } = await (supabase as any)
+        .from('contacts')
+        .upsert(updatesList)
+      if (error) throw error
+    }
   }
 
   // 5. Update sync state — conditionally set sync_token only if non-null

@@ -13,7 +13,7 @@ export type ContactDetail = ContactRow & {
 
 export const getContactForUser = cache(async (id: string, clerkId: string): Promise<ContactDetail | null> => {
   const supabase = await createSupabaseServerClient()
-  const { data: profile } = await (supabase as any)
+  const { data: profile } = await supabase
     .from('profiles')
     .select('id')
     .eq('clerk_id', clerkId)
@@ -21,33 +21,36 @@ export const getContactForUser = cache(async (id: string, clerkId: string): Prom
 
   if (!profile) return null
 
-  const { data: contact } = await (supabase as any)
+  const { data: contact } = await supabase
     .from('contacts')
-    .select('*')
+    .select('*, phone_numbers(*), social_links(*)')
     .eq('id', id)
     .eq('profile_id', profile.id)
-    .maybeSingle() as { data: ContactRow | null }
+    .maybeSingle() as {
+      data: (ContactRow & {
+        phone_numbers: PhoneNumberRow[]
+        social_links: SocialLinkRow[]
+      }) | null
+    }
 
   if (!contact) return null
 
-  const { data: phoneNumbers } = await (supabase as any)
-    .from('phone_numbers')
-    .select('*')
-    .eq('contact_id', id)
-    .eq('profile_id', profile.id)
-    .order('is_primary', { ascending: false })
-    .order('created_at', { ascending: true }) as { data: PhoneNumberRow[] | null }
+  // Sort phone numbers: primary first, then by creation date ascending
+  const phoneNumbers = [...(contact.phone_numbers || [])].sort((a, b) => {
+    if (a.is_primary !== b.is_primary) {
+      return a.is_primary ? -1 : 1
+    }
+    return new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+  })
 
-  const { data: socialLinks } = await (supabase as any)
-    .from('social_links')
-    .select('*')
-    .eq('contact_id', id)
-    .eq('profile_id', profile.id)
-    .order('created_at', { ascending: true }) as { data: SocialLinkRow[] | null }
+  // Sort social links: by creation date ascending
+  const socialLinks = [...(contact.social_links || [])].sort((a, b) => {
+    return new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+  })
 
   return {
     ...contact,
-    phoneNumbers: phoneNumbers ?? [],
-    socialLinks: socialLinks ?? [],
+    phoneNumbers,
+    socialLinks,
   }
 })
