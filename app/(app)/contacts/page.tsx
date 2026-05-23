@@ -239,24 +239,11 @@ export default async function ContactsPage({
 
   function buildPaginationHref(newPage: number) {
     const searchParamsObj = new URLSearchParams()
-    const merged = {
-      q: query,
-      status: statusFilter,
-      last_contacted: lastContactedFilter,
-      company: companyFilter,
-      first_name: firstNameFilter,
-      last_name: lastNameFilter,
-      phone: phoneFilter,
-      email: emailFilter,
-      has_email: hasEmailFilter,
-      has_phone: hasPhoneFilter,
-      source: sourceFilter,
-      sort: sortKey,
-      dir: sortDir,
-      page: newPage.toString(),
-    }
+    // Spread existing params and update the page index dynamically
+    const merged = { ...params, page: newPage > 1 ? newPage.toString() : '' }
+
     Object.entries(merged).forEach(([k, v]) => {
-      if (v !== undefined && v !== null && v !== '') searchParamsObj.set(k, v)
+      if (v !== undefined && v !== null && v !== '') searchParamsObj.set(k, v as string)
     })
     const qs = searchParamsObj.toString()
     return qs ? `/contacts?${qs}` : '/contacts'
