@@ -2,13 +2,21 @@ import Link from 'next/link'
 import { ChevronUp, ChevronDown, ChevronsUpDown } from 'lucide-react'
 import { PIPELINE_STATUSES } from './constants'
 import type { Database } from '@/types/supabase'
-import type { Label } from '@/components/LabelManager'
+import { getLabelColorClass, type Label } from '@/components/LabelManager'
 
 type SortKey = 'first_name' | 'company' | 'pipeline_status' | 'last_contacted_at'
 type SortDir = 'asc' | 'desc'
 
+type ContactRow = Database['public']['Tables']['contacts']['Row'] & {
+  phone_numbers?: { number: string }[]
+  contact_labels?: { label_id: string }[]
+  created_by_source?: string
+  last_updated_by_source?: string
+  source_detail?: string | null
+}
+
 interface Props {
-  contacts: any[]
+  contacts: ContactRow[]
   selectedIds: string[]
   onToggleSelect: (id: string) => void
   onSelectAll: () => void
@@ -174,7 +182,7 @@ export default function ContactsDesktop({
                   >
                     {c.first_name} {c.last_name}
                   </Link>
-                  {sourceBadge(c.created_by_source, c.source_detail)}
+                  {sourceBadge(c.created_by_source || 'manual', c.source_detail ?? null)}
                 </div>
 
                 {/* Display assigned many-to-many labels */}
@@ -186,7 +194,7 @@ export default function ContactsDesktop({
                       return (
                         <span
                           key={matched.id}
-                          className={`inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold border leading-none ${matched.color}`}
+                          className={`inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold border leading-none ${getLabelColorClass(matched.color)}`}
                         >
                           {matched.name}
                         </span>

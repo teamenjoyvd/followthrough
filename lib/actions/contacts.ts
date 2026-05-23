@@ -291,43 +291,51 @@ export async function importContactsFromCSV(
       import_log_id: logId
     }))
 
-    // 3. Insert contacts in batches to prevent hitting query parameter limits
+    // 3. Insert contacts & phone numbers in batches to prevent hitting query parameter limits
     const batchSize = 100
-    const insertedContactDetails: any[] = []
+    const phoneInserts: any[] = []
+    let totalImported = 0
 
-    for (let i = 0; i < contactsPayload.length; i += batchSize) {
-      const batch = contactsPayload.slice(i, i + batchSize)
+    for (let i = 0; i < rows.length; i += batchSize) {
+      const batchRows = rows.slice(i, i + batchSize)
+      const batchPayload = batchRows.map(r => ({
+        profile_id: profileId,
+        first_name: r.first_name?.trim() || 'Unknown',
+        last_name: r.last_name?.trim() || null,
+        email: r.email?.trim() || null,
+        company: r.company?.trim() || null,
+        job_title: r.job_title?.trim() || null,
+        created_by_source: 'csv_import',
+        last_updated_by_source: 'csv_import',
+        source_detail: filename,
+        import_log_id: logId
+      }))
+
       const { data: inserted, error: insertError } = await (supabase as any)
         .from('contacts')
-        .insert(batch)
-        .select('id, first_name, last_name, email')
+        .insert(batchPayload)
+        .select('id')
 
       if (insertError) throw insertError
-      if (inserted) insertedContactDetails.push(...inserted)
+      
+      if (inserted) {
+        totalImported += inserted.length
+        inserted.forEach((contact: { id: string }, index: number) => {
+          const originalRow = batchRows[index]
+          if (originalRow.phone?.trim()) {
+            phoneInserts.push({
+              contact_id: contact.id,
+              profile_id: profileId,
+              number: originalRow.phone.trim(),
+              type: 'mobile',
+              is_primary: true
+            })
+          }
+        })
+      }
     }
 
-    // 4. Insert phone records in bulk for the newly created contacts
-    const phoneInserts: any[] = []
-    
-    rows.forEach(row => {
-      if (row.phone?.trim()) {
-        const matched = insertedContactDetails.find(
-          c => c.first_name === (row.first_name?.trim() || 'Unknown') &&
-               c.last_name === (row.last_name?.trim() || null) &&
-               c.email === (row.email?.trim() || null)
-        )
-        if (matched) {
-          phoneInserts.push({
-            contact_id: matched.id,
-            profile_id: profileId,
-            number: row.phone.trim(),
-            type: 'mobile',
-            is_primary: true
-          })
-        }
-      }
-    })
-
+    // 4. Insert phone records in bulk for the imported contacts
     if (phoneInserts.length > 0) {
       const { error: phoneError } = await (supabase as any)
         .from('phone_numbers')
@@ -336,7 +344,7 @@ export async function importContactsFromCSV(
     }
 
     revalidatePath('/contacts')
-    return { success: true, imported: insertedContactDetails.length, logId }
+    return { success: true, imported: totalImported, logId }
   } catch (err: any) {
     return { error: err.message || 'CSV Import failed' }
   }

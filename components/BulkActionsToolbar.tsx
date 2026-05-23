@@ -4,7 +4,7 @@ import { useState, useTransition } from 'react'
 import { Trash2, Tag, Calendar, ChevronRight, X, ArrowRightLeft, Loader2, Check } from 'lucide-react'
 import { bulkUpdateContacts, bulkDeleteContacts, bulkManageContactLabels } from '@/lib/actions/contacts'
 import { PIPELINE_STATUSES } from '@/app/(app)/contacts/components/constants'
-import type { Label } from '@/components/LabelManager'
+import { getLabelColorClass, type Label } from '@/components/LabelManager'
 
 interface BulkActionsToolbarProps {
   selectedIds: string[]
@@ -161,7 +161,7 @@ export default function BulkActionsToolbar({
                 <div className="max-h-[160px] overflow-y-auto space-y-1 pr-1">
                   {labels.map((lbl) => (
                     <div key={lbl.id} className="flex items-center justify-between gap-1 p-1 hover:bg-[#4a4e4a] rounded-lg transition-colors">
-                      <span className={`inline-flex px-1.5 py-0.5 rounded text-[9px] font-bold border ${lbl.color}`}>
+                      <span className={`inline-flex px-1.5 py-0.5 rounded text-[9px] font-bold border ${getLabelColorClass(lbl.color)}`}>
                         {lbl.name}
                       </span>
                       <div className="flex gap-1">

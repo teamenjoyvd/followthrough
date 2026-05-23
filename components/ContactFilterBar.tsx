@@ -5,7 +5,7 @@ import { useCallback, useState, useEffect, useTransition } from 'react'
 import Link from 'next/link'
 import { X, ChevronDown, ChevronUp, Tag } from 'lucide-react'
 import { PIPELINE_STATUSES } from '@/app/(app)/contacts/components/constants'
-import type { Label } from '@/components/LabelManager'
+import { getLabelColorClass, type Label } from '@/components/LabelManager'
 
 const LAST_CONTACTED_OPTIONS = [
   { value: '', label: 'Any time' },
@@ -217,7 +217,7 @@ export function ContactFilterBar({
                 onClick={() => handleToggleLabelFilter(lbl.id)}
                 className={`px-2 py-0.5 rounded text-[10px] font-bold border transition-all ${
                   isActive
-                    ? `${lbl.color} scale-105 shadow-sm ring-1 ring-[#4a7c59]/20`
+                    ? `${getLabelColorClass(lbl.color)} scale-105 shadow-sm ring-1 ring-[#4a7c59]/20`
                     : 'bg-[#f5f1ea] text-[#74796e] border-[#e4e0d8] opacity-65 hover:opacity-100'
                 }`}
               >

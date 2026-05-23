@@ -9,9 +9,18 @@ import CSVImportModal from '@/components/CSVImportModal'
 import LabelManager from '@/components/LabelManager'
 import BulkActionsToolbar from '@/components/BulkActionsToolbar'
 import type { Label } from '@/components/LabelManager'
+import type { Database } from '@/types/supabase'
+
+type ContactRow = Database['public']['Tables']['contacts']['Row'] & {
+  phone_numbers?: { number: string }[]
+  contact_labels?: { label_id: string }[]
+  created_by_source?: string
+  last_updated_by_source?: string
+  source_detail?: string | null
+}
 
 interface ContactsClientProps {
-  contacts: any[]
+  contacts: ContactRow[]
   labels: Label[]
   sortKey: any
   sortDir: any
@@ -104,6 +113,7 @@ export default function ContactsClient({
     document.body.appendChild(link)
     link.click()
     document.body.removeChild(link)
+    URL.revokeObjectURL(url)
   }
 
   return (

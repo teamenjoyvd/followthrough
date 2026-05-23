@@ -2,10 +2,18 @@ import Link from 'next/link'
 import { ChevronRight } from 'lucide-react'
 import { PIPELINE_STATUSES } from './constants'
 import type { Database } from '@/types/supabase'
-import type { Label } from '@/components/LabelManager'
+import { getLabelColorClass, type Label } from '@/components/LabelManager'
+
+type ContactRow = Database['public']['Tables']['contacts']['Row'] & {
+  phone_numbers?: { number: string }[]
+  contact_labels?: { label_id: string }[]
+  created_by_source?: string
+  last_updated_by_source?: string
+  source_detail?: string | null
+}
 
 interface Props {
-  contacts: any[]
+  contacts: ContactRow[]
   selectedIds: string[]
   onToggleSelect: (id: string) => void
   labels: Label[]
@@ -97,7 +105,7 @@ export default function ContactsMobile({ contacts, selectedIds, onToggleSelect, 
                   <span className={`shrink-0 inline-flex items-center px-1.5 py-0.5 rounded-full text-[9px] font-medium border ${statusStyle(c.pipeline_status)}`}>
                     {statusLabel(c.pipeline_status)}
                   </span>
-                  {sourceBadge(c.created_by_source)}
+                  {sourceBadge(c.created_by_source || 'manual')}
                 </div>
 
                 {/* Display assigned many-to-many labels */}
@@ -109,7 +117,7 @@ export default function ContactsMobile({ contacts, selectedIds, onToggleSelect, 
                       return (
                         <span
                           key={matched.id}
-                          className={`inline-flex px-1.5 py-0.5 rounded text-[8px] font-bold border leading-none ${matched.color}`}
+                          className={`inline-flex px-1.5 py-0.5 rounded text-[8px] font-bold border leading-none ${getLabelColorClass(matched.color)}`}
                         >
                           {matched.name}
                         </span>

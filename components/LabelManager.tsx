@@ -23,30 +23,44 @@ interface LabelManagerProps {
   labels: Label[]
 }
 
+// Curated cozy semantic mapping to decouple style frameworks from DB records
+export const TERRA_LABEL_COLOR_MAP: Record<string, string> = {
+  sage: 'bg-[#e6eeea] text-[#335c43] border-[#c2ded0]',
+  ochre: 'bg-[#fbf4ea] text-[#8c6239] border-[#f0dfcc]',
+  rose: 'bg-[#fbf0f0] text-[#a14b49] border-[#f2d8d7]',
+  blue: 'bg-[#f0f4fb] text-[#3e649e] border-[#d8e3f2]',
+  charcoal: 'bg-[#eaebeb] text-[#373b3e] border-[#d1d5db]'
+}
+
+export function getLabelColorClass(color: string): string {
+  // Graceful fallback to guarantee 100% backwards compatibility with any direct hex/class strings
+  return TERRA_LABEL_COLOR_MAP[color] || color
+}
+
 export const TERRA_LABEL_COLORS = [
   {
     name: 'Sage',
-    value: 'bg-[#e6eeea] text-[#335c43] border-[#c2ded0]',
+    value: 'sage',
     preview: '#4a7c59'
   },
   {
     name: 'Ochre',
-    value: 'bg-[#fbf4ea] text-[#8c6239] border-[#f0dfcc]',
+    value: 'ochre',
     preview: '#b8860b'
   },
   {
     name: 'Rose',
-    value: 'bg-[#fbf0f0] text-[#a14b49] border-[#f2d8d7]',
+    value: 'rose',
     preview: '#bc5a58'
   },
   {
     name: 'Blue',
-    value: 'bg-[#f0f4fb] text-[#3e649e] border-[#d8e3f2]',
+    value: 'blue',
     preview: '#3b5998'
   },
   {
     name: 'Charcoal',
-    value: 'bg-[#eaebeb] text-[#373b3e] border-[#d1d5db]',
+    value: 'charcoal',
     preview: '#4b5563'
   }
 ]
@@ -200,7 +214,7 @@ export default function LabelManager({ isOpen, onClose, labels }: LabelManagerPr
                     </div>
                   </div>
                 ) : (
-                  <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold border ${label.color}`}>
+                  <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold border ${getLabelColorClass(label.color)}`}>
                     {label.name}
                   </span>
                 )}
