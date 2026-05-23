@@ -31,6 +31,13 @@ interface SearchParams {
   dir?: string
   last_contacted?: string
   company?: string
+  first_name?: string
+  last_name?: string
+  phone?: string
+  email?: string
+  has_email?: string
+  has_phone?: string
+  source?: string
 }
 
 export const dynamic = 'force-dynamic'
@@ -53,6 +60,18 @@ export default async function ContactsPage({
   const statusFilter = (PIPELINE_STATUSES.some(s => s.value === params.status) ? params.status : '') as PipelineStatus | ''
   const lastContactedFilter = params.last_contacted ?? ''
   const companyFilter = (params.company ?? '').trim()
+  
+  // Specific field filters
+  const firstNameFilter = (params.first_name ?? '').trim()
+  const lastNameFilter = (params.last_name ?? '').trim()
+  const phoneFilter = (params.phone ?? '').trim()
+  const emailFilter = (params.email ?? '').trim()
+  
+  // Composition filters
+  const hasEmailFilter = params.has_email ?? ''
+  const hasPhoneFilter = params.has_phone ?? ''
+  const sourceFilter = params.source ?? ''
+  
   const sortKey: SortKey = VALID_SORT_KEYS.includes(params.sort as SortKey)
     ? (params.sort as SortKey)
     : 'first_name'
@@ -68,38 +87,129 @@ export default async function ContactsPage({
 
   if (!profile) redirect('/sign-in')
 
-  let dbQuery = supabase
+  // Fetch all contacts under the profile along with their phone numbers to perform fully-featured, ultra-fast CRM searches & filters
+  const { data: rawContacts = [], error } = await (supabase as any)
     .from('contacts')
-    .select('*')
+    .select('*, phone_numbers(number)')
     .eq('profile_id', profile.id)
-    .order(sortKey, { ascending: sortDir === 'asc' })
+    .limit(5000)
 
+  if (error) throw error
+
+  // Apply Advanced filters in-memory
+  let filteredContacts = [...(rawContacts || [])]
+
+  // Pipeline Status Filter
   if (statusFilter) {
-    dbQuery = dbQuery.eq('pipeline_status', statusFilter as PipelineStatus)
+    filteredContacts = filteredContacts.filter(c => c.pipeline_status === statusFilter)
   }
 
-  if (query) {
-    const safeQuery = query.replace(/"/g, '""')
-    dbQuery = dbQuery.or(
-      `first_name.ilike."%${safeQuery}%",last_name.ilike."%${safeQuery}%",email.ilike."%${safeQuery}%",company.ilike."%${safeQuery}%"`
-    )
-  }
-
+  // Company Filter
   if (companyFilter) {
-    const safeCompany = companyFilter.replace(/"/g, '""')
-    dbQuery = dbQuery.ilike('company', `%${safeCompany}%`)
+    const comp = companyFilter.toLowerCase()
+    filteredContacts = filteredContacts.filter(c => c.company?.toLowerCase().includes(comp))
   }
 
+  // Last Contacted Filter
   if (lastContactedFilter && LAST_CONTACTED_DAYS[lastContactedFilter]) {
     const days = LAST_CONTACTED_DAYS[lastContactedFilter]
     const cutoff = new Date()
     cutoff.setDate(cutoff.getDate() - days)
-    dbQuery = dbQuery.or(
-      `last_contacted_at.lte.${cutoff.toISOString()},last_contacted_at.is.null`
-    )
+    filteredContacts = filteredContacts.filter(c => {
+      if (!c.last_contacted_at) return true
+      return new Date(c.last_contacted_at) <= cutoff
+    })
   }
 
-  const { data: contacts = [] } = await dbQuery
+  // Synced Source Filter
+  if (sourceFilter) {
+    if (sourceFilter === 'google') {
+      filteredContacts = filteredContacts.filter(c => !!c.google_contact_id)
+    } else if (sourceFilter === 'manual') {
+      filteredContacts = filteredContacts.filter(c => !c.google_contact_id)
+    }
+  }
+
+  // Has Email Filter
+  if (hasEmailFilter) {
+    if (hasEmailFilter === 'yes') {
+      filteredContacts = filteredContacts.filter(c => !!c.email)
+    } else if (hasEmailFilter === 'no') {
+      filteredContacts = filteredContacts.filter(c => !c.email)
+    }
+  }
+
+  // Has Phone Filter
+  if (hasPhoneFilter) {
+    if (hasPhoneFilter === 'yes') {
+      filteredContacts = filteredContacts.filter(c => c.phone_numbers && c.phone_numbers.length > 0)
+    } else if (hasPhoneFilter === 'no') {
+      filteredContacts = filteredContacts.filter(c => !c.phone_numbers || c.phone_numbers.length === 0)
+    }
+  }
+
+  // Field Specific Filters
+  if (firstNameFilter) {
+    const fn = firstNameFilter.toLowerCase()
+    filteredContacts = filteredContacts.filter(c => c.first_name.toLowerCase().includes(fn))
+  }
+
+  if (lastNameFilter) {
+    const ln = lastNameFilter.toLowerCase()
+    filteredContacts = filteredContacts.filter(c => c.last_name?.toLowerCase().includes(ln))
+  }
+
+  if (emailFilter) {
+    const em = emailFilter.toLowerCase()
+    filteredContacts = filteredContacts.filter(c => c.email?.toLowerCase().includes(em))
+  }
+
+  if (phoneFilter) {
+    const ph = phoneFilter.replace(/\D/g, '')
+    filteredContacts = filteredContacts.filter(c => {
+      if (!c.phone_numbers) return false
+      return c.phone_numbers.some((p: any) => p.number.replace(/\D/g, '').includes(ph))
+    })
+  }
+
+  // Broad Search (q) - now queries phone numbers too!
+  if (query) {
+    const q = query.toLowerCase()
+    const qDigits = query.replace(/\D/g, '')
+    filteredContacts = filteredContacts.filter(c => {
+      const firstNameMatch = c.first_name.toLowerCase().includes(q)
+      const lastNameMatch = c.last_name?.toLowerCase().includes(q)
+      const emailMatch = c.email?.toLowerCase().includes(q)
+      const companyMatch = c.company?.toLowerCase().includes(q)
+      const jobTitleMatch = c.job_title?.toLowerCase().includes(q)
+      
+      let phoneMatch = false
+      if (qDigits && c.phone_numbers) {
+        phoneMatch = c.phone_numbers.some((p: any) => p.number.replace(/\D/g, '').includes(qDigits))
+      }
+
+      return firstNameMatch || lastNameMatch || emailMatch || companyMatch || jobTitleMatch || phoneMatch
+    })
+  }
+
+  // Sort in memory
+  filteredContacts.sort((a, b) => {
+    let valA: any = a[sortKey]
+    let valB: any = b[sortKey]
+
+    if (valA === null || valA === undefined) return sortDir === 'asc' ? 1 : -1
+    if (valB === null || valB === undefined) return sortDir === 'asc' ? -1 : 1
+
+    if (typeof valA === 'string') {
+      return sortDir === 'asc'
+        ? valA.localeCompare(valB)
+        : valB.localeCompare(valA)
+    } else {
+      const numA = new Date(valA).getTime()
+      const numB = new Date(valB).getTime()
+      return sortDir === 'asc' ? numA - numB : numB - numA
+    }
+  })
 
   return (
     <div className="flex flex-col h-full bg-[#faf6f0]">
@@ -130,6 +240,13 @@ export default async function ContactsPage({
           currentSort={sortKey}
           currentDir={sortDir}
           basePath="/contacts"
+          currentFirstName={firstNameFilter}
+          currentLastName={lastNameFilter}
+          currentPhone={phoneFilter}
+          currentEmail={emailFilter}
+          currentHasEmail={hasEmailFilter}
+          currentHasPhone={hasPhoneFilter}
+          currentSource={sourceFilter}
         />
 
         <FilterShortcuts />
@@ -138,7 +255,7 @@ export default async function ContactsPage({
       {/* Contact list */}
       <div className="flex-1 overflow-y-auto bg-[#faf6f0]">
         <ContactsDesktop
-          contacts={contacts ?? []}
+          contacts={filteredContacts}
           sortKey={sortKey}
           sortDir={sortDir}
           currentQuery={query}
@@ -146,16 +263,23 @@ export default async function ContactsPage({
           currentLastContacted={lastContactedFilter}
           currentCompany={companyFilter}
         />
-        <ContactsMobile contacts={contacts ?? []} />
+        <ContactsMobile contacts={filteredContacts} />
       </div>
 
       {/* Footer count */}
       <div className="px-4 md:px-6 py-3 border-t border-[#e4e0d8] bg-[#faf6f0] shrink-0">
         <p className="text-xs text-[#74796e] font-body">
-          {contacts?.length ?? 0} contact{contacts?.length !== 1 ? 's' : ''}
+          {filteredContacts.length} contact{filteredContacts.length !== 1 ? 's' : ''}
           {statusFilter ? ` · ${PIPELINE_STATUSES.find(s => s.value === statusFilter)?.label}` : ''}
           {lastContactedFilter ? ` · not contacted in ${lastContactedFilter}` : ''}
           {companyFilter ? ` · company "${companyFilter}"` : ''}
+          {firstNameFilter ? ` · first name "${firstNameFilter}"` : ''}
+          {lastNameFilter ? ` · last name "${lastNameFilter}"` : ''}
+          {emailFilter ? ` · email "${emailFilter}"` : ''}
+          {phoneFilter ? ` · phone "${phoneFilter}"` : ''}
+          {hasEmailFilter ? ` · email: ${hasEmailFilter === 'yes' ? 'has email' : 'no email'}` : ''}
+          {hasPhoneFilter ? ` · phone: ${hasPhoneFilter === 'yes' ? 'has phone' : 'no phone'}` : ''}
+          {sourceFilter ? ` · source: ${sourceFilter === 'google' ? 'Google sync' : 'manual'}` : ''}
           {query ? ` · matching "${query}"` : ''}
         </p>
       </div>
