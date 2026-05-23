@@ -129,6 +129,7 @@ export async function syncPeople(
   const conflictsToInsert: any[] = []
   const inboxItemsToInsert: any[] = []
   const updatesToRun: Promise<any>[] = []
+  const existingPhonesMap = new Map<string, any[]>()
 
   // 3. Process each incoming contact
   for (const { person, mapped } of mappedPeople) {
@@ -180,28 +181,9 @@ export async function syncPeople(
           )
         }
 
-        // Add phone numbers to existing contact if they do not already have any phone records
+        // Collect phone numbers for existing contact if they have incoming phone numbers
         if (mapped.phone_numbers && mapped.phone_numbers.length > 0) {
-          updatesToRun.push((async () => {
-            const { data: existingPhones } = await (supabase as any)
-              .from('phone_numbers')
-              .select('id')
-              .eq('contact_id', existing.id)
-              .limit(1)
-
-            if (!existingPhones || existingPhones.length === 0) {
-              const phoneInserts = mapped.phone_numbers.map((p: any, idx: number) => ({
-                contact_id: existing.id,
-                profile_id: profileId,
-                number: p.number,
-                type: p.type,
-                is_primary: idx === 0
-              }))
-              await (supabase as any)
-                .from('phone_numbers')
-                .insert(phoneInserts)
-            }
-          })())
+          existingPhonesMap.set(existing.id, mapped.phone_numbers)
         }
       }
     } else {
@@ -213,6 +195,48 @@ export async function syncPeople(
   }
 
   // 4. Perform database writes in batch
+
+  // Bulk update existing contacts' phone numbers (Address GCR N+1 query issue)
+  if (existingPhonesMap.size > 0) {
+    const existingContactIds = Array.from(existingPhonesMap.keys())
+    
+    // 1 bulk select instead of N selects!
+    const { data: phoneRecords, error: phoneFetchError } = await (supabase as any)
+      .from('phone_numbers')
+      .select('contact_id')
+      .in('contact_id', existingContactIds)
+      
+    if (phoneFetchError) throw phoneFetchError
+
+    const contactsWithPhones = new Set<string>()
+    if (phoneRecords) {
+      phoneRecords.forEach((r: any) => contactsWithPhones.add(r.contact_id))
+    }
+
+    const phoneBulkInserts: any[] = []
+    existingPhonesMap.forEach((phones, contactId) => {
+      if (!contactsWithPhones.has(contactId)) {
+        phones.forEach((p, idx) => {
+          phoneBulkInserts.push({
+            contact_id: contactId,
+            profile_id: profileId,
+            number: p.number,
+            type: p.type,
+            is_primary: idx === 0
+          })
+        })
+      }
+    })
+
+    if (phoneBulkInserts.length > 0) {
+      // 1 bulk insert instead of N inserts!
+      const { error: phoneInsertError } = await (supabase as any)
+        .from('phone_numbers')
+        .insert(phoneBulkInserts)
+      if (phoneInsertError) throw phoneInsertError
+    }
+  }
+
   if (newContactsToInsert.length > 0) {
     // Strip temporary phone_numbers fields from the contacts insert payload
     const contactsPayload = newContactsToInsert.map(({ phone_numbers, ...rest }) => rest)

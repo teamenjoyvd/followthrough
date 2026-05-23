@@ -83,6 +83,13 @@ export async function createContact(formData: FormData): Promise<{ success: true
           is_primary: true
         })
       if (phoneError) {
+        // Rollback: delete the newly created contact to ensure database atomicity
+        await (supabase as any)
+          .from('contacts')
+          .delete()
+          .eq('id', contactId)
+          .eq('profile_id', profileId)
+
         return { error: phoneError.message || 'Failed to add phone number' }
       }
     }
@@ -131,7 +138,7 @@ export async function updateContact(contactId: string, formData: FormData): Prom
     }
 
     // Dynamic phone numbers updating logic
-    const { data: existingPrimary } = await (supabase as any)
+    const { data: existingPrimary, error: fetchError } = await (supabase as any)
       .from('phone_numbers')
       .select('id')
       .eq('contact_id', contactId)
@@ -139,14 +146,17 @@ export async function updateContact(contactId: string, formData: FormData): Prom
       .eq('is_primary', true)
       .maybeSingle()
 
+    if (fetchError) return { error: fetchError.message || 'Failed to fetch phone details' }
+
     if (phone?.trim()) {
       if (existingPrimary) {
-        await (supabase as any)
+        const { error: updateError } = await (supabase as any)
           .from('phone_numbers')
           .update({ number: phone.trim() })
           .eq('id', existingPrimary.id)
+        if (updateError) return { error: updateError.message || 'Failed to update phone number' }
       } else {
-        await (supabase as any)
+        const { error: insertError } = await (supabase as any)
           .from('phone_numbers')
           .insert({
             contact_id: contactId,
@@ -155,12 +165,14 @@ export async function updateContact(contactId: string, formData: FormData): Prom
             type: 'mobile',
             is_primary: true
           })
+        if (insertError) return { error: insertError.message || 'Failed to add phone number' }
       }
     } else if (existingPrimary) {
-      await (supabase as any)
+      const { error: deleteError } = await (supabase as any)
         .from('phone_numbers')
         .delete()
         .eq('id', existingPrimary.id)
+      if (deleteError) return { error: deleteError.message || 'Failed to remove phone number' }
     }
 
     revalidatePath('/contacts')
