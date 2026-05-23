@@ -129,7 +129,11 @@ export async function POST() {
 
   try {
     const result = await syncPeople(supabase, profileId, allPeople, newSyncToken)
-    return NextResponse.json(result)
+    return NextResponse.json({
+      imported: result.upserted,
+      conflicts: result.conflictsCreated,
+      newSyncToken: result.newSyncToken,
+    })
   } catch (error: any) {
     console.error('Google sync failed:', error)
     return NextResponse.json(
