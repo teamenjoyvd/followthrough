@@ -16,7 +16,7 @@ import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { moveContact } from '@/lib/actions/pipeline'
-import { PIPELINE_STATUSES } from '@/app/(app)/contacts/components/PipelineStatusControl'
+import { PIPELINE_STATUSES } from '@/app/(app)/contacts/components/constants'
 import type { Database } from '@/types/supabase'
 
 type PipelineStatus = Database['public']['Enums']['pipeline_status']

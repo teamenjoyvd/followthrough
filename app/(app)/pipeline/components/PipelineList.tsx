@@ -3,7 +3,7 @@
 import { useState, useTransition } from 'react'
 import Link from 'next/link'
 import { moveContact } from '@/lib/actions/pipeline'
-import { PIPELINE_STATUSES } from '@/app/(app)/contacts/components/PipelineStatusControl'
+import { PIPELINE_STATUSES } from '@/app/(app)/contacts/components/constants'
 import type { Database } from '@/types/supabase'
 
 type PipelineStatus = Database['public']['Enums']['pipeline_status']

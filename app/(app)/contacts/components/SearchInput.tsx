@@ -1,26 +1,18 @@
 'use client'
 
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams, usePathname } from 'next/navigation'
 import { useState, useEffect, useTransition } from 'react'
 
 interface SearchInputProps {
   defaultValue: string
-  currentStatus: string
-  currentLastContacted: string
-  currentCompany: string
-  currentSort: string
-  currentDir: string
 }
 
 export function SearchInput({
   defaultValue,
-  currentStatus,
-  currentLastContacted,
-  currentCompany,
-  currentSort,
-  currentDir,
 }: SearchInputProps) {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const pathname = usePathname()
   const [value, setValue] = useState(defaultValue)
   const [isPending, startTransition] = useTransition()
 
@@ -34,21 +26,21 @@ export function SearchInput({
 
     const timer = setTimeout(() => {
       startTransition(() => {
-        const params = new URLSearchParams()
-        if (value.trim()) params.set('q', value.trim())
-        if (currentStatus) params.set('status', currentStatus)
-        if (currentLastContacted) params.set('last_contacted', currentLastContacted)
-        if (currentCompany) params.set('company', currentCompany)
-        if (currentSort) params.set('sort', currentSort)
-        if (currentDir) params.set('dir', currentDir)
+        const params = new URLSearchParams(searchParams.toString())
+        const trimmed = value.trim()
+        if (trimmed) {
+          params.set('q', trimmed)
+        } else {
+          params.delete('q')
+        }
 
         const qs = params.toString()
-        router.replace(qs ? `/contacts?${qs}` : '/contacts')
+        router.replace(qs ? `${pathname}?${qs}` : pathname)
       })
     }, 300)
 
     return () => clearTimeout(timer)
-  }, [value, defaultValue, currentStatus, currentLastContacted, currentCompany, currentSort, currentDir, router])
+  }, [value, defaultValue, searchParams, pathname, router])
 
   return (
     <div className="relative w-full md:max-w-sm">

@@ -5,7 +5,7 @@ import { Plus } from 'lucide-react'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import ContactsDesktop from './components/ContactsDesktop'
 import ContactsMobile from './components/ContactsMobile'
-import { PIPELINE_STATUSES } from './components/PipelineStatusControl'
+import { PIPELINE_STATUSES } from './components/constants'
 import { ContactFilterBar } from '@/components/ContactFilterBar'
 import { FilterShortcuts } from '@/components/FilterShortcuts'
 import { SearchInput } from './components/SearchInput'
@@ -120,11 +120,6 @@ export default async function ContactsPage({
       <div className="px-4 md:px-6 py-4 bg-[#faf6f0] border-b border-[#e4e0d8] space-y-4 shrink-0">
         <SearchInput
           defaultValue={query}
-          currentStatus={statusFilter}
-          currentLastContacted={lastContactedFilter}
-          currentCompany={companyFilter}
-          currentSort={sortKey}
-          currentDir={sortDir}
         />
 
         <ContactFilterBar

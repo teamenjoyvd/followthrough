@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation'
 import { useCallback, useState, useEffect, useTransition } from 'react'
 import Link from 'next/link'
 import { X } from 'lucide-react'
-import { PIPELINE_STATUSES } from '@/app/(app)/contacts/components/PipelineStatusControl'
+import { PIPELINE_STATUSES } from '@/app/(app)/contacts/components/constants'
 
 const LAST_CONTACTED_OPTIONS = [
   { value: '', label: 'Any time' },
@@ -144,6 +144,7 @@ export function ContactFilterBar({
         {/* Clear all */}
         {hasActiveFilters && (
           <Link
+            replace
             href={buildHref({ status: '', last_contacted: '', company: '' })}
             className="inline-flex items-center gap-1 text-xs text-[#74796e] hover:text-[#2e3230] font-semibold transition-colors ml-1"
           >

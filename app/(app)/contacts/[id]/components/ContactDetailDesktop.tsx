@@ -3,7 +3,8 @@
 import Link from 'next/link'
 import { useState, useTransition } from 'react'
 import { Pencil, Phone, Plus, Star, Trash2, Globe } from 'lucide-react'
-import { PipelineStatusControl, PIPELINE_STATUSES } from '../../components/PipelineStatusControl'
+import { PipelineStatusControl } from '../../components/PipelineStatusControl'
+import { PIPELINE_STATUSES } from '../../components/constants'
 import type { Database } from '@/types/supabase'
 import type { ContactDetail } from '@/lib/contacts-data'
 import {
