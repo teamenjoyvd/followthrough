@@ -2,31 +2,10 @@
 
 import { auth } from '@clerk/nextjs/server'
 import { revalidatePath } from 'next/cache'
-import { createSupabaseServerClient } from '@/lib/supabase/server'
+import { createSupabaseServerClient, getProfileId } from '../supabase/server'
 import type { Database } from '@/types/supabase'
 
 type PipelineStatus = Database['public']['Enums']['pipeline_status']
-
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
-
-/**
- * Resolve clerk userId → profile id.
- * Cast to `any` as a known workaround: Supabase generic resolution drops to
- * `never[]` for `from('profiles')` when types are re-exported across modules.
- */
-async function getProfileId(
-  supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>,
-  userId: string,
-): Promise<string | null> {
-  const { data } = await (supabase as any)
-    .from('profiles')
-    .select('id')
-    .eq('clerk_id', userId)
-    .maybeSingle()
-  return (data as { id: string } | null)?.id ?? null
-}
 
 // ---------------------------------------------------------------------------
 // createContact
@@ -52,46 +31,24 @@ export async function createContact(formData: FormData): Promise<{ success: true
   }
 
   try {
-    const { data, error } = await (supabase as any)
-      .from('contacts')
-      .insert({
-        profile_id: profileId,
-        first_name: firstName.trim(),
-        last_name: lastName?.trim() || null,
-        email: email?.trim() || null,
-        company: company?.trim() || null,
-        job_title: jobTitle?.trim() || null,
+    // Single atomic database-level RPC query preventing dirty orphan rows
+    const { data: contactId, error: rpcError } = await supabase
+      .rpc('create_contact_with_phone', {
+        p_profile_id: profileId,
+        p_first_name: firstName.trim(),
+        p_last_name: lastName?.trim() || null,
+        p_email: email?.trim() || null,
+        p_company: company?.trim() || null,
+        p_job_title: jobTitle?.trim() || null,
+        p_phone: phone?.trim() || null
       })
-      .select('id')
-      .single()
 
-    if (error) {
-      return { error: error.message || 'Failed to create contact' }
+    if (rpcError) {
+      return { error: rpcError.message || 'Failed to create contact' }
     }
 
-    const contactId = (data as { id: string }).id
-
-    // Insert phone record if provided
-    if (phone?.trim()) {
-      const { error: phoneError } = await (supabase as any)
-        .from('phone_numbers')
-        .insert({
-          contact_id: contactId,
-          profile_id: profileId,
-          number: phone.trim(),
-          type: 'mobile',
-          is_primary: true
-        })
-      if (phoneError) {
-        // Rollback: delete the newly created contact to ensure database atomicity
-        await (supabase as any)
-          .from('contacts')
-          .delete()
-          .eq('id', contactId)
-          .eq('profile_id', profileId)
-
-        return { error: phoneError.message || 'Failed to add phone number' }
-      }
+    if (!contactId) {
+      return { error: 'Failed to create contact: No ID returned' }
     }
 
     revalidatePath('/contacts')
@@ -121,7 +78,7 @@ export async function updateContact(contactId: string, formData: FormData): Prom
   }
 
   try {
-    const { error } = await (supabase as any)
+    const { error } = await supabase
       .from('contacts')
       .update({
         first_name: firstName.trim(),
@@ -139,7 +96,7 @@ export async function updateContact(contactId: string, formData: FormData): Prom
     }
 
     // Dynamic phone numbers updating logic
-    const { data: existingPrimary, error: fetchError } = await (supabase as any)
+    const { data: existingPrimary, error: fetchError } = await supabase
       .from('phone_numbers')
       .select('id')
       .eq('contact_id', contactId)
@@ -151,13 +108,13 @@ export async function updateContact(contactId: string, formData: FormData): Prom
 
     if (phone?.trim()) {
       if (existingPrimary) {
-        const { error: updateError } = await (supabase as any)
+        const { error: updateError } = await supabase
           .from('phone_numbers')
           .update({ number: phone.trim() })
           .eq('id', existingPrimary.id)
         if (updateError) return { error: updateError.message || 'Failed to update phone number' }
       } else {
-        const { error: insertError } = await (supabase as any)
+        const { error: insertError } = await supabase
           .from('phone_numbers')
           .insert({
             contact_id: contactId,
@@ -169,10 +126,10 @@ export async function updateContact(contactId: string, formData: FormData): Prom
         if (insertError) return { error: insertError.message || 'Failed to add phone number' }
       }
     } else if (existingPrimary) {
-      const { error: deleteError } = await (supabase as any)
-        .from('phone_numbers')
-        .delete()
-        .eq('id', existingPrimary.id)
+      const { error: deleteError } = await supabase
+          .from('phone_numbers')
+          .delete()
+          .eq('id', existingPrimary.id)
       if (deleteError) return { error: deleteError.message || 'Failed to remove phone number' }
     }
 
@@ -197,7 +154,7 @@ export async function deleteContact(contactId: string): Promise<{ success: true 
   if (!profileId) return { error: 'Profile not found' }
 
   try {
-    const { error } = await (supabase as any)
+    const { error } = await supabase
       .from('contacts')
       .delete()
       .eq('id', contactId)
@@ -226,7 +183,7 @@ export async function updatePipelineStatus(contactId: string, status: PipelineSt
   const profileId = await getProfileId(supabase, userId)
   if (!profileId) return
 
-  await (supabase as any)
+  await supabase
     .from('contacts')
     .update({ pipeline_status: status })
     .eq('id', contactId)
@@ -264,7 +221,7 @@ export async function importContactsFromCSV(
 
   try {
     // 1. Create the import log record
-    const { data: logRecord, error: logError } = await (supabase as any)
+    const { data: logRecord, error: logError } = await supabase
       .from('csv_imports_log')
       .insert({
         profile_id: profileId,
@@ -321,7 +278,7 @@ export async function importContactsFromCSV(
         compositeMap.get(key)!.push(index)
       })
 
-      const { data: inserted, error: insertError } = await (supabase as any)
+      const { data: inserted, error: insertError } = await supabase
         .from('contacts')
         .insert(batchPayload)
         .select('id, first_name, last_name, email, company, job_title')
@@ -359,7 +316,7 @@ export async function importContactsFromCSV(
 
     // 4. Insert phone records in bulk for the imported contacts
     if (phoneInserts.length > 0) {
-      const { error: phoneError } = await (supabase as any)
+      const { error: phoneError } = await supabase
         .from('phone_numbers')
         .insert(phoneInserts)
       if (phoneError) throw phoneError
@@ -381,7 +338,7 @@ export async function rollbackCSVImport(logId: string): Promise<{ success: true;
   if (!profileId) return { error: 'Profile not found' }
 
   try {
-    const { data: logRecord, error: logFetchError } = await (supabase as any)
+    const { data: logRecord, error: logFetchError } = await supabase
       .from('csv_imports_log')
       .select('filename')
       .eq('id', logId)
@@ -391,7 +348,7 @@ export async function rollbackCSVImport(logId: string): Promise<{ success: true;
     if (logFetchError) throw logFetchError
     if (!logRecord) return { error: 'Import log batch not found' }
 
-    const { data: deleted, error: deleteError } = await (supabase as any)
+    const { data: deleted, error: deleteError } = await supabase
       .from('contacts')
       .delete()
       .eq('import_log_id', logId)
@@ -400,7 +357,7 @@ export async function rollbackCSVImport(logId: string): Promise<{ success: true;
 
     if (deleteError) throw deleteError
 
-    await (supabase as any)
+    await supabase
       .from('csv_imports_log')
       .delete()
       .eq('id', logId)
@@ -436,7 +393,7 @@ export async function bulkUpdateContacts(
     if (updates.snooze_until !== undefined) payload.snooze_until = updates.snooze_until
     if (updates.company !== undefined) payload.company = updates.company?.trim() || null
 
-    const { error } = await (supabase as any)
+    const { error } = await supabase
       .from('contacts')
       .update(payload)
       .in('id', contactIds)
@@ -462,7 +419,7 @@ export async function bulkDeleteContacts(contactIds: string[]): Promise<{ succes
   if (contactIds.length === 0) return { error: 'No contacts selected' }
 
   try {
-    const { error } = await (supabase as any)
+    const { error } = await supabase
       .from('contacts')
       .delete()
       .in('id', contactIds)
@@ -493,7 +450,7 @@ export async function bulkManageContactLabels(
 
   try {
     if (action === 'clear') {
-      const { error } = await (supabase as any)
+      const { error } = await supabase
         .from('contact_labels')
         .delete()
         .in('contact_id', contactIds)
@@ -514,7 +471,7 @@ export async function bulkManageContactLabels(
       })
 
       if (inserts.length > 0) {
-        const { error } = await (supabase as any)
+        const { error } = await supabase
           .from('contact_labels')
           .upsert(inserts, { onConflict: 'contact_id,label_id' })
         if (error) throw error
@@ -543,7 +500,7 @@ export async function createLabel(name: string, color: string): Promise<{ succes
   if (!name?.trim()) return { error: 'Label name is required' }
 
   try {
-    const { data, error } = await (supabase as any)
+    const { data, error } = await supabase
       .from('labels')
       .insert({
         profile_id: profileId,
@@ -573,7 +530,7 @@ export async function updateLabel(labelId: string, name: string, color: string):
   if (!name?.trim()) return { error: 'Label name is required' }
 
   try {
-    const { error } = await (supabase as any)
+    const { error } = await supabase
       .from('labels')
       .update({ name: name.trim(), color })
       .eq('id', labelId)
@@ -597,7 +554,7 @@ export async function deleteLabel(labelId: string): Promise<{ success: true } | 
   if (!profileId) return { error: 'Profile not found' }
 
   try {
-    const { error } = await (supabase as any)
+    const { error } = await supabase
       .from('labels')
       .delete()
       .eq('id', labelId)

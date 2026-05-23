@@ -57,6 +57,103 @@ export const metadata = {
 
 const PAGE_SIZE = 50
 
+function buildPaginationHref(params: SearchParams, newPage: number) {
+  const searchParamsObj = new URLSearchParams()
+  Object.entries(params).forEach(([k, v]) => {
+    if (v !== undefined && v !== null && v !== '' && k !== 'page') {
+      searchParamsObj.set(k, v)
+    }
+  })
+  if (newPage > 1) {
+    searchParamsObj.set('page', newPage.toString())
+  }
+  const qs = searchParamsObj.toString()
+  return qs ? `/contacts?${qs}` : '/contacts'
+}
+
+function applyActiveFilters(query: any, filters: {
+  statusFilter: string
+  companyFilter: string
+  lastContactedFilter: string
+  sourceFilter: string
+  hasEmailFilter: string
+  hasPhoneFilter: string
+  labelsFilter: string[]
+  firstNameFilter: string
+  lastNameFilter: string
+  emailFilter: string
+  phoneFilter: string
+  query: string
+}) {
+  const {
+    statusFilter,
+    companyFilter,
+    lastContactedFilter,
+    sourceFilter,
+    hasEmailFilter,
+    hasPhoneFilter,
+    labelsFilter,
+    firstNameFilter,
+    lastNameFilter,
+    emailFilter,
+    phoneFilter,
+    query: broadQuery
+  } = filters
+
+  if (statusFilter) query = query.eq('pipeline_status', statusFilter)
+  if (companyFilter) query = query.ilike('company', `%${companyFilter}%`)
+
+  if (lastContactedFilter && LAST_CONTACTED_DAYS[lastContactedFilter]) {
+    const days = LAST_CONTACTED_DAYS[lastContactedFilter]
+    const cutoff = new Date()
+    cutoff.setDate(cutoff.getDate() - days)
+    query = query.or(`last_contacted_at.lte.${cutoff.toISOString()},last_contacted_at.is.null`)
+  }
+
+  if (sourceFilter) {
+    if (sourceFilter === 'google') query = query.eq('created_by_source', 'google_sync')
+    else if (sourceFilter === 'csv') query = query.eq('created_by_source', 'csv_import')
+    else if (sourceFilter === 'manual') query = query.eq('created_by_source', 'manual')
+  }
+
+  if (hasEmailFilter) {
+    if (hasEmailFilter === 'yes') query = query.not('email', 'is', null)
+    else if (hasEmailFilter === 'no') query = query.is('email', null)
+  }
+
+  if (hasPhoneFilter) {
+    if (hasPhoneFilter === 'yes') query = query.not('phone_numbers_concat', 'is', null)
+    else if (hasPhoneFilter === 'no') query = query.is('phone_numbers_concat', null)
+  }
+
+  if (labelsFilter.length > 0) {
+    query = query.overlaps('label_ids', labelsFilter)
+  }
+
+  if (firstNameFilter) query = query.ilike('first_name', `%${firstNameFilter}%`)
+  if (lastNameFilter) query = query.ilike('last_name', `%${lastNameFilter}%`)
+  if (emailFilter) query = query.ilike('email', `%${emailFilter}%`)
+
+  if (phoneFilter) {
+    const phDigits = phoneFilter.replace(/\D/g, '')
+    if (phDigits) {
+      query = query.ilike('phone_numbers_concat', `%${phDigits}%`)
+    }
+  }
+
+  if (broadQuery) {
+    const q = `%${broadQuery}%`
+    const qDigits = broadQuery.replace(/\D/g, '')
+    if (qDigits) {
+      query = query.or(`first_name.ilike.${q},last_name.ilike.${q},email.ilike.${q},company.ilike.${q},job_title.ilike.${q},phone_numbers_concat.ilike.%${qDigits}%`)
+    } else {
+      query = query.or(`first_name.ilike.${q},last_name.ilike.${q},email.ilike.${q},company.ilike.${q},job_title.ilike.${q}`)
+    }
+  }
+
+  return query
+}
+
 export default async function ContactsPage({
   searchParams,
 }: {
@@ -109,166 +206,74 @@ export default async function ContactsPage({
 
   const userLabels = (rawLabels as any[]) || []
 
-  // 2. Fetch all contacts along with their phone numbers AND relational many-to-many labels
-  const { data: rawData, error } = await supabase
-    .from('contacts')
-    .select('*, phone_numbers(number), contact_labels(label_id)')
+  // Pre-calculate pagination active page before query
+  const pageParam = Number(params.page || 1)
+  let activePage = isNaN(pageParam) || pageParam < 1 ? 1 : pageParam
+
+  // 2. Query contacts search view with all active filters at the database level
+  let dbQuery = supabase
+    .from('contacts_search_view')
+    .select('*', { count: 'exact' })
     .eq('profile_id', profile.id)
-    .limit(5000)
 
-  if (error) throw error
-
-  const rawContacts = (rawData as any[]) || []
-
-  // Apply Advanced filters in-memory
-  let filteredContacts = [...(rawContacts || [])]
-
-  // Pipeline Status Filter
-  if (statusFilter) {
-    filteredContacts = filteredContacts.filter(c => c.pipeline_status === statusFilter)
-  }
-
-  // Company Filter
-  if (companyFilter) {
-    const comp = companyFilter.toLowerCase()
-    filteredContacts = filteredContacts.filter(c => c.company?.toLowerCase().includes(comp))
-  }
-
-  // Last Contacted Filter
-  if (lastContactedFilter && LAST_CONTACTED_DAYS[lastContactedFilter]) {
-    const days = LAST_CONTACTED_DAYS[lastContactedFilter]
-    const cutoff = new Date()
-    cutoff.setDate(cutoff.getDate() - days)
-    filteredContacts = filteredContacts.filter(c => {
-      if (!c.last_contacted_at) return true
-      return new Date(c.last_contacted_at) <= cutoff
-    })
-  }
-
-  // Synced Source Filter
-  if (sourceFilter) {
-    if (sourceFilter === 'google') {
-      filteredContacts = filteredContacts.filter(c => c.created_by_source === 'google_sync')
-    } else if (sourceFilter === 'csv') {
-      filteredContacts = filteredContacts.filter(c => c.created_by_source === 'csv_import')
-    } else if (sourceFilter === 'manual') {
-      filteredContacts = filteredContacts.filter(c => c.created_by_source === 'manual')
-    }
-  }
-
-  // Has Email Filter
-  if (hasEmailFilter) {
-    if (hasEmailFilter === 'yes') {
-      filteredContacts = filteredContacts.filter(c => !!c.email)
-    } else if (hasEmailFilter === 'no') {
-      filteredContacts = filteredContacts.filter(c => !c.email)
-    }
-  }
-
-  // Has Phone Filter
-  if (hasPhoneFilter) {
-    if (hasPhoneFilter === 'yes') {
-      filteredContacts = filteredContacts.filter(c => c.phone_numbers && c.phone_numbers.length > 0)
-    } else if (hasPhoneFilter === 'no') {
-      filteredContacts = filteredContacts.filter(c => !c.phone_numbers || c.phone_numbers.length === 0)
-    }
-  }
-
-  // Relational Many-to-Many Labels Filter
-  if (labelsFilter.length > 0) {
-    // Show contacts that match ANY of the selected labels
-    filteredContacts = filteredContacts.filter(c =>
-      c.contact_labels?.some((cl: any) => labelsFilter.includes(cl.label_id))
-    )
-  }
-
-  // Field Specific Filters
-  if (firstNameFilter) {
-    const fn = firstNameFilter.toLowerCase()
-    filteredContacts = filteredContacts.filter(c => c.first_name.toLowerCase().includes(fn))
-  }
-
-  if (lastNameFilter) {
-    const ln = lastNameFilter.toLowerCase()
-    filteredContacts = filteredContacts.filter(c => c.last_name?.toLowerCase().includes(ln))
-  }
-
-  if (emailFilter) {
-    const em = emailFilter.toLowerCase()
-    filteredContacts = filteredContacts.filter(c => c.email?.toLowerCase().includes(em))
-  }
-
-  if (phoneFilter) {
-    const ph = phoneFilter.replace(/\D/g, '')
-    filteredContacts = filteredContacts.filter(c => {
-      if (!c.phone_numbers) return false
-      return c.phone_numbers.some((p: any) => p.number.replace(/\D/g, '').includes(ph))
-    })
-  }
-
-  // Broad Search (q) - now queries phone numbers too!
-  if (query) {
-    const q = query.toLowerCase()
-    const qDigits = query.replace(/\D/g, '')
-    filteredContacts = filteredContacts.filter(c => {
-      const firstNameMatch = c.first_name.toLowerCase().includes(q)
-      const lastNameMatch = c.last_name?.toLowerCase().includes(q)
-      const emailMatch = c.email?.toLowerCase().includes(q)
-      const companyMatch = c.company?.toLowerCase().includes(q)
-      const jobTitleMatch = c.job_title?.toLowerCase().includes(q)
-      
-      let phoneMatch = false
-      if (qDigits && c.phone_numbers) {
-        phoneMatch = c.phone_numbers.some((p: any) => p.number.replace(/\D/g, '').includes(qDigits))
-      }
-
-      return firstNameMatch || lastNameMatch || emailMatch || companyMatch || jobTitleMatch || phoneMatch
-    })
-  }
-
-  // Sort in memory
-  filteredContacts.sort((a, b) => {
-    let valA: any = a[sortKey]
-    let valB: any = b[sortKey]
-
-    if (valA === null || valA === undefined) return sortDir === 'asc' ? 1 : -1
-    if (valB === null || valB === undefined) return sortDir === 'asc' ? -1 : 1
-
-    if (sortKey === 'pipeline_status') {
-      const weightA = PIPELINE_STATUS_WEIGHTS[valA] ?? 99
-      const weightB = PIPELINE_STATUS_WEIGHTS[valB] ?? 99
-      return sortDir === 'asc' ? weightA - weightB : weightB - weightA
-    }
-
-    if (typeof valA === 'string') {
-      return sortDir === 'asc'
-        ? valA.localeCompare(valB)
-        : valB.localeCompare(valA)
-    } else {
-      const numA = new Date(valA).getTime()
-      const numB = new Date(valB).getTime()
-      return sortDir === 'asc' ? numA - numB : numB - numA
-    }
+  dbQuery = applyActiveFilters(dbQuery, {
+    statusFilter,
+    companyFilter,
+    lastContactedFilter,
+    sourceFilter,
+    hasEmailFilter,
+    hasPhoneFilter,
+    labelsFilter,
+    firstNameFilter,
+    lastNameFilter,
+    emailFilter,
+    phoneFilter,
+    query
   })
 
-  // Slicing and pagination logic
-  const totalContacts = filteredContacts.length
-  const totalPages = Math.ceil(totalContacts / PAGE_SIZE) || 1
-  const pageParam = Number(params.page || 1)
-  const activePage = isNaN(pageParam) || pageParam < 1 ? 1 : Math.min(totalPages, pageParam)
-  const paginatedContacts = filteredContacts.slice((activePage - 1) * PAGE_SIZE, activePage * PAGE_SIZE)
-
-  function buildPaginationHref(newPage: number) {
-    const searchParamsObj = new URLSearchParams()
-    // Spread existing params and update the page index dynamically
-    const merged = { ...params, page: newPage > 1 ? newPage.toString() : '' }
-
-    Object.entries(merged).forEach(([k, v]) => {
-      if (v !== undefined && v !== null && v !== '') searchParamsObj.set(k, v as string)
-    })
-    const qs = searchParamsObj.toString()
-    return qs ? `/contacts?${qs}` : '/contacts'
+  // Sorting
+  if (sortKey === 'pipeline_status') {
+    dbQuery = dbQuery.order('pipeline_status', { ascending: sortDir === 'asc' })
+  } else {
+    dbQuery = dbQuery.order(sortKey, { ascending: sortDir === 'asc', nullsFirst: false })
   }
+
+  // Paginated execute
+  const { data: contactsData, count, error: fetchError } = await dbQuery
+    .range((activePage - 1) * PAGE_SIZE, activePage * PAGE_SIZE - 1)
+
+  if (fetchError) throw fetchError
+
+  const paginatedContacts = (contactsData as any[]) || []
+  const totalContacts = count || 0
+  const totalPages = Math.ceil(totalContacts / PAGE_SIZE) || 1
+  activePage = Math.min(totalPages, activePage)
+
+  // 3. Lightweight query to get all matched IDs (cross-page selection ids state)
+  let idsQuery = supabase
+    .from('contacts_search_view')
+    .select('id')
+    .eq('profile_id', profile.id)
+
+  idsQuery = applyActiveFilters(idsQuery, {
+    statusFilter,
+    companyFilter,
+    lastContactedFilter,
+    sourceFilter,
+    hasEmailFilter,
+    hasPhoneFilter,
+    labelsFilter,
+    firstNameFilter,
+    lastNameFilter,
+    emailFilter,
+    phoneFilter,
+    query
+  })
+
+  const { data: matchedIdsData, error: idsError } = await idsQuery
+  if (idsError) throw idsError
+
+  const allFilteredIds = (matchedIdsData as { id: string }[] || []).map(item => item.id)
 
   return (
     <div className="flex flex-col h-full bg-[#faf6f0]">
@@ -301,7 +306,7 @@ export default async function ContactsPage({
       {/* Contacts List Client Component Orchestrator */}
       <ContactsClient
         contacts={paginatedContacts}
-        allFilteredIds={filteredContacts.map(c => c.id)}
+        allFilteredIds={allFilteredIds}
         labels={userLabels}
         sortKey={sortKey}
         sortDir={sortDir}
@@ -317,7 +322,7 @@ export default async function ContactsPage({
           <div className="flex items-center gap-2">
             {activePage > 1 ? (
               <Link
-                href={buildPaginationHref(activePage - 1)}
+                href={buildPaginationHref(params, activePage - 1)}
                 className="inline-flex items-center justify-center px-3.5 py-1.5 rounded-xl border border-[#e4e0d8] bg-[#f5f1ea] hover:bg-[#eae6de] text-xs font-semibold text-[#4a7c59] transition-all shadow-sm active:scale-95 duration-200"
               >
                 Previous
@@ -330,7 +335,7 @@ export default async function ContactsPage({
 
             {activePage < totalPages ? (
               <Link
-                href={buildPaginationHref(activePage + 1)}
+                href={buildPaginationHref(params, activePage + 1)}
                 className="inline-flex items-center justify-center px-3.5 py-1.5 rounded-xl border border-[#e4e0d8] bg-[#f5f1ea] hover:bg-[#eae6de] text-xs font-semibold text-[#4a7c59] transition-all shadow-sm active:scale-95 duration-200"
               >
                 Next
@@ -351,7 +356,7 @@ export default async function ContactsPage({
       {/* Footer count */}
       <div className="px-4 md:px-6 py-3 border-t border-[#e4e0d8] bg-[#faf6f0] shrink-0">
         <p className="text-xs text-[#74796e] font-body">
-          {filteredContacts.length} contact{filteredContacts.length !== 1 ? 's' : ''}
+          {totalContacts} contact{totalContacts !== 1 ? 's' : ''}
           {statusFilter ? ` · ${PIPELINE_STATUSES.find(s => s.value === statusFilter)?.label}` : ''}
           {lastContactedFilter ? ` · not contacted in ${lastContactedFilter}` : ''}
           {companyFilter ? ` · company "${companyFilter}"` : ''}

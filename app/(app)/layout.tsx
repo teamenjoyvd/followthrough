@@ -62,17 +62,8 @@ export default async function AppLayout({
         userId
     }
 
-    // Provision the profile using the service client
-    await ensureProfile(userId, email, displayName)
-
-    // Re-fetch the profile to make sure it was successfully created
-    const { data: refetched } = await (supabase as any)
-      .from('profiles')
-      .select('id')
-      .eq('clerk_id', userId)
-      .maybeSingle() as { data: { id: string } | null }
-
-    profile = refetched
+    // Provision the profile using the service client and assign directly
+    profile = await ensureProfile(userId, email, displayName)
   }
 
   // 3. Throw a robust error if profile still doesn't exist to prevent infinite redirect loops

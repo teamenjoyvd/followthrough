@@ -1,11 +1,11 @@
 import { auth, currentUser } from '@clerk/nextjs/server'
 import { redirect } from 'next/navigation'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
-import { checkResurfaced } from '@/lib/actions/snooze'
 import { getUnreadInboxCount } from '@/lib/actions/inbox'
 import { ensureProfile } from '@/lib/profile'
 import DashboardDesktop from './components/DashboardDesktop'
 import DashboardMobile from './components/DashboardMobile'
+import ResurfaceTrigger from './components/ResurfaceTrigger'
 import type { Database } from '@/types/supabase'
 
 export const dynamic = 'force-dynamic'
@@ -57,21 +57,8 @@ export default async function DashboardPage() {
         userId
     }
 
-    // Provision the profile using the service client
-    await ensureProfile(userId, email, fullName)
-
-    // Re-fetch the profile to make sure it was successfully created
-    const { data: refetched, error: refetchError } = await (supabase as any)
-      .from('profiles')
-      .select('id, display_name, followup_rules')
-      .eq('clerk_id', userId)
-      .maybeSingle() as { data: ProfileResult | null; error: any }
-
-    if (refetchError) {
-      console.error('[DashboardPage] Error re-fetching profile:', refetchError)
-    }
-
-    profile = refetched
+    // Provision the profile using the service client and assign directly
+    profile = await ensureProfile(userId, email, fullName)
   }
 
   // 3. Throw a robust error if profile still doesn't exist to prevent infinite redirect loops
@@ -81,11 +68,8 @@ export default async function DashboardPage() {
 
   const displayName = (profile.display_name ?? '').split(' ')[0] || 'there'
 
-  await checkResurfaced()
-
-  // Fetch Clerk user details to retrieve the avatar URL
-  const clerkUser = await currentUser()
-  const avatarUrl = clerkUser?.imageUrl || null
+  // Fetch Clerk user details from sessionClaims picture/avatar fields directly to avoid blocking currentUser call on warm renders
+  const avatarUrl = (sessionClaims?.picture as string) || (sessionClaims?.avatar_url as string) || (sessionClaims?.image_url as string) || null
 
   // Fetch all contacts for relationship health calculation and working list filter
   const { data: allContacts, error: allContactsError } = await (supabase as any)
@@ -162,6 +146,7 @@ export default async function DashboardPage() {
 
   return (
     <>
+      <ResurfaceTrigger />
       {/* Desktop layout — hidden on mobile */}
       <div className="hidden md:block">
         <DashboardDesktop

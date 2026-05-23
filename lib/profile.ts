@@ -13,33 +13,23 @@ export async function ensureProfile(
   clerkId: string,
   email: string,
   displayName: string,
-): Promise<void> {
+): Promise<{ id: string; display_name: string | null; followup_rules: any }> {
   const supabase = await createSupabaseServiceClient()
 
-  // Optimize performance and avoid write-locking the database on every layout render:
-  // check if a profile already exists before inserting a new one.
-  const { data: existing, error: selectError } = await supabase
+  const { data, error } = await supabase
     .from('profiles')
-    .select('id')
-    .eq('clerk_id', clerkId)
-    .maybeSingle()
-
-  if (selectError) {
-    console.error('[ensureProfile] select error:', selectError.message)
-    throw new Error(`[ensureProfile] Failed to select profile: ${selectError.message}`)
-  }
-
-  // If no profile exists, provision a new one.
-  if (!existing) {
-    const { error: insertError } = await (supabase.from('profiles') as any).insert({
+    .upsert({
       clerk_id: clerkId,
       email,
       display_name: displayName,
-    })
+    }, { onConflict: 'clerk_id' })
+    .select('id, display_name, followup_rules')
+    .single()
 
-    if (insertError) {
-      console.error('[ensureProfile] insert error:', insertError.message)
-      throw new Error(`[ensureProfile] Failed to insert profile: ${insertError.message}`)
-    }
+  if (error) {
+    console.error('[ensureProfile] upsert error:', error.message)
+    throw new Error(`[ensureProfile] Failed to ensure profile: ${error.message}`)
   }
+
+  return data
 }
