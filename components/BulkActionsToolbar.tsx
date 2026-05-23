@@ -6,7 +6,7 @@ import { PIPELINE_STATUSES } from '@/app/(app)/contacts/components/constants'
 import { getLabelColorClass, type Label } from '@/components/LabelManager'
 
 interface BulkActionsToolbarProps {
-  selectedIds: string[]
+  selectedIds: Set<string>
   onClearSelection: () => void
   labels: Label[]
   onStatusChange: (status: any) => void
@@ -26,14 +26,14 @@ export default function BulkActionsToolbar({
 }: BulkActionsToolbarProps) {
   const [activeMenu, setActiveMenu] = useState<'status' | 'label' | 'snooze' | null>(null)
   
-  if (selectedIds.length === 0) return null
+  if (selectedIds.size === 0) return null
 
   return (
     <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 w-[90%] max-w-2xl bg-[#2e3230] text-[#faf6f0] rounded-[24px] shadow-[0_10px_35px_rgba(46,50,48,0.25)] border border-[#4a4e4a] py-3.5 px-5 flex flex-col gap-3 animate-in slide-in-from-bottom-5 fade-in duration-300 font-body">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <span className="h-5 w-5 rounded-full bg-[#4a7c59] text-white flex items-center justify-center text-xs font-bold font-body">
-            {selectedIds.length}
+            {selectedIds.size}
           </span>
           <span className="text-xs font-bold uppercase tracking-wider text-[#eae6de]">
             selected contacts

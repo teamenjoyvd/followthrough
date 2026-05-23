@@ -2,6 +2,7 @@
 
 import { useState, useTransition, useRef } from 'react'
 import { Upload, ArrowRight, Check, AlertCircle, FileSpreadsheet, Loader2 } from 'lucide-react'
+import Papa from 'papaparse'
 import {
   Dialog,
   DialogContent,
@@ -24,55 +25,6 @@ const TARGET_FIELDS = [
   { key: 'company', label: 'Company', required: false },
   { key: 'job_title', label: 'Job Title', required: false },
 ] as const
-
-// Robust CSV Line Parser that handles quotes and escape characters correctly
-function parseCSV(text: string): string[][] {
-  const lines: string[][] = []
-  let row: string[] = []
-  let inQuotes = false
-  let entry = ''
-
-  for (let i = 0; i < text.length; i++) {
-    const char = text[i]
-    const nextChar = text[i + 1]
-
-    if (char === '"') {
-      if (inQuotes && nextChar === '"') {
-        // Escaped quote
-        entry += '"'
-        i++
-      } else {
-        // Toggle quote state
-        inQuotes = !inQuotes
-      }
-    } else if (char === ',' && !inQuotes) {
-      row.push(entry.trim())
-      entry = ''
-    } else if ((char === '\r' || char === '\n') && !inQuotes) {
-      if (char === '\r' && nextChar === '\n') {
-        i++ // Skip \n
-      }
-      row.push(entry.trim())
-      if (row.some(val => val !== '')) {
-        lines.push(row)
-      }
-      row = []
-      entry = ''
-    } else {
-      entry += char
-    }
-  }
-
-  // Push last entry
-  if (entry || row.length > 0) {
-    row.push(entry.trim())
-    if (row.some(val => val !== '')) {
-      lines.push(row)
-    }
-  }
-
-  return lines
-}
 
 export default function CSVImportModal({ isOpen, onClose }: CSVImportModalProps) {
   const [isPending, startTransition] = useTransition()
@@ -111,49 +63,52 @@ export default function CSVImportModal({ isOpen, onClose }: CSVImportModalProps)
     setFileName(file.name)
     setError(null)
 
-    const reader = new FileReader()
-    reader.onload = (event) => {
-      try {
-        const text = event.target?.result as string
-        const grid = parseCSV(text)
+    Papa.parse<string[]>(file, {
+      skipEmptyLines: 'greedy',
+      complete: (results) => {
+        try {
+          const grid = results.data
 
-        if (grid.length === 0) {
-          setError('The uploaded CSV file is empty')
-          return
-        }
-
-        const csvHeaders = grid[0]
-        const csvRows = grid.slice(1)
-
-        setHeaders(csvHeaders)
-        setParsedRows(csvRows)
-
-        // Auto-mapping heuristics
-        const initialMapping: Record<string, number> = {}
-        TARGET_FIELDS.forEach((field) => {
-          const matchIndex = csvHeaders.findIndex((h) => {
-            const hLower = h.toLowerCase().replace(/[^a-z0-9]/g, '')
-            const fLower = field.key.toLowerCase().replace(/[^a-z0-9]/g, '')
-            return (
-              hLower === fLower ||
-              hLower.includes(fLower) ||
-              fLower.includes(hLower) ||
-              (field.key === 'phone' && (hLower === 'tel' || hLower === 'mobile' || hLower === 'number')) ||
-              (field.key === 'first_name' && (hLower === 'name' || hLower === 'givenname'))
-            )
-          })
-          if (matchIndex !== -1) {
-            initialMapping[field.key] = matchIndex
+          if (!grid || grid.length === 0) {
+            setError('The uploaded CSV file is empty')
+            return
           }
-        })
 
-        setMapping(initialMapping)
-        setStep('mapping')
-      } catch (err: any) {
+          const csvHeaders = grid[0]
+          const csvRows = grid.slice(1).filter((row) => row.some((val) => val && val.trim() !== ''))
+
+          setHeaders(csvHeaders)
+          setParsedRows(csvRows)
+
+          // Auto-mapping heuristics
+          const initialMapping: Record<string, number> = {}
+          TARGET_FIELDS.forEach((field) => {
+            const matchIndex = csvHeaders.findIndex((h) => {
+              const hLower = h.toLowerCase().replace(/[^a-z0-9]/g, '')
+              const fLower = field.key.toLowerCase().replace(/[^a-z0-9]/g, '')
+              return (
+                hLower === fLower ||
+                hLower.includes(fLower) ||
+                fLower.includes(hLower) ||
+                (field.key === 'phone' && (hLower === 'tel' || hLower === 'mobile' || hLower === 'number')) ||
+                (field.key === 'first_name' && (hLower === 'name' || hLower === 'givenname'))
+              )
+            })
+            if (matchIndex !== -1) {
+              initialMapping[field.key] = matchIndex
+            }
+          })
+
+          setMapping(initialMapping)
+          setStep('mapping')
+        } catch (err: any) {
+          setError('Failed to parse CSV file: ' + err.message)
+        }
+      },
+      error: (err) => {
         setError('Failed to parse CSV file: ' + err.message)
       }
-    }
-    reader.readAsText(file)
+    })
   }
 
   const handleMappingSubmit = () => {

@@ -311,25 +311,47 @@ export async function importContactsFromCSV(
         import_log_id: logId
       }))
 
+      // Build a map of compositeKey -> array of original row indices in batchRows
+      const compositeMap = new Map<string, number[]>()
+      batchRows.forEach((row, index) => {
+        const key = `${(row.first_name || 'Unknown').trim().toLowerCase()}||${(row.last_name || '').trim().toLowerCase()}||${(row.email || '').trim().toLowerCase()}||${(row.company || '').trim().toLowerCase()}||${(row.job_title || '').trim().toLowerCase()}`
+        if (!compositeMap.has(key)) {
+          compositeMap.set(key, [])
+        }
+        compositeMap.get(key)!.push(index)
+      })
+
       const { data: inserted, error: insertError } = await (supabase as any)
         .from('contacts')
         .insert(batchPayload)
-        .select('id')
+        .select('id, first_name, last_name, email, company, job_title')
 
       if (insertError) throw insertError
       
       if (inserted) {
         totalImported += inserted.length
-        inserted.forEach((contact: { id: string }, index: number) => {
-          const originalRow = batchRows[index]
-          if (originalRow.phone?.trim()) {
-            phoneInserts.push({
-              contact_id: contact.id,
-              profile_id: profileId,
-              number: originalRow.phone.trim(),
-              type: 'mobile',
-              is_primary: true
-            })
+        inserted.forEach((contact: {
+          id: string
+          first_name: string
+          last_name: string | null
+          email: string | null
+          company: string | null
+          job_title: string | null
+        }) => {
+          const key = `${(contact.first_name || 'Unknown').trim().toLowerCase()}||${(contact.last_name || '').trim().toLowerCase()}||${(contact.email || '').trim().toLowerCase()}||${(contact.company || '').trim().toLowerCase()}||${(contact.job_title || '').trim().toLowerCase()}`
+          const indices = compositeMap.get(key)
+          if (indices && indices.length > 0) {
+            const originalIndex = indices.shift()!
+            const originalRow = batchRows[originalIndex]
+            if (originalRow.phone?.trim()) {
+              phoneInserts.push({
+                contact_id: contact.id,
+                profile_id: profileId,
+                number: originalRow.phone.trim(),
+                type: 'mobile',
+                is_primary: true
+              })
+            }
           }
         })
       }

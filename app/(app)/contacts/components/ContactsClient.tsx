@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { Plus, Upload, Download, Tag, Check, Loader2 } from 'lucide-react'
 import ContactsDesktop from './ContactsDesktop'
 import ContactsMobile from './ContactsMobile'
@@ -43,7 +44,8 @@ export default function ContactsClient({
   currentLastContacted,
   currentCompany,
 }: ContactsClientProps) {
-  const [selectedIds, setSelectedIds] = useState<string[]>([])
+  const router = useRouter()
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [isImportOpen, setIsImportOpen] = useState(false)
   const [isLabelManagerOpen, setIsLabelManagerOpen] = useState(false)
 
@@ -54,21 +56,27 @@ export default function ContactsClient({
   const [processingMessage, setProcessingMessage] = useState('')
 
   const handleToggleSelect = (id: string) => {
-    setSelectedIds((prev) =>
-      prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
-    )
+    setSelectedIds((prev) => {
+      const next = new Set(prev)
+      if (next.has(id)) {
+        next.delete(id)
+      } else {
+        next.add(id)
+      }
+      return next
+    })
   }
 
   const handleSelectAll = () => {
-    if (selectedIds.length === contacts.length) {
-      setSelectedIds([])
+    if (selectedIds.size === contacts.length) {
+      setSelectedIds(new Set())
     } else {
-      setSelectedIds(contacts.map((c) => c.id))
+      setSelectedIds(new Set(contacts.map((c) => c.id)))
     }
   }
 
   const handleClearSelection = () => {
-    setSelectedIds([])
+    setSelectedIds(new Set())
   }
 
   // Orchestrate batch actions with real-time progress state updates
@@ -94,10 +102,10 @@ export default function ContactsClient({
         }
         setProcessedCount(Math.min(i + batch.length, items.length))
       }
-      setSelectedIds([])
+      setSelectedIds(new Set())
       setIsProcessing(false)
-      // Auto reload the page content safely
-      window.location.reload()
+      // Auto reload the page content safely via next.js soft refresh
+      router.refresh()
     } catch (err: any) {
       alert(`Batch operation failed: ${err.message}`)
       setIsProcessing(false)
@@ -105,7 +113,7 @@ export default function ContactsClient({
   }
 
   const handleStatusChange = (status: any) => {
-    startBatchProcess('Updating pipeline statuses...', selectedIds, async (batch) => {
+    startBatchProcess('Updating pipeline statuses...', Array.from(selectedIds), async (batch) => {
       return await bulkUpdateContacts(batch, { pipeline_status: status })
     })
   }
@@ -113,7 +121,7 @@ export default function ContactsClient({
   const handleLabelManage = (labelId: string, action: 'assign' | 'clear') => {
     startBatchProcess(
       action === 'assign' ? 'Assigning tag labels...' : 'Clearing tag labels...',
-      selectedIds,
+      Array.from(selectedIds),
       async (batch) => {
         return await bulkManageContactLabels(batch, [labelId], action)
       }
@@ -128,7 +136,7 @@ export default function ContactsClient({
       snoozeDate = d.toISOString()
     }
     const finalDate = snoozeDate
-    startBatchProcess('Scheduling snooze follow-ups...', selectedIds, async (batch) => {
+    startBatchProcess('Scheduling snooze follow-ups...', Array.from(selectedIds), async (batch) => {
       return await bulkUpdateContacts(batch, { snooze_until: finalDate })
     })
   }
@@ -136,12 +144,12 @@ export default function ContactsClient({
   const handleDelete = () => {
     if (
       !confirm(
-        `Are you sure you want to mass delete ${selectedIds.length} contact(s)? This action will permanently cascade delete all associated interactions and phone numbers, and cannot be undone.`
+        `Are you sure you want to mass delete ${selectedIds.size} contact(s)? This action will permanently cascade delete all associated interactions and phone numbers, and cannot be undone.`
       )
     ) {
       return
     }
-    startBatchProcess('Cascade deleting selected contacts...', selectedIds, async (batch) => {
+    startBatchProcess('Cascade deleting selected contacts...', Array.from(selectedIds), async (batch) => {
       return await bulkDeleteContacts(batch)
     })
   }
@@ -201,8 +209,8 @@ export default function ContactsClient({
   }
 
   // Cross-page selection states
-  const isPageFullySelected = contacts.length > 0 && selectedIds.length === contacts.length
-  const isAllMatchingSelected = selectedIds.length === allFilteredIds.length && allFilteredIds.length > contacts.length
+  const isPageFullySelected = contacts.length > 0 && selectedIds.size === contacts.length
+  const isAllMatchingSelected = selectedIds.size === allFilteredIds.length && allFilteredIds.length > contacts.length
 
   return (
     <div className="flex-1 flex flex-col h-full overflow-hidden bg-[#faf6f0]">
@@ -255,10 +263,10 @@ export default function ContactsClient({
       {isPageFullySelected && allFilteredIds.length > contacts.length && (
         <div className="bg-[#4a7c59]/10 border border-[#4a7c59]/20 px-4 py-3 rounded-xl mx-4 md:mx-6 my-2 text-xs font-semibold text-[#2e3230] flex flex-wrap items-center justify-between gap-2 font-body animate-in fade-in slide-in-from-top-1">
           <span>
-            All <strong>{selectedIds.length}</strong> contacts on this page are selected.
+            All <strong>{selectedIds.size}</strong> contacts on this page are selected.
           </span>
           <button
-            onClick={() => setSelectedIds(allFilteredIds)}
+            onClick={() => setSelectedIds(new Set(allFilteredIds))}
             className="text-[#4a7c59] hover:underline font-bold"
           >
             Select all {allFilteredIds.length} contacts matching this query
@@ -269,7 +277,7 @@ export default function ContactsClient({
       {isAllMatchingSelected && (
         <div className="bg-[#4a7c59] text-white px-4 py-3 rounded-xl mx-4 md:mx-6 my-2 text-xs font-semibold flex flex-wrap items-center justify-between gap-2 font-body animate-in fade-in slide-in-from-top-1 shadow-sm">
           <span>
-            All <strong>{selectedIds.length}</strong> contacts matching your active filters are selected.
+            All <strong>{selectedIds.size}</strong> contacts matching your active filters are selected.
           </span>
           <button
             onClick={handleClearSelection}
