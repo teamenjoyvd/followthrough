@@ -1,7 +1,7 @@
 import { auth, currentUser } from '@clerk/nextjs/server'
 import { redirect } from 'next/navigation'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
-import { getUnreadInboxCount } from '@/lib/actions/inbox'
+import { getUnreadInboxCount, getInboxItems } from '@/lib/actions/inbox'
 import { ensureProfile } from '@/lib/profile'
 import DashboardDesktop from './components/DashboardDesktop'
 import DashboardMobile from './components/DashboardMobile'
@@ -144,6 +144,18 @@ export default async function DashboardPage() {
 
   const healthPercentage = totalContactsCount > 0 ? Math.round(((totalContactsCount - overdueCount) / totalContactsCount) * 100) : 100
 
+  // 4. Fetch available custom labels for the user profile
+  const { data: rawLabels } = await supabase
+    .from('labels')
+    .select('*')
+    .eq('profile_id', profile.id)
+    .order('name', { ascending: true })
+
+  const allLabels = (rawLabels as any[]) || []
+
+  // 5. Fetch all unread inbox items
+  const inboxItems = await getInboxItems()
+
   return (
     <>
       <ResurfaceTrigger />
@@ -158,6 +170,8 @@ export default async function DashboardPage() {
           healthPercentage={healthPercentage}
           upcomingContacts={upcomingContacts || []}
           allContacts={contactsList}
+          allLabels={allLabels}
+          inboxItems={inboxItems}
         />
       </div>
 
@@ -172,6 +186,8 @@ export default async function DashboardPage() {
           healthPercentage={healthPercentage}
           upcomingContacts={upcomingContacts || []}
           allContacts={contactsList}
+          allLabels={allLabels}
+          inboxItems={inboxItems}
         />
       </div>
     </>

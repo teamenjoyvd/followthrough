@@ -568,3 +568,32 @@ export async function deleteLabel(labelId: string): Promise<{ success: true } | 
     return { error: err.message || 'Failed to delete label' }
   }
 }
+
+export async function updateContactDescription(
+  contactId: string,
+  description: string
+): Promise<{ success: true } | { error: string }> {
+  const { userId } = await auth()
+  if (!userId) return { error: 'Unauthorized' }
+
+  const supabase = await createSupabaseServerClient()
+  const profileId = await getProfileId(supabase, userId)
+  if (!profileId) return { error: 'Profile not found' }
+
+  try {
+    const { error } = await supabase
+      .from('contacts')
+      .update({ custom_description: description })
+      .eq('id', contactId)
+      .eq('profile_id', profileId)
+
+    if (error) throw error
+
+    revalidatePath('/dashboard')
+    revalidatePath(`/contacts/${contactId}`)
+    return { success: true }
+  } catch (err: any) {
+    return { error: err.message || 'Failed to update contact notes' }
+  }
+}
+
