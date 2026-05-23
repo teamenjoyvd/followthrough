@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import { ChevronRight } from 'lucide-react'
-import { PIPELINE_STATUSES } from './PipelineStatusControl'
+import { PIPELINE_STATUSES } from './constants'
 import type { Database } from '@/types/supabase'
 
 type Contact = Database['public']['Tables']['contacts']['Row']
