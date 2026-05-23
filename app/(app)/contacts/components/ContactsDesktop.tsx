@@ -7,7 +7,7 @@ type SortKey = 'first_name' | 'company' | 'pipeline_status' | 'last_contacted_at
 type SortDir = 'asc' | 'desc'
 
 interface Props {
-  contacts: any[]
+  contacts: (Database['public']['Tables']['contacts']['Row'] & { phone_numbers?: { number: string }[] })[]
   sortKey: SortKey
   sortDir: SortDir
   currentQuery: string

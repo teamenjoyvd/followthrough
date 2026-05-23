@@ -24,6 +24,14 @@ const LAST_CONTACTED_DAYS: Record<string, number> = {
   '90d': 90,
 }
 
+const PIPELINE_STATUS_WEIGHTS: Record<string, number> = {
+  lead: 1,
+  qualified: 2,
+  bought: 3,
+  snoozed: 4,
+  leave_alone: 5,
+}
+
 interface SearchParams {
   q?: string
   status?: string
@@ -79,7 +87,7 @@ export default async function ContactsPage({
 
   const supabase = await createSupabaseServerClient()
 
-  const { data: profile } = await (supabase as any)
+  const { data: profile } = await supabase
     .from('profiles')
     .select('id')
     .eq('clerk_id', userId)
@@ -88,13 +96,15 @@ export default async function ContactsPage({
   if (!profile) redirect('/sign-in')
 
   // Fetch all contacts under the profile along with their phone numbers to perform fully-featured, ultra-fast CRM searches & filters
-  const { data: rawContacts = [], error } = await (supabase as any)
+  const { data: rawData, error } = await supabase
     .from('contacts')
     .select('*, phone_numbers(number)')
     .eq('profile_id', profile.id)
     .limit(5000)
 
   if (error) throw error
+
+  const rawContacts = (rawData as any[]) || []
 
   // Apply Advanced filters in-memory
   let filteredContacts = [...(rawContacts || [])]
@@ -199,6 +209,12 @@ export default async function ContactsPage({
 
     if (valA === null || valA === undefined) return sortDir === 'asc' ? 1 : -1
     if (valB === null || valB === undefined) return sortDir === 'asc' ? -1 : 1
+
+    if (sortKey === 'pipeline_status') {
+      const weightA = PIPELINE_STATUS_WEIGHTS[valA] ?? 99
+      const weightB = PIPELINE_STATUS_WEIGHTS[valB] ?? 99
+      return sortDir === 'asc' ? weightA - weightB : weightB - weightA
+    }
 
     if (typeof valA === 'string') {
       return sortDir === 'asc'

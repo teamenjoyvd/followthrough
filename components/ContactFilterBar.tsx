@@ -96,46 +96,37 @@ export function ContactFilterBar({
     ],
   )
 
-  // Debounced Effects
+  // Debounced Effect: Unified single handler for all text input filters
   useEffect(() => {
-    if (company === currentCompany) return
-    const timer = setTimeout(() => {
-      startTransition(() => { router.replace(buildHref({ company: company.trim() })) })
-    }, 300)
-    return () => clearTimeout(timer)
-  }, [company, currentCompany, buildHref, router])
+    const hasChanges = (
+      company.trim() !== currentCompany ||
+      firstName.trim() !== currentFirstName ||
+      lastName.trim() !== currentLastName ||
+      phone.trim() !== currentPhone ||
+      email.trim() !== currentEmail
+    )
+    if (!hasChanges) return
 
-  useEffect(() => {
-    if (firstName === currentFirstName) return
     const timer = setTimeout(() => {
-      startTransition(() => { router.replace(buildHref({ first_name: firstName.trim() })) })
+      startTransition(() => {
+        router.replace(
+          buildHref({
+            company: company.trim(),
+            first_name: firstName.trim(),
+            last_name: lastName.trim(),
+            phone: phone.trim(),
+            email: email.trim(),
+          })
+        )
+      })
     }, 300)
-    return () => clearTimeout(timer)
-  }, [firstName, currentFirstName, buildHref, router])
 
-  useEffect(() => {
-    if (lastName === currentLastName) return
-    const timer = setTimeout(() => {
-      startTransition(() => { router.replace(buildHref({ last_name: lastName.trim() })) })
-    }, 300)
     return () => clearTimeout(timer)
-  }, [lastName, currentLastName, buildHref, router])
-
-  useEffect(() => {
-    if (phone === currentPhone) return
-    const timer = setTimeout(() => {
-      startTransition(() => { router.replace(buildHref({ phone: phone.trim() })) })
-    }, 300)
-    return () => clearTimeout(timer)
-  }, [phone, currentPhone, buildHref, router])
-
-  useEffect(() => {
-    if (email === currentEmail) return
-    const timer = setTimeout(() => {
-      startTransition(() => { router.replace(buildHref({ email: email.trim() })) })
-    }, 300)
-    return () => clearTimeout(timer)
-  }, [email, currentEmail, buildHref, router])
+  }, [
+    company, firstName, lastName, phone, email,
+    currentCompany, currentFirstName, currentLastName, currentPhone, currentEmail,
+    buildHref, router
+  ])
 
   const hasActiveFilters = !!(
     currentStatus ||

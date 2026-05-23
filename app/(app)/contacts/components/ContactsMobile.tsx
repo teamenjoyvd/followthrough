@@ -4,7 +4,7 @@ import { PIPELINE_STATUSES } from './constants'
 import type { Database } from '@/types/supabase'
 
 interface Props {
-  contacts: any[]
+  contacts: (Database['public']['Tables']['contacts']['Row'] & { phone_numbers?: { number: string }[] })[]
 }
 
 function statusStyle(status: Database['public']['Enums']['pipeline_status']) {
@@ -21,7 +21,7 @@ function formatDate(iso: string | null) {
   return new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })
 }
 
-function initials(c: any) {
+function initials(c: Database['public']['Tables']['contacts']['Row']) {
   return [c.first_name[0], c.last_name?.[0]]
     .filter(Boolean)
     .join('')
