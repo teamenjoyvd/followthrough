@@ -27,6 +27,10 @@ interface Props {
   profileId: string
   triggerLabel?: string
   triggerClassName?: string
+  open?: boolean
+  onOpenChange?: (open: boolean) => void
+  showTrigger?: boolean
+  onSuccess?: () => void
 }
 
 function CallForm({
@@ -253,14 +257,37 @@ export default function LogInteractionSheet({
   profileId,
   triggerLabel = 'Log interaction',
   triggerClassName,
+  open: controlledOpen,
+  onOpenChange: controlledOnOpenChange,
+  showTrigger = true,
+  onSuccess: onSuccessProp,
 }: Props) {
-  const [open, setOpen] = React.useState(false)
+  const [localOpen, setLocalOpen] = React.useState(false)
+  const isControlled = controlledOpen !== undefined
+  const open = isControlled ? controlledOpen : localOpen
+  const setOpen = React.useCallback(
+    (newOpen: boolean) => {
+      if (isControlled) {
+        controlledOnOpenChange?.(newOpen)
+      } else {
+        setLocalOpen(newOpen)
+      }
+    },
+    [isControlled, controlledOnOpenChange]
+  )
+
+  const handleSuccess = React.useCallback(() => {
+    setOpen(false)
+    onSuccessProp?.()
+  }, [setOpen, onSuccessProp])
 
   return (
     <Sheet open={open} onOpenChange={setOpen}>
-      <SheetTrigger asChild>
-        <Button className={cn(triggerClassName)}>{triggerLabel}</Button>
-      </SheetTrigger>
+      {showTrigger && (
+        <SheetTrigger asChild>
+          <Button className={cn(triggerClassName)}>{triggerLabel}</Button>
+        </SheetTrigger>
+      )}
       <SheetContent side="right" className="w-full sm:max-w-md overflow-y-auto">
         <SheetHeader>
           <SheetTitle>Log interaction</SheetTitle>
@@ -277,7 +304,7 @@ export default function LogInteractionSheet({
             <CallForm
               contactId={contactId}
               profileId={profileId}
-              onSuccess={() => setOpen(false)}
+              onSuccess={handleSuccess}
             />
           </TabsContent>
 
@@ -285,7 +312,7 @@ export default function LogInteractionSheet({
             <EmailForm
               contactId={contactId}
               profileId={profileId}
-              onSuccess={() => setOpen(false)}
+              onSuccess={handleSuccess}
             />
           </TabsContent>
 
@@ -293,7 +320,7 @@ export default function LogInteractionSheet({
             <NoteForm
               contactId={contactId}
               profileId={profileId}
-              onSuccess={() => setOpen(false)}
+              onSuccess={handleSuccess}
             />
           </TabsContent>
         </Tabs>

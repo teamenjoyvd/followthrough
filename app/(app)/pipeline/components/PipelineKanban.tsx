@@ -49,11 +49,11 @@ function ContactCard({ contact, isDragging }: { contact: Contact; isDragging?: b
       style={style}
       {...attributes}
       {...listeners}
-      className="bg-white border border-gray-200 rounded-lg px-3 py-2.5 shadow-sm cursor-grab active:cursor-grabbing select-none"
+      className="bg-white border border-terra-surface-container-highest rounded-xl px-3 py-2.5 shadow-sm cursor-grab active:cursor-grabbing select-none hover:border-terra-primary/30 transition-colors"
     >
-      <p className="text-sm font-medium text-gray-900 truncate">{fullName}</p>
+      <p className="text-sm font-medium text-terra-on-surface font-body truncate">{fullName}</p>
       {contact.company && (
-        <p className="text-xs text-gray-500 truncate mt-0.5">{contact.company}</p>
+        <p className="text-xs text-terra-on-surface-variant font-body truncate mt-0.5">{contact.company}</p>
       )}
     </div>
   )
@@ -62,10 +62,10 @@ function ContactCard({ contact, isDragging }: { contact: Contact; isDragging?: b
 function DragCard({ contact }: { contact: Contact }) {
   const fullName = [contact.first_name, contact.last_name].filter(Boolean).join(' ')
   return (
-    <div className="bg-white border border-indigo-300 rounded-lg px-3 py-2.5 shadow-lg rotate-2 cursor-grabbing">
-      <p className="text-sm font-medium text-gray-900 truncate">{fullName}</p>
+    <div className="bg-white border border-terra-primary/40 rounded-xl px-3 py-2.5 shadow-lg rotate-2 cursor-grabbing">
+      <p className="text-sm font-medium text-terra-on-surface font-body truncate">{fullName}</p>
       {contact.company && (
-        <p className="text-xs text-gray-500 truncate mt-0.5">{contact.company}</p>
+        <p className="text-xs text-terra-on-surface-variant font-body truncate mt-0.5">{contact.company}</p>
       )}
     </div>
   )
@@ -171,7 +171,7 @@ export function PipelineKanban({ contacts, profileId }: Props) {
               strategy={verticalListSortingStrategy}
             >
               <div
-                className="flex flex-col gap-2 flex-1 min-h-16 rounded-lg bg-gray-50 border border-dashed border-gray-200 p-2"
+                className="flex flex-col gap-2 flex-1 min-h-16 rounded-xl bg-terra-surface-container-low border border-dashed border-terra-outline/30 p-2"
               >
                 {grouped[value]?.map((contact) => (
                   <ContactCard

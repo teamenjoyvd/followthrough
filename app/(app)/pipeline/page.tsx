@@ -37,8 +37,8 @@ export default async function PipelinePage() {
   return (
     <div className="flex flex-col h-full">
       {/* Header */}
-      <div className="flex items-center justify-between px-4 md:px-6 py-4 border-b border-gray-200 bg-white">
-        <h1 className="text-lg font-semibold text-gray-900">Pipeline</h1>
+      <div className="flex items-center justify-between px-4 md:px-6 py-4 border-b border-terra-surface-container-highest/50 bg-terra-surface">
+        <h1 className="font-headline text-2xl font-bold text-terra-primary">Pipeline</h1>
       </div>
 
       {/* Kanban — desktop only */}

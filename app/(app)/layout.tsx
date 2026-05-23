@@ -7,6 +7,8 @@ import Link from 'next/link'
 import BottomNav from './components/BottomNav'
 import SidebarNavLinks from './components/SidebarNavLinks'
 
+import { Logo } from '@/components/Logo'
+
 // ---------------------------------------------------------------------------
 // SidebarNav — RSC shell; nav links delegate to SidebarNavLinks (client)
 // ---------------------------------------------------------------------------
@@ -16,9 +18,9 @@ function SidebarNav({ inboxUnreadCount }: { inboxUnreadCount: number }) {
       aria-label="Desktop navigation"
       className="hidden md:flex flex-col w-56 shrink-0 border-r border-terra-outline-variant bg-terra-surface-container-low px-3 py-6 gap-1"
     >
-      <span className="px-3 mb-6 text-xl font-headline font-bold tracking-tight text-primary">
-        FollowThrough
-      </span>
+      <Link href="/dashboard" className="px-3 mb-6 block transition-transform duration-200 hover:scale-[1.02]">
+        <Logo />
+      </Link>
 
       <SidebarNavLinks inboxUnreadCount={inboxUnreadCount} />
     </nav>

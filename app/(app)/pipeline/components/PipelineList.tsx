@@ -39,14 +39,14 @@ function ContactRow({
   }
 
   return (
-    <div className={`flex items-center justify-between px-4 py-3 border-b border-gray-100 last:border-0 ${isPending ? 'opacity-50' : ''}`}>
+    <div className={`flex items-center justify-between px-4 py-3 border-b border-terra-surface-container-highest/40 last:border-0 ${isPending ? 'opacity-50' : ''}`}>
       <Link
         href={`/contacts/${contact.id}`}
         className="flex flex-col min-w-0 flex-1"
       >
-        <span className="text-sm font-medium text-gray-900 truncate">{fullName}</span>
+        <span className="text-sm font-medium text-terra-on-surface font-body truncate">{fullName}</span>
         {contact.company && (
-          <span className="text-xs text-gray-500 truncate">{contact.company}</span>
+          <span className="text-xs text-terra-on-surface-variant font-body truncate">{contact.company}</span>
         )}
       </Link>
 
@@ -55,7 +55,7 @@ function ContactRow({
         value={contact.pipeline_status}
         onChange={(e) => handleStatusChange(e.target.value as PipelineStatus)}
         disabled={isPending}
-        className={`ml-3 text-xs border rounded-full px-2 py-1 font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-50 ${statusMeta?.color ?? 'border-gray-200 bg-white text-gray-600'}`}
+        className={`ml-3 text-xs border rounded-full px-2 py-1 font-medium focus:outline-none focus:ring-2 focus:ring-terra-primary focus:border-terra-primary disabled:opacity-50 ${statusMeta?.color ?? 'border-terra-surface-container-highest bg-white text-terra-on-surface-variant'}`}
         aria-label={`Pipeline status for ${fullName}`}
       >
         {PIPELINE_STATUSES.map(({ value, label }) => (
@@ -84,13 +84,13 @@ export function PipelineList({ contacts, profileId }: Props) {
   )
 
   return (
-    <div className="flex flex-col flex-1 overflow-y-auto">
+    <div className="flex flex-col flex-1 overflow-y-auto bg-terra-surface">
       {PIPELINE_STATUSES.map(({ value, label, color }) => {
         const group = grouped[value] ?? []
         if (group.length === 0) return null
         return (
           <section key={value}>
-            <div className="sticky top-0 bg-white px-4 py-2 border-b border-gray-100 z-10">
+            <div className="sticky top-0 bg-terra-surface/95 backdrop-blur-sm px-4 py-2.5 border-b border-terra-surface-container-highest/60 z-10">
               <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium border ${color}`}>
                 {label} <span className="opacity-60">({group.length})</span>
               </span>
@@ -109,8 +109,8 @@ export function PipelineList({ contacts, profileId }: Props) {
 
       {contacts.length === 0 && (
         <div className="flex flex-col items-center justify-center flex-1 py-16 text-center">
-          <p className="text-sm text-gray-500">No contacts in your pipeline yet.</p>
-          <Link href="/contacts/new" className="mt-2 text-sm text-indigo-600 hover:underline">
+          <p className="text-sm text-terra-on-surface-variant font-body">No contacts in your pipeline yet.</p>
+          <Link href="/contacts/new" className="mt-2 text-sm text-terra-primary font-medium hover:underline font-body">
             Add a contact
           </Link>
         </div>

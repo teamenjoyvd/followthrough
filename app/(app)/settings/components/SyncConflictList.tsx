@@ -3,8 +3,6 @@
 import { useState, useTransition } from 'react'
 import { resolveConflict } from '@/lib/actions/sync-conflicts'
 
-// Explicit interface — avoids Database['...']['Row'] & { contacts } intersection
-// which collapses the joined relation to `never` under strict TS.
 export interface SyncConflictWithContact {
   id: string
   profile_id: string
@@ -51,46 +49,46 @@ function ConflictRow({
   }
 
   return (
-    <div className="border border-gray-200 rounded-lg p-4 space-y-3">
+    <div className="border border-terra-surface-container-highest rounded-[16px] p-4 space-y-3 bg-terra-surface-container-low">
       <div className="flex items-start justify-between gap-2">
         <div>
-          <p className="text-sm font-medium text-gray-900">{contactName}</p>
-          <p className="text-xs text-gray-500 capitalize">{conflict.field_name.replace(/_/g, ' ')}</p>
+          <p className="text-sm font-medium text-terra-on-surface">{contactName}</p>
+          <p className="text-xs text-terra-outline capitalize">{conflict.field_name.replace(/_/g, ' ')}</p>
         </div>
       </div>
 
       {/* Side-by-side comparison */}
       <div className="grid grid-cols-2 gap-3">
         <div className="space-y-1">
-          <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Our value</p>
-          <p className="text-sm text-gray-900 bg-gray-50 rounded px-2 py-1.5 min-h-8">
-            {conflict.our_value ?? <span className="text-gray-400 italic">empty</span>}
+          <p className="text-xs font-medium text-terra-outline uppercase tracking-wide">Our value</p>
+          <p className="text-sm text-terra-on-surface bg-terra-surface-container-high rounded-xl px-2 py-1.5 min-h-8">
+            {conflict.our_value ?? <span className="text-terra-outline italic">empty</span>}
           </p>
           <button
             onClick={() => handleResolve('ours')}
             disabled={isPending}
-            className="w-full text-xs font-medium px-3 py-1.5 rounded-md border border-gray-200 bg-white text-gray-700 hover:bg-gray-50 disabled:opacity-50 transition-colors"
+            className="w-full text-xs font-medium px-3 py-1.5 rounded-xl border border-terra-surface-container-highest bg-terra-surface text-terra-on-surface hover:bg-terra-surface-container-high disabled:opacity-50 transition-colors"
           >
             Keep ours
           </button>
         </div>
 
         <div className="space-y-1">
-          <p className="text-xs font-medium text-indigo-600 uppercase tracking-wide">Google value</p>
-          <p className="text-sm text-gray-900 bg-indigo-50 rounded px-2 py-1.5 min-h-8">
-            {conflict.google_value ?? <span className="text-gray-400 italic">empty</span>}
+          <p className="text-xs font-medium text-terra-primary uppercase tracking-wide">Google value</p>
+          <p className="text-sm text-terra-on-surface bg-terra-on-primary-container rounded-xl px-2 py-1.5 min-h-8">
+            {conflict.google_value ?? <span className="text-terra-outline italic">empty</span>}
           </p>
           <button
             onClick={() => handleResolve('google')}
             disabled={isPending}
-            className="w-full text-xs font-medium px-3 py-1.5 rounded-md border border-indigo-200 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 disabled:opacity-50 transition-colors"
+            className="w-full text-xs font-medium px-3 py-1.5 rounded-xl border border-terra-primary/30 bg-terra-on-primary-container text-terra-on-surface hover:bg-terra-primary-fixed disabled:opacity-50 transition-colors"
           >
             Use Google
           </button>
         </div>
       </div>
 
-      {error && <p className="text-xs text-red-600">{error}</p>}
+      {error && <p className="text-xs text-destructive">{error}</p>}
     </div>
   )
 }
@@ -104,7 +102,7 @@ export function SyncConflictList({ conflicts, profileId }: Props) {
 
   if (items.length === 0) {
     return (
-      <p className="text-sm text-gray-500 py-4 text-center">No unresolved conflicts.</p>
+      <p className="text-sm text-terra-outline py-4 text-center">No unresolved conflicts.</p>
     )
   }
 
