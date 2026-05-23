@@ -33,6 +33,7 @@ export function SearchInput({
         } else {
           params.delete('q')
         }
+        params.delete('page') // Reset page index back to 1 when search query changes
 
         const qs = params.toString()
         router.replace(qs ? `${pathname}?${qs}` : pathname)

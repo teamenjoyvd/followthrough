@@ -46,6 +46,7 @@ interface SearchParams {
   has_email?: string
   has_phone?: string
   source?: string
+  page?: string
 }
 
 export const dynamic = 'force-dynamic'
@@ -54,6 +55,8 @@ export const metadata = {
   title: 'Contacts — Followthrough',
   description: 'Manage your contacts and track pipeline status.',
 }
+
+const PAGE_SIZE = 50
 
 export default async function ContactsPage({
   searchParams,
@@ -227,6 +230,25 @@ export default async function ContactsPage({
     }
   })
 
+  // Slicing and pagination logic
+  const totalContacts = filteredContacts.length
+  const totalPages = Math.ceil(totalContacts / PAGE_SIZE) || 1
+  const pageParam = Number(params.page || 1)
+  const activePage = isNaN(pageParam) || pageParam < 1 ? 1 : Math.min(totalPages, pageParam)
+  const paginatedContacts = filteredContacts.slice((activePage - 1) * PAGE_SIZE, activePage * PAGE_SIZE)
+
+  function buildPaginationHref(newPage: number) {
+    const searchParamsObj = new URLSearchParams()
+    // Spread existing params and update the page index dynamically
+    const merged = { ...params, page: newPage > 1 ? newPage.toString() : '' }
+
+    Object.entries(merged).forEach(([k, v]) => {
+      if (v !== undefined && v !== null && v !== '') searchParamsObj.set(k, v as string)
+    })
+    const qs = searchParamsObj.toString()
+    return qs ? `/contacts?${qs}` : '/contacts'
+  }
+
   return (
     <div className="flex flex-col h-full bg-[#faf6f0]">
       {/* Header */}
@@ -271,7 +293,7 @@ export default async function ContactsPage({
       {/* Contact list */}
       <div className="flex-1 overflow-y-auto bg-[#faf6f0]">
         <ContactsDesktop
-          contacts={filteredContacts}
+          contacts={paginatedContacts}
           sortKey={sortKey}
           sortDir={sortDir}
           currentQuery={query}
@@ -279,8 +301,45 @@ export default async function ContactsPage({
           currentLastContacted={lastContactedFilter}
           currentCompany={companyFilter}
         />
-        <ContactsMobile contacts={filteredContacts} />
+        <ContactsMobile contacts={paginatedContacts} />
       </div>
+
+      {/* Pagination Bar */}
+      {totalPages > 1 && (
+        <div className="flex items-center justify-between px-4 md:px-6 py-3.5 border-t border-[#e4e0d8] bg-[#faf6f0] shrink-0">
+          <div className="flex items-center gap-2">
+            {activePage > 1 ? (
+              <Link
+                href={buildPaginationHref(activePage - 1)}
+                className="inline-flex items-center justify-center px-3.5 py-1.5 rounded-xl border border-[#e4e0d8] bg-[#f5f1ea] hover:bg-[#eae6de] text-xs font-semibold text-[#4a7c59] transition-all shadow-sm active:scale-95 duration-200"
+              >
+                Previous
+              </Link>
+            ) : (
+              <span className="inline-flex items-center justify-center px-3.5 py-1.5 rounded-xl border border-[#e4e0d8]/50 bg-[#f5f1ea]/50 text-xs font-semibold text-[#74796e]/50 cursor-not-allowed">
+                Previous
+              </span>
+            )}
+
+            {activePage < totalPages ? (
+              <Link
+                href={buildPaginationHref(activePage + 1)}
+                className="inline-flex items-center justify-center px-3.5 py-1.5 rounded-xl border border-[#e4e0d8] bg-[#f5f1ea] hover:bg-[#eae6de] text-xs font-semibold text-[#4a7c59] transition-all shadow-sm active:scale-95 duration-200"
+              >
+                Next
+              </Link>
+            ) : (
+              <span className="inline-flex items-center justify-center px-3.5 py-1.5 rounded-xl border border-[#e4e0d8]/50 bg-[#f5f1ea]/50 text-xs font-semibold text-[#74796e]/50 cursor-not-allowed">
+                Next
+              </span>
+            )}
+          </div>
+          
+          <span className="text-xs text-[#74796e] font-medium font-body">
+            Page <span className="font-semibold text-[#2e3230]">{activePage}</span> of <span className="font-semibold text-[#2e3230]">{totalPages}</span>
+          </span>
+        </div>
+      )}
 
       {/* Footer count */}
       <div className="px-4 md:px-6 py-3 border-t border-[#e4e0d8] bg-[#faf6f0] shrink-0">
