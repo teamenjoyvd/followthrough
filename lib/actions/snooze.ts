@@ -68,68 +68,22 @@ export async function checkResurfaced(): Promise<{ success: true; count: number 
 
   const todayStr = new Date().toISOString().split('T')[0] // YYYY-MM-DD
 
-  const { data: contacts, error: fetchError } = await supabase
-    .from('contacts')
-    .select('id, pre_snooze_status')
-    .eq('profile_id', profileId)
-    .eq('pipeline_status', 'snoozed')
-    .lte('snoozed_until', todayStr)
+  const { data: count, error: rpcError } = await supabase
+    .rpc('resurface_expired_contacts', {
+      p_profile_id: profileId,
+      p_today: todayStr
+    })
 
-  if (fetchError) {
-    return { error: fetchError.message || 'Failed to fetch expired snoozed contacts' }
+  if (rpcError) {
+    return { error: rpcError.message || 'Failed to resurface expired contacts' }
   }
 
-  if (!contacts || contacts.length === 0) {
-    return { success: true, count: 0 }
+  const resurfacedCount = Number(count) || 0
+
+  if (resurfacedCount > 0) {
+    revalidatePath('/dashboard')
+    revalidatePath('/inbox')
   }
 
-  // Group contacts by their next status to allow bulk updates
-  const statusGroups: Record<string, string[]> = {}
-  for (const contact of contacts) {
-    const nextStatus = contact.pre_snooze_status || 'lead'
-    if (!statusGroups[nextStatus]) {
-      statusGroups[nextStatus] = []
-    }
-    statusGroups[nextStatus].push(contact.id)
-  }
-
-  // Perform bulk update for each unique status group
-  for (const [status, ids] of Object.entries(statusGroups)) {
-    const { error: updateError } = await supabase
-      .from('contacts')
-      .update({
-        pipeline_status: status,
-        snoozed_until: null,
-        pre_snooze_status: null,
-      })
-      .in('id', ids)
-      .eq('profile_id', profileId)
-
-    if (updateError) {
-      console.error(`Failed to bulk resurface contacts for status ${status}:`, updateError.message)
-    }
-  }
-
-  // Bulk-insert all 'resurfaced' notification items in the inbox in a single query
-  const inboxInserts = contacts.map((contact) => ({
-    profile_id: profileId,
-    type: 'resurfaced',
-    contact_id: contact.id,
-    payload: { previous_status: contact.pre_snooze_status || null },
-    read: false,
-  }))
-
-  if (inboxInserts.length > 0) {
-    const { error: inboxError } = await supabase
-      .from('inbox_items')
-      .insert(inboxInserts)
-
-    if (inboxError) {
-      console.error('Failed to bulk insert inbox items for resurfaced contacts:', inboxError.message)
-    }
-  }
-
-  revalidatePath('/dashboard')
-  revalidatePath('/inbox')
-  return { success: true, count: contacts.length }
+  return { success: true, count: resurfacedCount }
 }

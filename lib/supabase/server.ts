@@ -2,11 +2,11 @@ import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import { auth } from '@clerk/nextjs/server'
 import { SupabaseClient } from '@supabase/supabase-js'
-import type { Database } from '../../types/supabase'
+import type { Database } from '@/types/supabase'
 
 type CookieToSet = { name: string; value: string; options?: Record<string, unknown> }
 
-export async function createSupabaseServerClient() {
+export async function createSupabaseServerClient(): Promise<any> {
   const cookieStore = await cookies()
 
   let supabaseToken: string | null = null
@@ -44,17 +44,17 @@ export async function createSupabaseServerClient() {
     }
   }
 
-  return createServerClient(
+  return createServerClient<Omit<Database, '__InternalSupabase'>>(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     options
-  )
+  ) as any
 }
 
-export async function createSupabaseServiceClient() {
+export async function createSupabaseServiceClient(): Promise<any> {
   const cookieStore = await cookies()
 
-  return createServerClient(
+  return createServerClient<Omit<Database, '__InternalSupabase'>>(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!,
     {
@@ -71,7 +71,7 @@ export async function createSupabaseServiceClient() {
         },
       },
     }
-  )
+  ) as any
 }
 
 export async function getProfileId(

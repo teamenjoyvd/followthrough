@@ -66,6 +66,10 @@ export type Database = {
           snoozed_until: string | null
           updated_at: string
           working_list_added_at: string | null
+          created_by_source: Database["public"]["Enums"]["contact_source"]
+          last_updated_by_source: Database["public"]["Enums"]["contact_source"]
+          source_detail: string | null
+          import_log_id: string | null
         }
         Insert: {
           avatar_url?: string | null
@@ -86,6 +90,10 @@ export type Database = {
           snoozed_until?: string | null
           updated_at?: string
           working_list_added_at?: string | null
+          created_by_source?: Database["public"]["Enums"]["contact_source"]
+          last_updated_by_source?: Database["public"]["Enums"]["contact_source"]
+          source_detail?: string | null
+          import_log_id?: string | null
         }
         Update: {
           avatar_url?: string | null
@@ -106,6 +114,10 @@ export type Database = {
           snoozed_until?: string | null
           updated_at?: string
           working_list_added_at?: string | null
+          created_by_source?: Database["public"]["Enums"]["contact_source"]
+          last_updated_by_source?: Database["public"]["Enums"]["contact_source"]
+          source_detail?: string | null
+          import_log_id?: string | null
         }
         Relationships: [
           {
@@ -465,13 +477,145 @@ export type Database = {
           },
         ]
       }
+      csv_imports_log: {
+        Row: {
+          id: string
+          profile_id: string
+          filename: string
+          record_count: number
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          profile_id: string
+          filename: string
+          record_count?: number
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          profile_id?: string
+          filename?: string
+          record_count?: number
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "csv_imports_log_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      labels: {
+        Row: {
+          id: string
+          profile_id: string
+          name: string
+          color: string
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          profile_id: string
+          name: string
+          color: string
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          profile_id?: string
+          name?: string
+          color?: string
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "labels_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      contact_labels: {
+        Row: {
+          contact_id: string
+          label_id: string
+          profile_id: string
+        }
+        Insert: {
+          contact_id: string
+          label_id: string
+          profile_id: string
+        }
+        Update: {
+          contact_id?: string
+          label_id?: string
+          profile_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contact_labels_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contact_labels_label_id_fkey"
+            columns: ["label_id"]
+            isOneToOne: false
+            referencedRelation: "labels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contact_labels_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
     }
     Views: {
-      [_ in never]: never
+      contacts_search_view: {
+        Row: Database['public']['Tables']['contacts']['Row'] & {
+          phone_numbers: Json
+          contact_labels: Json
+          label_ids: string[] | null
+          phone_numbers_concat: string | null
+        }
+        Insert: never
+        Update: never
+      }
     }
     Functions: {
       get_my_clerk_id: { Args: never; Returns: string }
       get_my_profile_id: { Args: never; Returns: string }
+      create_contact_with_phone: {
+        Args: {
+          p_profile_id: string
+          p_first_name: string
+          p_last_name: string | null
+          p_email: string | null
+          p_company: string | null
+          p_job_title: string | null
+          p_phone: string | null
+        }
+        Returns: string
+      }
+      resurface_expired_contacts: {
+        Args: {
+          p_profile_id: string
+          p_today: string
+        }
+        Returns: number
+      }
     }
     Enums: {
       call_outcome: "connected" | "no_answer" | "voicemail"
@@ -485,6 +629,7 @@ export type Database = {
         | "leave_alone"
         | "snoozed"
       social_platform: "linkedin" | "twitter" | "instagram" | "other"
+      contact_source: "manual" | "google_sync" | "csv_import" | "api"
     }
     CompositeTypes: {
       [_ in never]: never

@@ -71,6 +71,89 @@ function buildPaginationHref(params: SearchParams, newPage: number) {
   return qs ? `/contacts?${qs}` : '/contacts'
 }
 
+function applyActiveFilters(query: any, filters: {
+  statusFilter: string
+  companyFilter: string
+  lastContactedFilter: string
+  sourceFilter: string
+  hasEmailFilter: string
+  hasPhoneFilter: string
+  labelsFilter: string[]
+  firstNameFilter: string
+  lastNameFilter: string
+  emailFilter: string
+  phoneFilter: string
+  query: string
+}) {
+  const {
+    statusFilter,
+    companyFilter,
+    lastContactedFilter,
+    sourceFilter,
+    hasEmailFilter,
+    hasPhoneFilter,
+    labelsFilter,
+    firstNameFilter,
+    lastNameFilter,
+    emailFilter,
+    phoneFilter,
+    query: broadQuery
+  } = filters
+
+  if (statusFilter) query = query.eq('pipeline_status', statusFilter)
+  if (companyFilter) query = query.ilike('company', `%${companyFilter}%`)
+
+  if (lastContactedFilter && LAST_CONTACTED_DAYS[lastContactedFilter]) {
+    const days = LAST_CONTACTED_DAYS[lastContactedFilter]
+    const cutoff = new Date()
+    cutoff.setDate(cutoff.getDate() - days)
+    query = query.or(`last_contacted_at.lte.${cutoff.toISOString()},last_contacted_at.is.null`)
+  }
+
+  if (sourceFilter) {
+    if (sourceFilter === 'google') query = query.eq('created_by_source', 'google_sync')
+    else if (sourceFilter === 'csv') query = query.eq('created_by_source', 'csv_import')
+    else if (sourceFilter === 'manual') query = query.eq('created_by_source', 'manual')
+  }
+
+  if (hasEmailFilter) {
+    if (hasEmailFilter === 'yes') query = query.not('email', 'is', null)
+    else if (hasEmailFilter === 'no') query = query.is('email', null)
+  }
+
+  if (hasPhoneFilter) {
+    if (hasPhoneFilter === 'yes') query = query.not('phone_numbers_concat', 'is', null)
+    else if (hasPhoneFilter === 'no') query = query.is('phone_numbers_concat', null)
+  }
+
+  if (labelsFilter.length > 0) {
+    query = query.overlaps('label_ids', labelsFilter)
+  }
+
+  if (firstNameFilter) query = query.ilike('first_name', `%${firstNameFilter}%`)
+  if (lastNameFilter) query = query.ilike('last_name', `%${lastNameFilter}%`)
+  if (emailFilter) query = query.ilike('email', `%${emailFilter}%`)
+
+  if (phoneFilter) {
+    const phDigits = phoneFilter.replace(/\D/g, '')
+    if (phDigits) {
+      query = query.ilike('phone_numbers_concat', `%${phDigits}%`)
+    }
+  }
+
+  if (broadQuery) {
+    const q = `%${broadQuery}%`
+    const qDigits = broadQuery.replace(/\D/g, '')
+    if (qDigits) {
+      query = query.or(`first_name.ilike.${q},last_name.ilike.${q},email.ilike.${q},company.ilike.${q},job_title.ilike.${q},phone_numbers_concat.ilike.%${qDigits}%`)
+    } else {
+      query = query.or(`first_name.ilike.${q},last_name.ilike.${q},email.ilike.${q},company.ilike.${q},job_title.ilike.${q}`)
+    }
+  }
+
+  return query
+}
+
 export default async function ContactsPage({
   searchParams,
 }: {
@@ -133,88 +216,20 @@ export default async function ContactsPage({
     .select('*', { count: 'exact' })
     .eq('profile_id', profile.id)
 
-  // Pipeline Status Filter
-  if (statusFilter) {
-    dbQuery = dbQuery.eq('pipeline_status', statusFilter)
-  }
-
-  // Company Filter
-  if (companyFilter) {
-    dbQuery = dbQuery.ilike('company', `%${companyFilter}%`)
-  }
-
-  // Last Contacted Filter
-  if (lastContactedFilter && LAST_CONTACTED_DAYS[lastContactedFilter]) {
-    const days = LAST_CONTACTED_DAYS[lastContactedFilter]
-    const cutoff = new Date()
-    cutoff.setDate(cutoff.getDate() - days)
-    dbQuery = dbQuery.or(`last_contacted_at.lte.${cutoff.toISOString()},last_contacted_at.is.null`)
-  }
-
-  // Synced Source Filter
-  if (sourceFilter) {
-    if (sourceFilter === 'google') {
-      dbQuery = dbQuery.eq('created_by_source', 'google_sync')
-    } else if (sourceFilter === 'csv') {
-      dbQuery = dbQuery.eq('created_by_source', 'csv_import')
-    } else if (sourceFilter === 'manual') {
-      dbQuery = dbQuery.eq('created_by_source', 'manual')
-    }
-  }
-
-  // Has Email Filter
-  if (hasEmailFilter) {
-    if (hasEmailFilter === 'yes') {
-      dbQuery = dbQuery.not('email', 'is', null)
-    } else if (hasEmailFilter === 'no') {
-      dbQuery = dbQuery.is('email', null)
-    }
-  }
-
-  // Has Phone Filter
-  if (hasPhoneFilter) {
-    if (hasPhoneFilter === 'yes') {
-      dbQuery = dbQuery.not('phone_numbers_concat', 'is', null)
-    } else if (hasPhoneFilter === 'no') {
-      dbQuery = dbQuery.is('phone_numbers_concat', null)
-    }
-  }
-
-  // Relational Many-to-Many Labels Filter
-  if (labelsFilter.length > 0) {
-    dbQuery = dbQuery.overlaps('label_ids', labelsFilter)
-  }
-
-  // Field Specific Filters
-  if (firstNameFilter) {
-    dbQuery = dbQuery.ilike('first_name', `%${firstNameFilter}%`)
-  }
-
-  if (lastNameFilter) {
-    dbQuery = dbQuery.ilike('last_name', `%${lastNameFilter}%`)
-  }
-
-  if (emailFilter) {
-    dbQuery = dbQuery.ilike('email', `%${emailFilter}%`)
-  }
-
-  if (phoneFilter) {
-    const phDigits = phoneFilter.replace(/\D/g, '')
-    if (phDigits) {
-      dbQuery = dbQuery.ilike('phone_numbers_concat', `%${phDigits}%`)
-    }
-  }
-
-  // Broad Search (q)
-  if (query) {
-    const q = `%${query}%`
-    const qDigits = query.replace(/\D/g, '')
-    if (qDigits) {
-      dbQuery = dbQuery.or(`first_name.ilike.${q},last_name.ilike.${q},email.ilike.${q},company.ilike.${q},job_title.ilike.${q},phone_numbers_concat.ilike.%${qDigits}%`)
-    } else {
-      dbQuery = dbQuery.or(`first_name.ilike.${q},last_name.ilike.${q},email.ilike.${q},company.ilike.${q},job_title.ilike.${q}`)
-    }
-  }
+  dbQuery = applyActiveFilters(dbQuery, {
+    statusFilter,
+    companyFilter,
+    lastContactedFilter,
+    sourceFilter,
+    hasEmailFilter,
+    hasPhoneFilter,
+    labelsFilter,
+    firstNameFilter,
+    lastNameFilter,
+    emailFilter,
+    phoneFilter,
+    query
+  })
 
   // Sorting
   if (sortKey === 'pipeline_status') {
@@ -240,46 +255,20 @@ export default async function ContactsPage({
     .select('id')
     .eq('profile_id', profile.id)
 
-  if (statusFilter) idsQuery = idsQuery.eq('pipeline_status', statusFilter)
-  if (companyFilter) idsQuery = idsQuery.ilike('company', `%${companyFilter}%`)
-  if (lastContactedFilter && LAST_CONTACTED_DAYS[lastContactedFilter]) {
-    const days = LAST_CONTACTED_DAYS[lastContactedFilter]
-    const cutoff = new Date()
-    cutoff.setDate(cutoff.getDate() - days)
-    idsQuery = idsQuery.or(`last_contacted_at.lte.${cutoff.toISOString()},last_contacted_at.is.null`)
-  }
-  if (sourceFilter) {
-    if (sourceFilter === 'google') idsQuery = idsQuery.eq('created_by_source', 'google_sync')
-    else if (sourceFilter === 'csv') idsQuery = idsQuery.eq('created_by_source', 'csv_import')
-    else if (sourceFilter === 'manual') idsQuery = idsQuery.eq('created_by_source', 'manual')
-  }
-  if (hasEmailFilter) {
-    if (hasEmailFilter === 'yes') idsQuery = idsQuery.not('email', 'is', null)
-    else if (hasEmailFilter === 'no') idsQuery = idsQuery.is('email', null)
-  }
-  if (hasPhoneFilter) {
-    if (hasPhoneFilter === 'yes') idsQuery = idsQuery.not('phone_numbers_concat', 'is', null)
-    else if (hasPhoneFilter === 'no') idsQuery = idsQuery.is('phone_numbers_concat', null)
-  }
-  if (labelsFilter.length > 0) {
-    idsQuery = idsQuery.overlaps('label_ids', labelsFilter)
-  }
-  if (firstNameFilter) idsQuery = idsQuery.ilike('first_name', `%${firstNameFilter}%`)
-  if (lastNameFilter) idsQuery = idsQuery.ilike('last_name', `%${lastNameFilter}%`)
-  if (emailFilter) idsQuery = idsQuery.ilike('email', `%${emailFilter}%`)
-  if (phoneFilter) {
-    const phDigits = phoneFilter.replace(/\D/g, '')
-    if (phDigits) idsQuery = idsQuery.ilike('phone_numbers_concat', `%${phDigits}%`)
-  }
-  if (query) {
-    const q = `%${query}%`
-    const qDigits = query.replace(/\D/g, '')
-    if (qDigits) {
-      idsQuery = idsQuery.or(`first_name.ilike.${q},last_name.ilike.${q},email.ilike.${q},company.ilike.${q},job_title.ilike.${q},phone_numbers_concat.ilike.%${qDigits}%`)
-    } else {
-      idsQuery = idsQuery.or(`first_name.ilike.${q},last_name.ilike.${q},email.ilike.${q},company.ilike.${q},job_title.ilike.${q}`)
-    }
-  }
+  idsQuery = applyActiveFilters(idsQuery, {
+    statusFilter,
+    companyFilter,
+    lastContactedFilter,
+    sourceFilter,
+    hasEmailFilter,
+    hasPhoneFilter,
+    labelsFilter,
+    firstNameFilter,
+    lastNameFilter,
+    emailFilter,
+    phoneFilter,
+    query
+  })
 
   const { data: matchedIdsData, error: idsError } = await idsQuery
   if (idsError) throw idsError
