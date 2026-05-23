@@ -42,6 +42,8 @@ export function mapPersonToContact(
     job_title: org?.title ?? null,
     google_contact_id: person.resourceName,
     phone_numbers: formattedPhones,
+    created_by_source: 'google_sync',
+    last_updated_by_source: 'google_sync',
   }
 }
 
@@ -172,6 +174,7 @@ export async function syncPeople(
 
         // Only run update if there is actually a field to update
         if (Object.keys(update).length > 0) {
+          update.last_updated_by_source = 'google_sync'
           updatesToRun.push(
             (supabase as any)
               .from('contacts')

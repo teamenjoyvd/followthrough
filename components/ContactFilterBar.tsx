@@ -3,8 +3,9 @@
 import { useRouter } from 'next/navigation'
 import { useCallback, useState, useEffect, useTransition } from 'react'
 import Link from 'next/link'
-import { X, ChevronDown, ChevronUp } from 'lucide-react'
+import { X, ChevronDown, ChevronUp, Tag } from 'lucide-react'
 import { PIPELINE_STATUSES } from '@/app/(app)/contacts/components/constants'
+import type { Label } from '@/components/LabelManager'
 
 const LAST_CONTACTED_OPTIONS = [
   { value: '', label: 'Any time' },
@@ -29,6 +30,8 @@ interface Props {
   currentHasEmail: string
   currentHasPhone: string
   currentSource: string
+  availableLabels?: Label[]
+  currentLabels?: string // comma-separated active label IDs
 }
 
 export function ContactFilterBar({
@@ -46,6 +49,8 @@ export function ContactFilterBar({
   currentHasEmail,
   currentHasPhone,
   currentSource,
+  availableLabels = [],
+  currentLabels = '',
 }: Props) {
   const router = useRouter()
   const [showAdvanced, setShowAdvanced] = useState(false)
@@ -65,6 +70,9 @@ export function ContactFilterBar({
   useEffect(() => { setPhone(currentPhone) }, [currentPhone])
   useEffect(() => { setEmail(currentEmail) }, [currentEmail])
 
+  // Parse active label IDs
+  const activeLabelIds = currentLabels ? currentLabels.split(',').filter(Boolean) : []
+
   const buildHref = useCallback(
     (overrides: Record<string, string>) => {
       const params = new URLSearchParams()
@@ -82,6 +90,7 @@ export function ContactFilterBar({
         has_email: currentHasEmail,
         has_phone: currentHasPhone,
         source: currentSource,
+        labels: currentLabels,
         ...overrides,
       }
       Object.entries(merged).forEach(([k, v]) => {
@@ -92,9 +101,23 @@ export function ContactFilterBar({
     },
     [
       currentQuery, currentStatus, currentLastContacted, currentCompany, currentSort, currentDir, basePath,
-      currentFirstName, currentLastName, currentPhone, currentEmail, currentHasEmail, currentHasPhone, currentSource
+      currentFirstName, currentLastName, currentPhone, currentEmail, currentHasEmail, currentHasPhone, currentSource, currentLabels
     ],
   )
+
+  // Toggle active label in filters list
+  const handleToggleLabelFilter = (labelId: string) => {
+    let nextLabels: string[]
+    if (activeLabelIds.includes(labelId)) {
+      nextLabels = activeLabelIds.filter(id => id !== labelId)
+    } else {
+      nextLabels = [...activeLabelIds, labelId]
+    }
+    const val = nextLabels.join(',')
+    startTransition(() => {
+      router.replace(buildHref({ labels: val }))
+    })
+  }
 
   // Debounced Effect: Unified single handler for all text input filters
   useEffect(() => {
@@ -138,35 +161,36 @@ export function ContactFilterBar({
     currentEmail ||
     currentHasEmail ||
     currentHasPhone ||
-    currentSource
+    currentSource ||
+    currentLabels
   )
 
   // If any of the advanced filters are currently active, auto-expand the panel on mount
   useEffect(() => {
-    if (currentFirstName || currentLastName || currentPhone || currentEmail || currentHasEmail || currentHasPhone || currentSource) {
+    if (currentFirstName || currentLastName || currentPhone || currentEmail || currentHasEmail || currentHasPhone || currentSource || currentLabels) {
       setShowAdvanced(true)
     }
-  }, [currentFirstName, currentLastName, currentPhone, currentEmail, currentHasEmail, currentHasPhone, currentSource])
+  }, [currentFirstName, currentLastName, currentPhone, currentEmail, currentHasEmail, currentHasPhone, currentSource, currentLabels])
 
   return (
-    <div className="flex flex-col gap-3 bg-transparent">
+    <div className="flex flex-col gap-3.5 bg-transparent font-body">
       {/* Status chips */}
       <div className="flex flex-wrap gap-1.5" role="group" aria-label="Filter by pipeline status">
         <Link
           href={buildHref({ status: '' })}
-          className={`px-3 py-1 rounded-full text-xs font-medium border transition-colors ${
+          className={`px-3 py-1 rounded-full text-xs font-semibold border transition-colors ${
             !currentStatus
               ? 'bg-[#4a7c59] text-white border-[#4a7c59]'
               : 'bg-[#f5f1ea] text-[#74796e] border-[#e4e0d8] hover:bg-[#eae6de] hover:text-[#2e3230]'
           }`}
         >
-          All
+          All Stages
         </Link>
         {PIPELINE_STATUSES.map(({ value, label, color }) => (
           <Link
             key={value}
             href={buildHref({ status: value })}
-            className={`px-3 py-1 rounded-full text-xs font-medium border transition-colors ${
+            className={`px-3 py-1 rounded-full text-xs font-semibold border transition-colors ${
               currentStatus === value
                 ? color
                 : 'bg-[#f5f1ea] text-[#74796e] border-[#e4e0d8] hover:bg-[#eae6de] hover:text-[#2e3230]'
@@ -176,6 +200,33 @@ export function ContactFilterBar({
           </Link>
         ))}
       </div>
+
+      {/* Relational custom labels filters */}
+      {availableLabels.length > 0 && (
+        <div className="flex flex-wrap items-center gap-1.5 border-t border-[#e4e0d8]/60 pt-2 animate-in fade-in duration-200">
+          <span className="text-[10px] font-bold text-[#74796e] uppercase tracking-wider flex items-center gap-1 mr-1">
+            <Tag className="h-3 w-3" />
+            <span>Filter Labels:</span>
+          </span>
+          {availableLabels.map((lbl) => {
+            const isActive = activeLabelIds.includes(lbl.id)
+            return (
+              <button
+                key={lbl.id}
+                type="button"
+                onClick={() => handleToggleLabelFilter(lbl.id)}
+                className={`px-2 py-0.5 rounded text-[10px] font-bold border transition-all ${
+                  isActive
+                    ? `${lbl.color} scale-105 shadow-sm ring-1 ring-[#4a7c59]/20`
+                    : 'bg-[#f5f1ea] text-[#74796e] border-[#e4e0d8] opacity-65 hover:opacity-100'
+                }`}
+              >
+                {lbl.name}
+              </button>
+            )
+          })}
+        </div>
+      )}
 
       {/* Second row: last contacted + company search + advanced toggle + clear */}
       <div className="flex flex-wrap items-center gap-2">
@@ -236,7 +287,8 @@ export function ContactFilterBar({
               email: '',
               has_email: '',
               has_phone: '',
-              source: ''
+              source: '',
+              labels: ''
             })}
             className="inline-flex items-center gap-1 text-xs text-[#74796e] hover:text-[#2e3230] font-semibold transition-colors ml-1"
           >
@@ -349,6 +401,7 @@ export function ContactFilterBar({
               >
                 <option value="">Any source</option>
                 <option value="google">Synced from Google</option>
+                <option value="csv">Imported from CSV</option>
                 <option value="manual">Created Manually</option>
               </select>
             </div>
