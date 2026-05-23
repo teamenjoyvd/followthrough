@@ -144,6 +144,7 @@ export function ContactFilterBar({
         {/* Clear all */}
         {hasActiveFilters && (
           <Link
+            replace
             href={buildHref({ status: '', last_contacted: '', company: '' })}
             className="inline-flex items-center gap-1 text-xs text-[#74796e] hover:text-[#2e3230] font-semibold transition-colors ml-1"
           >

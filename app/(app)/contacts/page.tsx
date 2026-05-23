@@ -120,11 +120,6 @@ export default async function ContactsPage({
       <div className="px-4 md:px-6 py-4 bg-[#faf6f0] border-b border-[#e4e0d8] space-y-4 shrink-0">
         <SearchInput
           defaultValue={query}
-          currentStatus={statusFilter}
-          currentLastContacted={lastContactedFilter}
-          currentCompany={companyFilter}
-          currentSort={sortKey}
-          currentDir={sortDir}
         />
 
         <ContactFilterBar
