@@ -14,7 +14,7 @@ type ContactRow = Database['public']['Tables']['contacts']['Row'] & {
 
 interface Props {
   contacts: ContactRow[]
-  selectedIds: string[]
+  selectedIds: Set<string>
   onToggleSelect: (id: string) => void
   labels: Label[]
 }
@@ -59,6 +59,7 @@ function initials(c: any) {
 }
 
 export default function ContactsMobile({ contacts, selectedIds, onToggleSelect, labels }: Props) {
+  const labelsMap = new Map(labels.map(l => [l.id, l]))
   return (
     <div className="md:hidden divide-y divide-[#e4e0d8] font-body">
       {contacts.length === 0 ? (
@@ -70,7 +71,7 @@ export default function ContactsMobile({ contacts, selectedIds, onToggleSelect, 
         </div>
       ) : (
         contacts.map((c) => {
-          const isRowChecked = selectedIds.includes(c.id)
+          const isRowChecked = selectedIds.has(c.id)
           return (
             <div
               key={c.id}
@@ -112,7 +113,7 @@ export default function ContactsMobile({ contacts, selectedIds, onToggleSelect, 
                 {c.contact_labels && c.contact_labels.length > 0 && (
                   <div className="flex flex-wrap gap-1 mt-1">
                     {c.contact_labels.map((cl: any) => {
-                      const matched = labels.find((l) => l.id === cl.label_id)
+                      const matched = labelsMap.get(cl.label_id)
                       if (!matched) return null
                       return (
                         <span

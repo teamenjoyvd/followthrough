@@ -301,6 +301,7 @@ export default async function ContactsPage({
       {/* Contacts List Client Component Orchestrator */}
       <ContactsClient
         contacts={paginatedContacts}
+        allFilteredIds={filteredContacts.map(c => c.id)}
         labels={userLabels}
         sortKey={sortKey}
         sortDir={sortDir}

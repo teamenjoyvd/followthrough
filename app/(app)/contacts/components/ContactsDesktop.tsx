@@ -17,7 +17,7 @@ type ContactRow = Database['public']['Tables']['contacts']['Row'] & {
 
 interface Props {
   contacts: ContactRow[]
-  selectedIds: string[]
+  selectedIds: Set<string>
   onToggleSelect: (id: string) => void
   onSelectAll: () => void
   labels: Label[]
@@ -97,6 +97,8 @@ export default function ContactsDesktop({
   currentLastContacted,
   currentCompany,
 }: Props) {
+  const labelsMap = new Map(labels.map(l => [l.id, l]))
+
   function sortHref(col: SortKey) {
     const nextDir = col === sortKey && sortDir === 'asc' ? 'desc' : 'asc'
     const params = new URLSearchParams()
@@ -109,7 +111,7 @@ export default function ContactsDesktop({
     return `/contacts?${params.toString()}`
   }
 
-  const allSelected = contacts.length > 0 && selectedIds.length === contacts.length
+  const allSelected = contacts.length > 0 && selectedIds.size === contacts.length
 
   return (
     <div role="table" aria-label="Contacts list" className="hidden md:block px-6 py-4 space-y-2">
@@ -151,7 +153,7 @@ export default function ContactsDesktop({
       ) : (
         contacts.map((c) => {
           const primaryPhone = c.phone_numbers?.[0]?.number
-          const isRowChecked = selectedIds.includes(c.id)
+          const isRowChecked = selectedIds.has(c.id)
           
           return (
             <div
@@ -189,7 +191,7 @@ export default function ContactsDesktop({
                 {c.contact_labels && c.contact_labels.length > 0 && (
                   <div className="flex flex-wrap gap-1 mt-1">
                     {c.contact_labels.map((cl: any) => {
-                      const matched = labels.find((l) => l.id === cl.label_id)
+                      const matched = labelsMap.get(cl.label_id)
                       if (!matched) return null
                       return (
                         <span

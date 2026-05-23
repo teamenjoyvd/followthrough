@@ -2,7 +2,8 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { Plus, Upload, Download, Tag, FileSpreadsheet } from 'lucide-react'
+import { useRouter } from 'next/navigation'
+import { Plus, Upload, Download, Tag, Check, Loader2 } from 'lucide-react'
 import ContactsDesktop from './ContactsDesktop'
 import ContactsMobile from './ContactsMobile'
 import CSVImportModal from '@/components/CSVImportModal'
@@ -10,6 +11,7 @@ import LabelManager from '@/components/LabelManager'
 import BulkActionsToolbar from '@/components/BulkActionsToolbar'
 import type { Label } from '@/components/LabelManager'
 import type { Database } from '@/types/supabase'
+import { bulkUpdateContacts, bulkDeleteContacts, bulkManageContactLabels } from '@/lib/actions/contacts'
 
 type ContactRow = Database['public']['Tables']['contacts']['Row'] & {
   phone_numbers?: { number: string }[]
@@ -21,6 +23,7 @@ type ContactRow = Database['public']['Tables']['contacts']['Row'] & {
 
 interface ContactsClientProps {
   contacts: ContactRow[]
+  allFilteredIds: string[]
   labels: Label[]
   sortKey: any
   sortDir: any
@@ -32,6 +35,7 @@ interface ContactsClientProps {
 
 export default function ContactsClient({
   contacts,
+  allFilteredIds,
   labels,
   sortKey,
   sortDir,
@@ -40,26 +44,114 @@ export default function ContactsClient({
   currentLastContacted,
   currentCompany,
 }: ContactsClientProps) {
-  const [selectedIds, setSelectedIds] = useState<string[]>([])
+  const router = useRouter()
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [isImportOpen, setIsImportOpen] = useState(false)
   const [isLabelManagerOpen, setIsLabelManagerOpen] = useState(false)
 
+  // Batch process execution states
+  const [isProcessing, setIsProcessing] = useState(false)
+  const [processedCount, setProcessedCount] = useState(0)
+  const [totalToProcess, setTotalToProcess] = useState(0)
+  const [processingMessage, setProcessingMessage] = useState('')
+
   const handleToggleSelect = (id: string) => {
-    setSelectedIds((prev) =>
-      prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
-    )
+    setSelectedIds((prev) => {
+      const next = new Set(prev)
+      if (next.has(id)) {
+        next.delete(id)
+      } else {
+        next.add(id)
+      }
+      return next
+    })
   }
 
   const handleSelectAll = () => {
-    if (selectedIds.length === contacts.length) {
-      setSelectedIds([])
+    if (selectedIds.size === contacts.length) {
+      setSelectedIds(new Set())
     } else {
-      setSelectedIds(contacts.map((c) => c.id))
+      setSelectedIds(new Set(contacts.map((c) => c.id)))
     }
   }
 
   const handleClearSelection = () => {
-    setSelectedIds([])
+    setSelectedIds(new Set())
+  }
+
+  // Orchestrate batch actions with real-time progress state updates
+  const startBatchProcess = async (
+    message: string,
+    idsToProcess: string[],
+    actionFn: (batch: string[]) => Promise<{ success: true } | { error: string }>
+  ) => {
+    setIsProcessing(true)
+    setProcessedCount(0)
+    setTotalToProcess(idsToProcess.length)
+    setProcessingMessage(message)
+
+    const batchSize = 100 // Safe, high-performance chunks to prevent PostgREST URI size limits
+    const items = [...idsToProcess]
+
+    try {
+      for (let i = 0; i < items.length; i += batchSize) {
+        const batch = items.slice(i, i + batchSize)
+        const res = await actionFn(batch)
+        if ('error' in res) {
+          throw new Error(res.error)
+        }
+        setProcessedCount(Math.min(i + batch.length, items.length))
+      }
+      setSelectedIds(new Set())
+      setIsProcessing(false)
+      // Auto reload the page content safely via next.js soft refresh
+      router.refresh()
+    } catch (err: any) {
+      alert(`Batch operation failed: ${err.message}`)
+      setIsProcessing(false)
+    }
+  }
+
+  const handleStatusChange = (status: any) => {
+    startBatchProcess('Updating pipeline statuses...', Array.from(selectedIds), async (batch) => {
+      return await bulkUpdateContacts(batch, { pipeline_status: status })
+    })
+  }
+
+  const handleLabelManage = (labelId: string, action: 'assign' | 'clear') => {
+    startBatchProcess(
+      action === 'assign' ? 'Assigning tag labels...' : 'Clearing tag labels...',
+      Array.from(selectedIds),
+      async (batch) => {
+        return await bulkManageContactLabels(batch, [labelId], action)
+      }
+    )
+  }
+
+  const handleSnoozeChange = (days: number | null) => {
+    let snoozeDate: string | null = null
+    if (days !== null) {
+      const d = new Date()
+      d.setDate(d.getDate() + days)
+      snoozeDate = d.toISOString()
+    }
+    const finalDate = snoozeDate
+    startBatchProcess('Scheduling snooze follow-ups...', Array.from(selectedIds), async (batch) => {
+      return await bulkUpdateContacts(batch, { snooze_until: finalDate })
+    })
+  }
+
+  const handleDelete = () => {
+    if (
+      !confirm(
+        `Are you sure you want to mass delete ${selectedIds.size} contact(s)? This action will permanently cascade delete all associated interactions and phone numbers, and cannot be undone.`
+      )
+    ) {
+      return
+    }
+    startBatchProcess('Cascade deleting selected contacts...', Array.from(selectedIds), async (batch) => {
+      return await bulkDeleteContacts(batch)
+    })
   }
 
   const handleExportCSV = () => {
@@ -116,6 +208,10 @@ export default function ContactsClient({
     URL.revokeObjectURL(url)
   }
 
+  // Cross-page selection states
+  const isPageFullySelected = contacts.length > 0 && selectedIds.size === contacts.length
+  const isAllMatchingSelected = selectedIds.size === allFilteredIds.length && allFilteredIds.length > contacts.length
+
   return (
     <div className="flex-1 flex flex-col h-full overflow-hidden bg-[#faf6f0]">
       {/* Header Controls Layout */}
@@ -163,6 +259,35 @@ export default function ContactsClient({
         </div>
       </div>
 
+      {/* Cross-page Select All Banners */}
+      {isPageFullySelected && allFilteredIds.length > contacts.length && (
+        <div className="bg-[#4a7c59]/10 border border-[#4a7c59]/20 px-4 py-3 rounded-xl mx-4 md:mx-6 my-2 text-xs font-semibold text-[#2e3230] flex flex-wrap items-center justify-between gap-2 font-body animate-in fade-in slide-in-from-top-1">
+          <span>
+            All <strong>{selectedIds.size}</strong> contacts on this page are selected.
+          </span>
+          <button
+            onClick={() => setSelectedIds(new Set(allFilteredIds))}
+            className="text-[#4a7c59] hover:underline font-bold"
+          >
+            Select all {allFilteredIds.length} contacts matching this query
+          </button>
+        </div>
+      )}
+
+      {isAllMatchingSelected && (
+        <div className="bg-[#4a7c59] text-white px-4 py-3 rounded-xl mx-4 md:mx-6 my-2 text-xs font-semibold flex flex-wrap items-center justify-between gap-2 font-body animate-in fade-in slide-in-from-top-1 shadow-sm">
+          <span>
+            All <strong>{selectedIds.size}</strong> contacts matching your active filters are selected.
+          </span>
+          <button
+            onClick={handleClearSelection}
+            className="text-white underline hover:no-underline font-bold"
+          >
+            Clear selection
+          </button>
+        </div>
+      )}
+
       {/* Main Grid View */}
       <div className="flex-1 overflow-y-auto bg-[#faf6f0] pb-24">
         {/* Desktop View */}
@@ -194,7 +319,41 @@ export default function ContactsClient({
         selectedIds={selectedIds}
         onClearSelection={handleClearSelection}
         labels={labels}
+        onStatusChange={handleStatusChange}
+        onLabelManage={handleLabelManage}
+        onSnoozeChange={handleSnoozeChange}
+        onDelete={handleDelete}
       />
+
+      {/* Real-time batch progress overlay overlay */}
+      {isProcessing && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center font-body animate-in fade-in duration-200">
+          <div className="bg-[#faf6f0] border border-[#e4e0d8] rounded-[24px] p-6 shadow-[0_10px_35px_rgba(46,50,48,0.25)] max-w-sm w-full text-center space-y-4 animate-in zoom-in-95 duration-200">
+            <h3 className="font-headline text-lg font-bold text-[#2e3230]">
+              {processingMessage}
+            </h3>
+            
+            <div className="w-full bg-[#eae6de] h-2.5 rounded-full overflow-hidden shadow-inner">
+              <div
+                className="bg-[#4a7c59] h-full rounded-full transition-all duration-300"
+                style={{ width: `${(processedCount / totalToProcess) * 100}%` }}
+              />
+            </div>
+            
+            <div className="flex justify-between text-xs text-[#74796e] font-semibold">
+              <span>{Math.round((processedCount / totalToProcess) * 100)}% Completed</span>
+              <span>
+                {processedCount} / {totalToProcess}
+              </span>
+            </div>
+            
+            <div className="flex items-center justify-center gap-2 pt-2">
+              <Loader2 className="h-4 w-4 animate-spin text-[#4a7c59]" />
+              <span className="text-xs text-[#74796e] font-bold">Processing batches...</span>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* CSV Import Modal */}
       <CSVImportModal isOpen={isImportOpen} onClose={() => setIsImportOpen(false)} />
