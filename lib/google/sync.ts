@@ -89,20 +89,29 @@ export async function syncPeople(
   }
   const googleContactIds = Array.from(seenGoogleIds)
 
-  // 2. Fetch existing contacts in bulk (1 select query)
-  const { data: existingContacts } = await (supabase as any)
-    .from('contacts')
-    .select('*')
-    .eq('profile_id', profileId)
-    .in('google_contact_id', googleContactIds)
+  // 2. Fetch existing contacts in bulk (batch-fetched in chunks of 100 to bypass both PostgREST URL size limits and Supabase 1000-row limits)
+  const existingContacts: any[] = []
+  const batchSize = 100
+  for (let i = 0; i < googleContactIds.length; i += batchSize) {
+    const batchIds = googleContactIds.slice(i, i + batchSize)
+    const { data: batchData, error } = await (supabase as any)
+      .from('contacts')
+      .select('*')
+      .eq('profile_id', profileId)
+      .in('google_contact_id', batchIds)
+      .limit(batchSize)
+    
+    if (error) throw error
+    if (batchData) {
+      existingContacts.push(...batchData)
+    }
+  }
 
   // Create an O(1) lookup map matching google_contact_id -> existing ContactRow
   const existingMap = new Map<string, any>()
-  if (existingContacts) {
-    for (const c of existingContacts) {
-      if (c.google_contact_id) {
-        existingMap.set(c.google_contact_id, c)
-      }
+  for (const c of existingContacts) {
+    if (c.google_contact_id) {
+      existingMap.set(c.google_contact_id, c)
     }
   }
 

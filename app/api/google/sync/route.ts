@@ -127,7 +127,14 @@ export async function POST() {
     return NextResponse.json({ error: error.message }, { status: 502 })
   }
 
-  const result = await syncPeople(supabase, profileId, allPeople, newSyncToken)
-
-  return NextResponse.json(result)
+  try {
+    const result = await syncPeople(supabase, profileId, allPeople, newSyncToken)
+    return NextResponse.json(result)
+  } catch (error: any) {
+    console.error('Google sync failed:', error)
+    return NextResponse.json(
+      { error: error.message || 'Failed to persist synced contacts' },
+      { status: 500 }
+    )
+  }
 }
