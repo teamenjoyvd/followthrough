@@ -76,12 +76,18 @@ export async function syncPeople(
     return { upserted: 0, conflictsCreated: 0, newSyncToken }
   }
 
-  // 1. Map all Google contacts and collect google_contact_ids
-  const mappedPeople = people.map(person => ({
-    person,
-    mapped: mapPersonToContact(person, profileId)
-  }))
-  const googleContactIds = mappedPeople.map(m => m.mapped.google_contact_id)
+  // 1. Map all Google contacts and collect google_contact_ids (deduplicated)
+  const seenGoogleIds = new Set<string>()
+  const mappedPeople: any[] = []
+  
+  for (const person of people) {
+    const mapped = mapPersonToContact(person, profileId)
+    if (mapped.google_contact_id && !seenGoogleIds.has(mapped.google_contact_id)) {
+      seenGoogleIds.add(mapped.google_contact_id)
+      mappedPeople.push({ person, mapped })
+    }
+  }
+  const googleContactIds = Array.from(seenGoogleIds)
 
   // 2. Fetch existing contacts in bulk (1 select query)
   const { data: existingContacts } = await (supabase as any)
