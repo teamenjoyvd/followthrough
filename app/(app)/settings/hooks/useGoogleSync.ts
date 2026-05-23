@@ -22,8 +22,11 @@ export function useGoogleSync(options: UseGoogleSyncOptions = {}) {
       try {
         const res = await fetch('/api/google/sync', { method: 'POST' })
         const json = await res.json().catch(() => ({}))
+        const timeString = new Date().toLocaleTimeString()
+        
         if (!res.ok) {
-          setSyncResult('Sync failed. Please try again.')
+          const errMsg = json.error || 'Server error'
+          setSyncResult(`Sync failed at ${timeString}: ${errMsg}`)
         } else {
           const imported = json.imported ?? 0
           const conflicts = json.conflicts ?? 0
@@ -35,8 +38,9 @@ export function useGoogleSync(options: UseGoogleSyncOptions = {}) {
           setSyncResult(`${syncSuccessPrefix}: ${contactText} imported, ${conflictText} detected.`)
           router.refresh()
         }
-      } catch {
-        setSyncResult('Sync failed. Please try again.')
+      } catch (error: any) {
+        const timeString = new Date().toLocaleTimeString()
+        setSyncResult(`Sync failed at ${timeString}: ${error.message || 'Network error'}`)
       }
     })
   }, [syncSuccessPrefix, router])

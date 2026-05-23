@@ -3,12 +3,11 @@ import { ChevronUp, ChevronDown, ChevronsUpDown } from 'lucide-react'
 import { PIPELINE_STATUSES } from './constants'
 import type { Database } from '@/types/supabase'
 
-type Contact = Database['public']['Tables']['contacts']['Row']
 type SortKey = 'first_name' | 'company' | 'pipeline_status' | 'last_contacted_at'
 type SortDir = 'asc' | 'desc'
 
 interface Props {
-  contacts: Contact[]
+  contacts: (Database['public']['Tables']['contacts']['Row'] & { phone_numbers?: { number: string }[] })[]
   sortKey: SortKey
   sortDir: SortDir
   currentQuery: string
@@ -29,6 +28,21 @@ function statusBadge(status: Database['public']['Enums']['pipeline_status']) {
   return found
     ? <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border ${found.color}`}>{found.label}</span>
     : null
+}
+
+function sourceBadge(googleContactId: string | null) {
+  if (googleContactId) {
+    return (
+      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold border bg-[#eaf4ec] text-[#335c3d] border-[#cce3d2]">
+        Google Sync
+      </span>
+    )
+  }
+  return (
+    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold border bg-[#fbf4ea] text-[#8c6239] border-[#f0dfcc]">
+      Manual
+    </span>
+  )
 }
 
 function formatDate(iso: string | null) {
@@ -91,41 +105,50 @@ export default function ContactsDesktop({
           </Link>
         </div>
       ) : (
-        contacts.map((c) => (
-          <div
-            key={c.id}
-            role="row"
-            className="grid grid-cols-[2fr_2fr_1.5fr_1.5fr_80px] gap-4 items-center px-4 py-3.5 rounded-[20px] bg-[#f5f1ea] hover:bg-[#eae6de] transition-all hover:scale-[1.005] duration-200 shadow-[0_4px_20px_rgba(46,50,48,0.04)] group"
-          >
-            <div role="cell">
-              <Link
-                href={`/contacts/${c.id}`}
-                className="text-sm font-semibold text-[#2e3230] hover:text-[#4a7c59] transition-colors font-body"
-              >
-                {c.first_name} {c.last_name}
-              </Link>
-              {c.email && <div className="text-xs text-[#74796e] mt-0.5 font-body">{c.email}</div>}
+        contacts.map((c) => {
+          const primaryPhone = c.phone_numbers?.[0]?.number
+          return (
+            <div
+              key={c.id}
+              role="row"
+              className="grid grid-cols-[2fr_2fr_1.5fr_1.5fr_80px] gap-4 items-center px-4 py-3.5 rounded-[20px] bg-[#f5f1ea] hover:bg-[#eae6de] transition-all hover:scale-[1.005] duration-200 shadow-[0_4px_20px_rgba(46,50,48,0.04)] group"
+            >
+              <div role="cell" className="space-y-0.5">
+                <div className="flex items-center gap-2">
+                  <Link
+                    href={`/contacts/${c.id}`}
+                    className="text-sm font-semibold text-[#2e3230] hover:text-[#4a7c59] transition-colors font-body"
+                  >
+                    {c.first_name} {c.last_name}
+                  </Link>
+                  {sourceBadge(c.google_contact_id)}
+                </div>
+                <div className="flex flex-col text-xs text-[#74796e] font-body space-y-0.5">
+                  {c.email && <span>{c.email}</span>}
+                  {primaryPhone && <span className="text-[#595e55] font-medium">{primaryPhone}</span>}
+                </div>
+              </div>
+              <div role="cell" className="text-sm text-[#4a4e4a] font-body">
+                {c.company || <span className="text-[#74796e]">—</span>}
+                {c.job_title && <div className="text-xs text-[#74796e] mt-0.5 font-body">{c.job_title}</div>}
+              </div>
+              <div role="cell">
+                {statusBadge(c.pipeline_status)}
+              </div>
+              <div role="cell" className="text-sm text-[#4a4e4a] font-body">
+                {formatDate(c.last_contacted_at)}
+              </div>
+              <div role="cell" className="text-right">
+                <Link
+                  href={`/contacts/${c.id}/edit`}
+                  className="text-xs font-semibold text-[#74796e] opacity-0 group-hover:opacity-100 hover:text-[#4a7c59] transition-all"
+                >
+                  Edit
+                </Link>
+              </div>
             </div>
-            <div role="cell" className="text-sm text-[#4a4e4a] font-body">
-              {c.company || <span className="text-[#74796e]">—</span>}
-              {c.job_title && <div className="text-xs text-[#74796e] mt-0.5 font-body">{c.job_title}</div>}
-            </div>
-            <div role="cell">
-              {statusBadge(c.pipeline_status)}
-            </div>
-            <div role="cell" className="text-sm text-[#4a4e4a] font-body">
-              {formatDate(c.last_contacted_at)}
-            </div>
-            <div role="cell" className="text-right">
-              <Link
-                href={`/contacts/${c.id}/edit`}
-                className="text-xs font-semibold text-[#74796e] opacity-0 group-hover:opacity-100 hover:text-[#4a7c59] transition-all"
-              >
-                Edit
-              </Link>
-            </div>
-          </div>
-        ))
+          )
+        })
       )}
     </div>
   )
