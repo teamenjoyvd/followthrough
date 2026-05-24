@@ -132,10 +132,6 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
     const newWorkingList = workingList.filter(c => c.id !== contactId)
     const newCompletedCount = completedTodayCount + 1
 
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('followthrough_completed_today', newCompletedCount.toString())
-    }
-
     // Optimistic Update
     set({
       workingList: newWorkingList,
@@ -148,9 +144,6 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
     if ('error' in res) {
       // Rollback
       const rollbackCompleted = Math.max(0, newCompletedCount - 1)
-      if (typeof window !== 'undefined') {
-        localStorage.setItem('followthrough_completed_today', rollbackCompleted.toString())
-      }
       set({
         workingList,
         completedTodayCount: rollbackCompleted,
