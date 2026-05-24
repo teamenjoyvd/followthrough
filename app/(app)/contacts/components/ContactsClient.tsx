@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { Plus, Upload, Download, Tag, Loader2 } from 'lucide-react'
+import { Plus, Upload, Download, Tag, Loader2, Trash2 } from 'lucide-react'
 import ContactsDesktop from './ContactsDesktop'
 import ContactsMobile from './ContactsMobile'
 import CSVImportModal from '@/components/CSVImportModal'
@@ -185,6 +185,8 @@ export default function ContactsClient({
   const isPageFullySelected = contacts.length > 0 && selectedIds.size === contacts.length
   const isAllMatchingSelected = selectedIds.size === allFilteredIds.length && allFilteredIds.length > contacts.length
 
+  const count = selectedIds.size
+
   return (
     <div className="flex-1 flex flex-col h-full overflow-hidden bg-[#faf6f0]">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between px-4 md:px-6 py-4 border-b border-[#e4e0d8] bg-[#faf6f0] shrink-0 gap-3">
@@ -270,7 +272,7 @@ export default function ContactsClient({
         />
       </div>
 
-      {/* Bulk Actions Toolbar — delete action wrapped with ConfirmDialog */}
+      {/* Bulk Actions Toolbar — delete slotted via deleteOverride with ConfirmDialog as the trigger wrapper */}
       <BulkActionsToolbar
         selectedIds={selectedIds}
         onClearSelection={handleClearSelection}
@@ -278,15 +280,20 @@ export default function ContactsClient({
         onStatusChange={handleStatusChange}
         onLabelManage={handleLabelManage}
         onSnoozeChange={handleSnoozeChange}
-        onDelete={() => {/* no-op: ConfirmDialog intercepts below */}}
+        onDelete={() => { /* no-op: replaced by deleteOverride */ }}
         deleteOverride={
           <ConfirmDialog
-            title={`Delete ${selectedIds.size} contact${selectedIds.size !== 1 ? 's' : ''}?`}
+            title={`Delete ${count} contact${count !== 1 ? 's' : ''}?`}
             description="This will permanently delete all selected contacts and their associated interactions. This cannot be undone."
-            confirmLabel={`Delete ${selectedIds.size} contact${selectedIds.size !== 1 ? 's' : ''}`}
+            confirmLabel={`Delete ${count} contact${count !== 1 ? 's' : ''}`}
             destructive
             onConfirm={executeBulkDelete}
-          />
+          >
+            <button className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold bg-[#b83230]/20 hover:bg-[#b83230] text-[#ff7875] hover:text-white border border-[#b83230]/40 hover:border-transparent transition-all duration-200">
+              <Trash2 className="h-3.5 w-3.5" />
+              <span>Delete Selected</span>
+            </button>
+          </ConfirmDialog>
         }
       />
 
