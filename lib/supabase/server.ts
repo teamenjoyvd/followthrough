@@ -95,3 +95,16 @@ export async function getProfileId(
     .maybeSingle()
   return data?.id ?? null
 }
+
+export async function getProfile(
+  supabase: TypedSupabaseClient,
+  userId: string,
+): Promise<{ id: string; undo_window_seconds: number } | null> {
+  const { data } = await supabase
+    .from('profiles')
+    .select('id, undo_window_seconds')
+    .eq('clerk_id', userId)
+    .maybeSingle()
+  if (!data) return null
+  return { id: data.id, undo_window_seconds: data.undo_window_seconds ?? 30 }
+}

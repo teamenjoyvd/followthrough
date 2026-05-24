@@ -2,8 +2,9 @@
 
 import { auth } from '@clerk/nextjs/server'
 import { revalidatePath } from 'next/cache'
-import { createSupabaseServerClient, getProfileId } from '@/lib/supabase/server'
+import { createSupabaseServerClient, getProfile, getProfileId } from '@/lib/supabase/server'
 import type { InboxItem as PopulatedInboxItem } from '@/types/inbox'
+import { appendActionLog } from './action-log'
 
 export async function markInboxItemRead(
   itemId: string,
@@ -12,16 +13,29 @@ export async function markInboxItemRead(
   if (!userId) return { error: 'Unauthorized' }
 
   const supabase = await createSupabaseServerClient()
-  const profileId = await getProfileId(supabase, userId)
-  if (!profileId) return { error: 'Profile not found' }
+  const profile = await getProfile(supabase, userId)
+  if (!profile) return { error: 'Profile not found' }
 
   const { error } = await supabase
     .from('inbox_items')
     .update({ read: true })
     .eq('id', itemId)
-    .eq('profile_id', profileId)
+    .eq('profile_id', profile.id)
 
   if (error) return { error: error.message || 'Failed to mark read' }
+
+  try {
+    await appendActionLog({
+      profileId: profile.id,
+      actionType: 'markInboxItemRead',
+      entityType: 'inbox_item',
+      entityId: itemId,
+      payload: { read: false },
+      undoWindowSeconds: profile.undo_window_seconds,
+    })
+  } catch (e) {
+    console.error('[markInboxItemRead] appendActionLog failed:', e)
+  }
 
   revalidatePath('/inbox')
   revalidatePath('/workspace')

@@ -2,8 +2,9 @@
 
 import { auth } from '@clerk/nextjs/server'
 import { revalidatePath } from 'next/cache'
-import { createSupabaseServerClient, getProfileId } from '../supabase/server'
+import { createSupabaseServerClient, getProfile, getProfileId } from '../supabase/server'
 import type { Database } from '@/types/supabase'
+import { appendActionLog } from './action-log'
 
 type PipelineStatus = Database['public']['Enums']['pipeline_status']
 
@@ -16,8 +17,8 @@ export async function createContact(formData: FormData): Promise<{ success: true
   if (!userId) return { error: 'Unauthorized' }
 
   const supabase = await createSupabaseServerClient()
-  const profileId = await getProfileId(supabase, userId)
-  if (!profileId) return { error: 'Profile not found' }
+  const profile = await getProfile(supabase, userId)
+  if (!profile) return { error: 'Profile not found' }
 
   const firstName = formData.get('first_name') as string
   const lastName = (formData.get('last_name') as string) || null
@@ -31,10 +32,9 @@ export async function createContact(formData: FormData): Promise<{ success: true
   }
 
   try {
-    // Single atomic database-level RPC query preventing dirty orphan rows
     const { data: contactId, error: rpcError } = await supabase
       .rpc('create_contact_with_phone', {
-        p_profile_id: profileId,
+        p_profile_id: profile.id,
         p_first_name: firstName.trim(),
         p_last_name: lastName?.trim() || null,
         p_email: email?.trim() || null,
@@ -49,6 +49,19 @@ export async function createContact(formData: FormData): Promise<{ success: true
 
     if (!contactId) {
       return { error: 'Failed to create contact: No ID returned' }
+    }
+
+    try {
+      await appendActionLog({
+        profileId: profile.id,
+        actionType: 'createContact',
+        entityType: 'contact',
+        entityId: contactId,
+        payload: {},
+        undoWindowSeconds: profile.undo_window_seconds,
+      })
+    } catch (e) {
+      console.error('[createContact] appendActionLog failed:', e)
     }
 
     revalidatePath('/contacts')
@@ -67,8 +80,8 @@ export async function updateContact(contactId: string, formData: FormData): Prom
   if (!userId) return { error: 'Unauthorized' }
 
   const supabase = await createSupabaseServerClient()
-  const profileId = await getProfileId(supabase, userId)
-  if (!profileId) return { error: 'Profile not found' }
+  const profile = await getProfile(supabase, userId)
+  if (!profile) return { error: 'Profile not found' }
 
   const firstName = formData.get('first_name') as string
   const phone = (formData.get('phone') as string) || null
@@ -78,6 +91,14 @@ export async function updateContact(contactId: string, formData: FormData): Prom
   }
 
   try {
+    // Read before-snapshot for undo
+    const { data: before } = await supabase
+      .from('contacts')
+      .select('first_name, last_name, email, company, job_title')
+      .eq('id', contactId)
+      .eq('profile_id', profile.id)
+      .maybeSingle()
+
     const { error } = await supabase
       .from('contacts')
       .update({
@@ -89,18 +110,17 @@ export async function updateContact(contactId: string, formData: FormData): Prom
         last_updated_by_source: 'manual'
       })
       .eq('id', contactId)
-      .eq('profile_id', profileId)
+      .eq('profile_id', profile.id)
 
     if (error) {
       return { error: error.message || 'Failed to update contact' }
     }
 
-    // Dynamic phone numbers updating logic
     const { data: existingPrimary, error: fetchError } = await supabase
       .from('phone_numbers')
       .select('id')
       .eq('contact_id', contactId)
-      .eq('profile_id', profileId)
+      .eq('profile_id', profile.id)
       .eq('is_primary', true)
       .maybeSingle()
 
@@ -118,7 +138,7 @@ export async function updateContact(contactId: string, formData: FormData): Prom
           .from('phone_numbers')
           .insert({
             contact_id: contactId,
-            profile_id: profileId,
+            profile_id: profile.id,
             number: phone.trim(),
             type: 'mobile',
             is_primary: true
@@ -131,6 +151,19 @@ export async function updateContact(contactId: string, formData: FormData): Prom
           .delete()
           .eq('id', existingPrimary.id)
       if (deleteError) return { error: deleteError.message || 'Failed to remove phone number' }
+    }
+
+    try {
+      await appendActionLog({
+        profileId: profile.id,
+        actionType: 'updateContact',
+        entityType: 'contact',
+        entityId: contactId,
+        payload: before ?? {},
+        undoWindowSeconds: profile.undo_window_seconds,
+      })
+    } catch (e) {
+      console.error('[updateContact] appendActionLog failed:', e)
     }
 
     revalidatePath('/contacts')
@@ -150,18 +183,39 @@ export async function deleteContact(contactId: string): Promise<{ success: true 
   if (!userId) return { error: 'Unauthorized' }
 
   const supabase = await createSupabaseServerClient()
-  const profileId = await getProfileId(supabase, userId)
-  if (!profileId) return { error: 'Profile not found' }
+  const profile = await getProfile(supabase, userId)
+  if (!profile) return { error: 'Profile not found' }
 
   try {
+    // Read full snapshot for audit log before deleting
+    const { data: snapshot } = await supabase
+      .from('contacts')
+      .select('*')
+      .eq('id', contactId)
+      .eq('profile_id', profile.id)
+      .maybeSingle()
+
     const { error } = await supabase
       .from('contacts')
       .delete()
       .eq('id', contactId)
-      .eq('profile_id', profileId)
+      .eq('profile_id', profile.id)
 
     if (error) {
       return { error: error.message || 'Failed to delete contact' }
+    }
+
+    try {
+      await appendActionLog({
+        profileId: profile.id,
+        actionType: 'deleteContact',
+        entityType: 'contact',
+        entityId: contactId,
+        payload: snapshot ?? {},
+        undoWindowSeconds: null, // confirm-popup action — not undoable
+      })
+    } catch (e) {
+      console.error('[deleteContact] appendActionLog failed:', e)
     }
 
     revalidatePath('/contacts')
@@ -180,14 +234,35 @@ export async function updatePipelineStatus(contactId: string, status: PipelineSt
   if (!userId) return
 
   const supabase = await createSupabaseServerClient()
-  const profileId = await getProfileId(supabase, userId)
-  if (!profileId) return
+  const profile = await getProfile(supabase, userId)
+  if (!profile) return
+
+  // Read before-snapshot
+  const { data: before } = await supabase
+    .from('contacts')
+    .select('pipeline_status')
+    .eq('id', contactId)
+    .eq('profile_id', profile.id)
+    .maybeSingle()
 
   await supabase
     .from('contacts')
     .update({ pipeline_status: status })
     .eq('id', contactId)
-    .eq('profile_id', profileId)
+    .eq('profile_id', profile.id)
+
+  try {
+    await appendActionLog({
+      profileId: profile.id,
+      actionType: 'updatePipelineStatus',
+      entityType: 'contact',
+      entityId: contactId,
+      payload: { pipeline_status: before?.pipeline_status ?? null },
+      undoWindowSeconds: profile.undo_window_seconds,
+    })
+  } catch (e) {
+    console.error('[updatePipelineStatus] appendActionLog failed:', e)
+  }
 
   revalidatePath('/contacts')
   revalidatePath(`/contacts/${contactId}`)
@@ -220,7 +295,6 @@ export async function importContactsFromCSV(
   if (rows.length === 0) return { error: 'No contact records found in file' }
 
   try {
-    // 1. Create the import log record
     const { data: logRecord, error: logError } = await supabase
       .from('csv_imports_log')
       .insert({
@@ -234,21 +308,6 @@ export async function importContactsFromCSV(
     if (logError) throw logError
     const logId = logRecord.id
 
-    // 2. Prepare contacts bulk insert payload
-    const contactsPayload = rows.map(r => ({
-      profile_id: profileId,
-      first_name: r.first_name?.trim() || 'Unknown',
-      last_name: r.last_name?.trim() || null,
-      email: r.email?.trim() || null,
-      company: r.company?.trim() || null,
-      job_title: r.job_title?.trim() || null,
-      created_by_source: 'csv_import',
-      last_updated_by_source: 'csv_import',
-      source_detail: filename,
-      import_log_id: logId
-    }))
-
-    // 3. Insert contacts & phone numbers in batches to prevent hitting query parameter limits
     const batchSize = 100
     const phoneInserts: any[] = []
     let totalImported = 0
@@ -268,7 +327,6 @@ export async function importContactsFromCSV(
         import_log_id: logId
       }))
 
-      // Build a map of compositeKey -> array of original row indices in batchRows
       const compositeMap = new Map<string, number[]>()
       batchRows.forEach((row, index) => {
         const key = `${(row.first_name || 'Unknown').trim().toLowerCase()}||${(row.last_name || '').trim().toLowerCase()}||${(row.email || '').trim().toLowerCase()}||${(row.company || '').trim().toLowerCase()}||${(row.job_title || '').trim().toLowerCase()}`
@@ -314,7 +372,6 @@ export async function importContactsFromCSV(
       }
     }
 
-    // 4. Insert phone records in bulk for the imported contacts
     if (phoneInserts.length > 0) {
       const { error: phoneError } = await supabase
         .from('phone_numbers')
@@ -382,12 +439,19 @@ export async function bulkUpdateContacts(
   if (!userId) return { error: 'Unauthorized' }
 
   const supabase = await createSupabaseServerClient()
-  const profileId = await getProfileId(supabase, userId)
-  if (!profileId) return { error: 'Profile not found' }
+  const profile = await getProfile(supabase, userId)
+  if (!profile) return { error: 'Profile not found' }
 
   if (contactIds.length === 0) return { error: 'No contacts selected' }
 
   try {
+    // Read before-snapshots for undo
+    const { data: snapshots } = await supabase
+      .from('contacts')
+      .select('id, pipeline_status, snoozed_until, company')
+      .in('id', contactIds)
+      .eq('profile_id', profile.id)
+
     const payload: any = { last_updated_by_source: 'manual' }
     if (updates.pipeline_status !== undefined) payload.pipeline_status = updates.pipeline_status
     if (updates.snooze_until !== undefined) payload.snooze_until = updates.snooze_until
@@ -397,9 +461,21 @@ export async function bulkUpdateContacts(
       .from('contacts')
       .update(payload)
       .in('id', contactIds)
-      .eq('profile_id', profileId)
+      .eq('profile_id', profile.id)
 
     if (error) throw error
+
+    try {
+      await appendActionLog({
+        profileId: profile.id,
+        actionType: 'bulkUpdateContacts',
+        entityType: 'contact',
+        payload: { snapshots: snapshots ?? [] },
+        undoWindowSeconds: profile.undo_window_seconds,
+      })
+    } catch (e) {
+      console.error('[bulkUpdateContacts] appendActionLog failed:', e)
+    }
 
     revalidatePath('/contacts')
     return { success: true }
@@ -413,8 +489,8 @@ export async function bulkDeleteContacts(contactIds: string[]): Promise<{ succes
   if (!userId) return { error: 'Unauthorized' }
 
   const supabase = await createSupabaseServerClient()
-  const profileId = await getProfileId(supabase, userId)
-  if (!profileId) return { error: 'Profile not found' }
+  const profile = await getProfile(supabase, userId)
+  if (!profile) return { error: 'Profile not found' }
 
   if (contactIds.length === 0) return { error: 'No contacts selected' }
 
@@ -423,9 +499,21 @@ export async function bulkDeleteContacts(contactIds: string[]): Promise<{ succes
       .from('contacts')
       .delete()
       .in('id', contactIds)
-      .eq('profile_id', profileId)
+      .eq('profile_id', profile.id)
 
     if (error) throw error
+
+    try {
+      await appendActionLog({
+        profileId: profile.id,
+        actionType: 'bulkDeleteContacts',
+        entityType: 'contact',
+        payload: { contact_ids: contactIds },
+        undoWindowSeconds: null, // confirm-popup action — not undoable
+      })
+    } catch (e) {
+      console.error('[bulkDeleteContacts] appendActionLog failed:', e)
+    }
 
     revalidatePath('/contacts')
     return { success: true }
@@ -577,17 +665,38 @@ export async function updateContactDescription(
   if (!userId) return { error: 'Unauthorized' }
 
   const supabase = await createSupabaseServerClient()
-  const profileId = await getProfileId(supabase, userId)
-  if (!profileId) return { error: 'Profile not found' }
+  const profile = await getProfile(supabase, userId)
+  if (!profile) return { error: 'Profile not found' }
 
   try {
+    // Read before-snapshot
+    const { data: before } = await supabase
+      .from('contacts')
+      .select('custom_description')
+      .eq('id', contactId)
+      .eq('profile_id', profile.id)
+      .maybeSingle()
+
     const { error } = await supabase
       .from('contacts')
       .update({ custom_description: description })
       .eq('id', contactId)
-      .eq('profile_id', profileId)
+      .eq('profile_id', profile.id)
 
     if (error) throw error
+
+    try {
+      await appendActionLog({
+        profileId: profile.id,
+        actionType: 'updateContactDescription',
+        entityType: 'contact',
+        entityId: contactId,
+        payload: { custom_description: before?.custom_description ?? null },
+        undoWindowSeconds: profile.undo_window_seconds,
+      })
+    } catch (e) {
+      console.error('[updateContactDescription] appendActionLog failed:', e)
+    }
 
     revalidatePath('/workspace')
     revalidatePath(`/contacts/${contactId}`)
