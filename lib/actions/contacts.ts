@@ -589,7 +589,7 @@ export async function updateContactDescription(
 
     if (error) throw error
 
-    revalidatePath('/dashboard')
+    revalidatePath('/workspace')
     revalidatePath(`/contacts/${contactId}`)
     return { success: true }
   } catch (err: any) {

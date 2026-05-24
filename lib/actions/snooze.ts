@@ -46,7 +46,7 @@ export async function snoozeContact(
 
   if (error) return { error: error.message || 'Failed to snooze contact' }
 
-  revalidatePath('/dashboard')
+  revalidatePath('/workspace')
   revalidatePath(`/contacts/${contactId}`)
   return { success: true }
 }
@@ -81,7 +81,7 @@ export async function checkResurfaced(): Promise<{ success: true; count: number 
   const resurfacedCount = Number(count) || 0
 
   if (resurfacedCount > 0) {
-    revalidatePath('/dashboard')
+    revalidatePath('/workspace')
     revalidatePath('/inbox')
   }
 

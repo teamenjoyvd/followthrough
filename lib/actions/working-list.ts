@@ -30,7 +30,7 @@ export async function addToWorkingList(
     read: false,
   })
 
-  revalidatePath('/dashboard')
+  revalidatePath('/workspace')
   revalidatePath('/contacts/' + contactId)
   return { success: true }
 }
@@ -53,7 +53,7 @@ export async function removeFromWorkingList(
 
   if (error) return { error: error.message || 'Failed to remove from working list' }
 
-  revalidatePath('/dashboard')
+  revalidatePath('/workspace')
   revalidatePath('/contacts/' + contactId)
   return { success: true }
 }
@@ -79,7 +79,7 @@ export async function markDone(
     return { error: rpcError.message || 'Failed to complete task' }
   }
 
-  revalidatePath('/dashboard')
+  revalidatePath('/workspace')
   revalidatePath('/contacts/' + contactId)
   return { success: true }
 }

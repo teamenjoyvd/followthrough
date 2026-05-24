@@ -18,7 +18,7 @@ function SidebarNav({ inboxUnreadCount }: { inboxUnreadCount: number }) {
       aria-label="Desktop navigation"
       className="hidden md:flex flex-col w-56 shrink-0 border-r border-terra-outline-variant bg-terra-surface-container-low px-3 py-6 gap-1"
     >
-      <Link href="/dashboard" className="px-3 mb-6 block transition-transform duration-200 hover:scale-[1.02]">
+      <Link href="/workspace" className="px-3 mb-6 block transition-transform duration-200 hover:scale-[1.02]">
         <Logo />
       </Link>
 

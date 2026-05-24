@@ -3,21 +3,22 @@ import { redirect } from 'next/navigation'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { getUnreadInboxCount, getInboxItems } from '@/lib/actions/inbox'
 import { ensureProfile } from '@/lib/profile'
-import DashboardDesktop from './components/DashboardDesktop'
-import DashboardMobile from './components/DashboardMobile'
+import { DEFAULT_FOLLOWUP_RULES } from '@/lib/constants/followup'
+import WorkspaceDesktop from './components/WorkspaceDesktop'
+import WorkspaceMobile from './components/WorkspaceMobile'
 import ResurfaceTrigger from './components/ResurfaceTrigger'
 import type { Database } from '@/types/supabase'
 
 export const dynamic = 'force-dynamic'
 
 export const metadata = {
-  title: 'Dashboard — Followthrough',
+  title: 'Workspace — Followthrough',
   description: 'Manage your focus list and follow-up activities.',
 }
 
 type Contact = Database['public']['Tables']['contacts']['Row']
 
-export default async function DashboardPage() {
+export default async function WorkspacePage() {
   const { userId, sessionClaims } = await auth()
   if (!userId) redirect('/sign-in')
 
@@ -37,7 +38,7 @@ export default async function DashboardPage() {
     .maybeSingle() as { data: ProfileResult | null; error: any }
 
   if (profileError) {
-    console.error('[DashboardPage] Error fetching profile:', profileError)
+    console.error('[WorkspacePage] Error fetching profile:', profileError)
   }
 
   let profile = profileResult
@@ -57,7 +58,6 @@ export default async function DashboardPage() {
         userId
     }
 
-    // Provision the profile using the service client and assign directly
     profile = await ensureProfile(userId, email, fullName)
   }
 
@@ -68,17 +68,16 @@ export default async function DashboardPage() {
 
   const displayName = (profile.display_name ?? '').split(' ')[0] || 'there'
 
-  // Fetch Clerk user details from sessionClaims picture/avatar fields directly to avoid blocking currentUser call on warm renders
   const avatarUrl = (sessionClaims?.picture as string) || (sessionClaims?.avatar_url as string) || (sessionClaims?.image_url as string) || null
 
-  // Fetch all contacts for relationship health calculation and working list filter
+  // Fetch all contacts
   const { data: allContacts, error: allContactsError } = await (supabase as any)
     .from('contacts')
     .select('*')
     .eq('profile_id', profile.id) as { data: Contact[] | null; error: any }
 
   if (allContactsError) {
-    console.error('[DashboardPage] Error fetching all contacts:', allContactsError)
+    console.error('[WorkspacePage] Error fetching all contacts:', allContactsError)
   }
 
   const contactsList = allContacts || []
@@ -99,10 +98,9 @@ export default async function DashboardPage() {
     .limit(5) as { data: Contact[] | null; error: any }
 
   if (upcomingContactsError) {
-    console.error('[DashboardPage] Error fetching upcoming contacts:', upcomingContactsError)
+    console.error('[WorkspacePage] Error fetching upcoming contacts:', upcomingContactsError)
   }
 
-  // Filter and sort the working list contacts in memory
   const workingListContacts = contactsList
     .filter((c) => c.on_working_list)
     .sort((a, b) => {
@@ -111,7 +109,6 @@ export default async function DashboardPage() {
       return aTime - bTime
     })
 
-  // Calculate stats
   const snoozedCount = contactsList.filter((c) => c.pipeline_status === 'snoozed').length
   const totalContactsCount = contactsList.length
   const inboxUnreadCount = await getUnreadInboxCount()
@@ -123,8 +120,7 @@ export default async function DashboardPage() {
     totalContactsCount,
   }
 
-  // Calculate relationship health dynamically: compare last_contacted_at/created_at with rule thresholds to find overdue contacts
-  const followupRules = (profile.followup_rules as Record<string, number> | null) || { lead: 14, qualified: 7, bought: 30, leave_alone: 90 }
+  const followupRules = (profile.followup_rules as Record<string, number> | null) || DEFAULT_FOLLOWUP_RULES
   let overdueCount = 0
 
   for (const contact of contactsList) {
@@ -144,7 +140,6 @@ export default async function DashboardPage() {
 
   const healthPercentage = totalContactsCount > 0 ? Math.round(((totalContactsCount - overdueCount) / totalContactsCount) * 100) : 100
 
-  // 4. Fetch available custom labels for the user profile
   const { data: rawLabels } = await supabase
     .from('labels')
     .select('*')
@@ -153,10 +148,8 @@ export default async function DashboardPage() {
 
   const allLabels = (rawLabels as any[]) || []
 
-  // 5. Fetch all unread inbox items
   const inboxItems = await getInboxItems()
 
-  // 6. Query all user interactions to calculate completed today and streak days dynamically
   const { data: userInteractions } = await (supabase as any)
     .from('interactions')
     .select('created_at')
@@ -164,13 +157,11 @@ export default async function DashboardPage() {
     .order('created_at', { ascending: false })
 
   const interactionsList = (userInteractions as { created_at: string }[]) || []
-  
-  // Completed actions today
+
   const completedTodayCount = interactionsList.filter(i => {
     return new Date(i.created_at).toISOString().split('T')[0] === todayStr
   }).length
 
-  // Active follow-up streak days
   const streakDays = calculateStreak(interactionsList)
 
   return (
@@ -178,7 +169,7 @@ export default async function DashboardPage() {
       <ResurfaceTrigger />
       {/* Desktop layout — hidden on mobile */}
       <div className="hidden md:block">
-        <DashboardDesktop
+        <WorkspaceDesktop
           profileId={profile.id}
           displayName={displayName}
           workingList={workingListContacts}
@@ -196,7 +187,7 @@ export default async function DashboardPage() {
 
       {/* Mobile layout — hidden on desktop */}
       <div className="block md:hidden">
-        <DashboardMobile
+        <WorkspaceMobile
           profileId={profile.id}
           displayName={displayName}
           workingList={workingListContacts}
