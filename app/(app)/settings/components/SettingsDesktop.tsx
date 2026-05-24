@@ -1,14 +1,13 @@
 'use client'
 
-import { useState, useTransition, useEffect, useRef } from 'react'
 import Link from 'next/link'
 import { Switch } from '@/components/ui/switch'
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
-import { updateProfile, updatePreferences, updateFollowupRules } from '@/lib/actions/settings'
 import { SyncConflictList } from './SyncConflictList'
 import type { SyncConflictWithContact } from './SyncConflictList'
 import type { FollowupRules } from '@/lib/actions/settings'
-import { useGoogleSync } from '../hooks/useGoogleSync'
+import type { useGoogleSync } from '../hooks/useGoogleSync'
+import type { useSettingsForm } from '../hooks/useSettingsForm'
 
 interface Props {
   profile: {
@@ -25,6 +24,8 @@ interface Props {
   conflictCount: number
   flashConnected: boolean
   flashError: string | undefined
+  googleSync: ReturnType<typeof useGoogleSync>
+  settingsForm: ReturnType<typeof useSettingsForm>
 }
 
 export default function SettingsDesktop({
@@ -35,18 +36,40 @@ export default function SettingsDesktop({
   conflictCount,
   flashConnected,
   flashError,
+  googleSync,
+  settingsForm,
 }: Props) {
   return (
     <div className="min-h-screen bg-terra-surface p-8 font-body">
       <div className="max-w-2xl mx-auto space-y-10">
         <h1 className="font-headline text-3xl font-bold text-terra-on-surface">Settings</h1>
 
-        <ProfileSection displayName={profile.display_name} email={profile.email} />
-        <PreferencesSection
-          confirmationEnabled={profile.confirmation_enabled}
-          pipelineView={profile.pipeline_view}
+        <ProfileSection
+          email={profile.email}
+          name={settingsForm.profileName}
+          setName={settingsForm.setProfileName}
+          isPending={settingsForm.isProfilePending}
+          feedback={settingsForm.profileFeedback}
+          onSave={settingsForm.handleProfileSave}
         />
-        <FollowupRulesSection rules={profile.followup_rules} />
+        <PreferencesSection
+          confirmation={settingsForm.confirmation}
+          setConfirmation={settingsForm.setConfirmation}
+          view={settingsForm.view}
+          setView={settingsForm.setView}
+          isPending={settingsForm.isPreferencesPending}
+          feedback={settingsForm.preferencesFeedback}
+          onSave={settingsForm.handlePreferencesSave}
+        />
+        <FollowupRulesSection
+          values={settingsForm.rawRuleInputs}
+          onChange={settingsForm.handleRuleChange}
+          isPending={settingsForm.isRulesPending}
+          feedback={settingsForm.rulesFeedback}
+          validationErrors={settingsForm.validationErrors}
+          hasValidationErrors={settingsForm.hasValidationErrors}
+          onSave={settingsForm.handleRulesSave}
+        />
         <GoogleSyncSection
           isConnected={isConnected}
           syncState={syncState}
@@ -55,6 +78,7 @@ export default function SettingsDesktop({
           profileId={profile.id}
           flashConnected={flashConnected}
           flashError={flashError}
+          googleSync={googleSync}
         />
         <DangerZoneSection />
       </div>
@@ -64,23 +88,21 @@ export default function SettingsDesktop({
 
 // ── Profile ──────────────────────────────────────────────────────────────────
 
-function ProfileSection({ displayName, email }: { displayName: string | null; email: string }) {
-  const [name, setName] = useState(displayName ?? '')
-  const [isPending, startTransition] = useTransition()
-  const [feedback, setFeedback] = useState<{ ok: boolean; msg: string } | null>(null)
-
-  function handleSave() {
-    setFeedback(null)
-    startTransition(async () => {
-      const result = await updateProfile(name)
-      if ('error' in result) {
-        setFeedback({ ok: false, msg: result.error })
-      } else {
-        setFeedback({ ok: true, msg: 'Saved.' })
-      }
-    })
-  }
-
+function ProfileSection({
+  email,
+  name,
+  setName,
+  isPending,
+  feedback,
+  onSave,
+}: {
+  email: string
+  name: string
+  setName: (v: string) => void
+  isPending: boolean
+  feedback: { ok: boolean; msg: string } | null
+  onSave: () => void
+}) {
   return (
     <section className="space-y-4">
       <h2 className="font-headline text-lg font-bold text-terra-on-surface">Profile</h2>
@@ -99,7 +121,7 @@ function ProfileSection({ displayName, email }: { displayName: string | null; em
         </div>
         <div className="flex items-center gap-3">
           <button
-            onClick={handleSave}
+            onClick={onSave}
             disabled={isPending}
             className="bg-terra-primary text-white text-sm font-bold px-4 py-2 rounded-xl hover:opacity-90 transition-opacity disabled:opacity-50"
           >
@@ -119,29 +141,22 @@ function ProfileSection({ displayName, email }: { displayName: string | null; em
 // ── Preferences ──────────────────────────────────────────────────────────────
 
 function PreferencesSection({
-  confirmationEnabled,
-  pipelineView,
+  confirmation,
+  setConfirmation,
+  view,
+  setView,
+  isPending,
+  feedback,
+  onSave,
 }: {
-  confirmationEnabled: boolean
-  pipelineView: string
+  confirmation: boolean
+  setConfirmation: (v: boolean) => void
+  view: string
+  setView: (v: string) => void
+  isPending: boolean
+  feedback: { ok: boolean; msg: string } | null
+  onSave: () => void
 }) {
-  const [confirmation, setConfirmation] = useState(confirmationEnabled)
-  const [view, setView] = useState(pipelineView)
-  const [isPending, startTransition] = useTransition()
-  const [feedback, setFeedback] = useState<{ ok: boolean; msg: string } | null>(null)
-
-  function handleSave() {
-    setFeedback(null)
-    startTransition(async () => {
-      const result = await updatePreferences({ confirmationEnabled: confirmation, pipelineView: view })
-      if ('error' in result) {
-        setFeedback({ ok: false, msg: result.error })
-      } else {
-        setFeedback({ ok: true, msg: 'Saved.' })
-      }
-    })
-  }
-
   return (
     <section className="space-y-4">
       <h2 className="font-headline text-lg font-bold text-terra-on-surface">Preferences</h2>
@@ -165,7 +180,7 @@ function PreferencesSection({
         </div>
         <div className="flex items-center gap-3 pt-1">
           <button
-            onClick={handleSave}
+            onClick={onSave}
             disabled={isPending}
             className="bg-terra-primary text-white text-sm font-bold px-4 py-2 rounded-xl hover:opacity-90 transition-opacity disabled:opacity-50"
           >
@@ -182,7 +197,7 @@ function PreferencesSection({
   )
 }
 
-// ── Follow-up Rules ───────────────────────────────────────────────────────────
+// ── Follow-up Rules ──────────────────────────────────────────────────────────
 
 const RULE_LABELS: Record<keyof FollowupRules, string> = {
   lead: 'Lead',
@@ -191,28 +206,23 @@ const RULE_LABELS: Record<keyof FollowupRules, string> = {
   leave_alone: 'Leave alone',
 }
 
-function FollowupRulesSection({ rules }: { rules: FollowupRules }) {
-  const [values, setValues] = useState<FollowupRules>({ ...rules })
-  const [isPending, startTransition] = useTransition()
-  const [feedback, setFeedback] = useState<{ ok: boolean; msg: string } | null>(null)
-
-  function handleChange(field: keyof FollowupRules, raw: string) {
-    const n = parseInt(raw, 10)
-    setValues(prev => ({ ...prev, [field]: isNaN(n) ? prev[field] : n }))
-  }
-
-  function handleSave() {
-    setFeedback(null)
-    startTransition(async () => {
-      const result = await updateFollowupRules(values)
-      if ('error' in result) {
-        setFeedback({ ok: false, msg: result.error })
-      } else {
-        setFeedback({ ok: true, msg: 'Saved.' })
-      }
-    })
-  }
-
+function FollowupRulesSection({
+  values,
+  onChange,
+  isPending,
+  feedback,
+  validationErrors,
+  hasValidationErrors,
+  onSave,
+}: {
+  values: Record<keyof FollowupRules, string>
+  onChange: (field: keyof FollowupRules, raw: string) => void
+  isPending: boolean
+  feedback: { ok: boolean; msg: string } | null
+  validationErrors: Record<keyof FollowupRules, string | null>
+  hasValidationErrors: boolean
+  onSave: () => void
+}) {
   return (
     <section className="space-y-4">
       <h2 className="font-headline text-lg font-bold text-terra-on-surface">Follow-up rules</h2>
@@ -230,18 +240,25 @@ function FollowupRulesSection({ rules }: { rules: FollowupRules }) {
                   min={1}
                   max={365}
                   value={values[field]}
-                  onChange={e => handleChange(field, e.target.value)}
-                  className="w-20 rounded-xl border border-terra-surface-container-highest bg-terra-surface-container-low px-3 py-2 text-sm text-terra-on-surface focus:outline-none focus:ring-2 focus:ring-terra-primary"
+                  onChange={e => onChange(field, e.target.value)}
+                  className={`w-20 rounded-xl border bg-terra-surface-container-low px-3 py-2 text-sm text-terra-on-surface focus:outline-none focus:ring-2 focus:ring-terra-primary ${
+                    validationErrors[field] ? 'border-destructive focus:ring-destructive' : 'border-terra-surface-container-highest'
+                  }`}
                 />
                 <span className="text-xs text-terra-outline">days</span>
               </div>
+              {validationErrors[field] && (
+                <p className="text-[10px] font-medium text-destructive mt-1">
+                  {validationErrors[field]}
+                </p>
+              )}
             </div>
           ))}
         </div>
         <div className="flex items-center gap-3 pt-1">
           <button
-            onClick={handleSave}
-            disabled={isPending}
+            onClick={onSave}
+            disabled={isPending || hasValidationErrors}
             className="bg-terra-primary text-white text-sm font-bold px-4 py-2 rounded-xl hover:opacity-90 transition-opacity disabled:opacity-50"
           >
             {isPending ? 'Saving…' : 'Save rules'}
@@ -257,7 +274,7 @@ function FollowupRulesSection({ rules }: { rules: FollowupRules }) {
   )
 }
 
-// ── Google Sync ───────────────────────────────────────────────────────────────
+// ── Google Sync ──────────────────────────────────────────────────────────────
 
 function GoogleSyncSection({
   isConnected,
@@ -267,6 +284,7 @@ function GoogleSyncSection({
   profileId,
   flashConnected,
   flashError,
+  googleSync,
 }: {
   isConnected: boolean
   syncState: { last_synced_at: string | null } | null
@@ -275,6 +293,7 @@ function GoogleSyncSection({
   profileId: string
   flashConnected: boolean
   flashError: string | undefined
+  googleSync: ReturnType<typeof useGoogleSync>
 }) {
   const {
     isSyncing,
@@ -283,19 +302,7 @@ function GoogleSyncSection({
     disconnectError,
     handleSync,
     handleDisconnect,
-  } = useGoogleSync({ syncSuccessPrefix: 'Synced successfully' })
-
-  const hasAutoSynced = useRef(false)
-
-  useEffect(() => {
-    if (flashConnected && !hasAutoSynced.current) {
-      hasAutoSynced.current = true
-      const url = new URL(window.location.href)
-      url.searchParams.delete('google_connected')
-      window.history.replaceState({}, '', url.toString())
-      handleSync()
-    }
-  }, [flashConnected, handleSync])
+  } = googleSync
 
   return (
     <section className="space-y-4">
@@ -391,7 +398,7 @@ function GoogleSyncSection({
   )
 }
 
-// ── Danger Zone ───────────────────────────────────────────────────────────────
+// ── Danger Zone ──────────────────────────────────────────────────────────────
 
 function DangerZoneSection() {
   return (
