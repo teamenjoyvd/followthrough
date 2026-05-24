@@ -804,13 +804,13 @@ export type Database = {
     Functions: {
       create_contact_with_phone: {
         Args: {
-          p_company: string
-          p_email: string
-          p_first_name: string
-          p_job_title: string
-          p_last_name: string
-          p_phone: string
           p_profile_id: string
+          p_first_name: string
+          p_last_name: string | null
+          p_email: string | null
+          p_company: string | null
+          p_job_title: string | null
+          p_phone: string | null
         }
         Returns: string
       }
@@ -971,7 +971,7 @@ export type CompositeTypes<
 }
   ? DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
   : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema["CompositeTypes"]
-    ? DefaultSchema["CompositeTypeName"][CompositeTypeName]
+    ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
     : never
 
 export const Constants = {
