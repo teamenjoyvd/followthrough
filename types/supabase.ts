@@ -14,6 +14,50 @@ export type Database = {
   }
   public: {
     Tables: {
+      action_log: {
+        Row: {
+          action_type: string
+          created_at: string
+          entity_id: string | null
+          entity_type: string
+          id: string
+          payload: Json
+          profile_id: string
+          undo_expires_at: string | null
+          undone_at: string | null
+        }
+        Insert: {
+          action_type: string
+          created_at?: string
+          entity_id?: string | null
+          entity_type: string
+          id?: string
+          payload?: Json
+          profile_id: string
+          undo_expires_at?: string | null
+          undone_at?: string | null
+        }
+        Update: {
+          action_type?: string
+          created_at?: string
+          entity_id?: string | null
+          entity_type?: string
+          id?: string
+          payload?: Json
+          profile_id?: string
+          undo_expires_at?: string | null
+          undone_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "action_log_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       call_details: {
         Row: {
           duration_seconds: number | null
@@ -503,6 +547,7 @@ export type Database = {
           followup_rules: Json
           id: string
           pipeline_view: string
+          undo_window_seconds: number
           updated_at: string
         }
         Insert: {
@@ -514,6 +559,7 @@ export type Database = {
           followup_rules?: Json
           id?: string
           pipeline_view?: string
+          undo_window_seconds?: number
           updated_at?: string
         }
         Update: {
@@ -525,6 +571,7 @@ export type Database = {
           followup_rules?: Json
           id?: string
           pipeline_view?: string
+          undo_window_seconds?: number
           updated_at?: string
         }
         Relationships: []
@@ -757,12 +804,12 @@ export type Database = {
     Functions: {
       create_contact_with_phone: {
         Args: {
-          p_company: string | null
-          p_email: string | null
+          p_company: string
+          p_email: string
           p_first_name: string
-          p_job_title: string | null
-          p_last_name: string | null
-          p_phone: string | null
+          p_job_title: string
+          p_last_name: string
+          p_phone: string
           p_profile_id: string
         }
         Returns: string
@@ -924,7 +971,7 @@ export type CompositeTypes<
 }
   ? DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
   : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema["CompositeTypes"]
-    ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
+    ? DefaultSchema["CompositeTypeName"][CompositeTypeName]
     : never
 
 export const Constants = {
