@@ -1,0 +1,242 @@
+import { auth, currentUser } from '@clerk/nextjs/server'
+import { redirect } from 'next/navigation'
+import { createSupabaseServerClient } from '@/lib/supabase/server'
+import { getUnreadInboxCount, getInboxItems } from '@/lib/actions/inbox'
+import { ensureProfile } from '@/lib/profile'
+import WorkspaceDesktop from './components/WorkspaceDesktop'
+import WorkspaceMobile from './components/WorkspaceMobile'
+import ResurfaceTrigger from './components/ResurfaceTrigger'
+import type { Database } from '@/types/supabase'
+
+export const dynamic = 'force-dynamic'
+
+export const metadata = {
+  title: 'Workspace — Followthrough',
+  description: 'Manage your focus list and follow-up activities.',
+}
+
+type Contact = Database['public']['Tables']['contacts']['Row']
+
+export default async function WorkspacePage() {
+  const { userId, sessionClaims } = await auth()
+  if (!userId) redirect('/sign-in')
+
+  const supabase = await createSupabaseServerClient()
+
+  interface ProfileResult {
+    id: string
+    display_name: string | null
+    followup_rules: any
+  }
+
+  // 1. Try to fetch the profile first to see if it already exists
+  const { data: profileResult, error: profileError } = await (supabase as any)
+    .from('profiles')
+    .select('id, display_name, followup_rules')
+    .eq('clerk_id', userId)
+    .maybeSingle() as { data: ProfileResult | null; error: any }
+
+  if (profileError) {
+    console.error('[WorkspacePage] Error fetching profile:', profileError)
+  }
+
+  let profile = profileResult
+
+  // 2. If the profile does not exist, provision a new one
+  if (!profile) {
+    let email = (sessionClaims?.email as string) || (sessionClaims?.primary_email as string) || ''
+    let fullName = (sessionClaims?.name as string) || (sessionClaims?.full_name as string) || ''
+
+    if (!email || !fullName) {
+      const user = await currentUser()
+      email = email || (user?.emailAddresses?.[0]?.emailAddress ?? '')
+      fullName =
+        fullName ||
+        [user?.firstName, user?.lastName].filter(Boolean).join(' ') ||
+        email ||
+        userId
+    }
+
+    profile = await ensureProfile(userId, email, fullName)
+  }
+
+  // 3. Throw a robust error if profile still doesn't exist to prevent infinite redirect loops
+  if (!profile) {
+    throw new Error('Failed to guarantee user profile. Please check database connectivity.')
+  }
+
+  const displayName = (profile.display_name ?? '').split(' ')[0] || 'there'
+
+  const avatarUrl = (sessionClaims?.picture as string) || (sessionClaims?.avatar_url as string) || (sessionClaims?.image_url as string) || null
+
+  // Fetch all contacts
+  const { data: allContacts, error: allContactsError } = await (supabase as any)
+    .from('contacts')
+    .select('*')
+    .eq('profile_id', profile.id) as { data: Contact[] | null; error: any }
+
+  if (allContactsError) {
+    console.error('[WorkspacePage] Error fetching all contacts:', allContactsError)
+  }
+
+  const contactsList = allContacts || []
+
+  // Fetch upcoming snoozed contacts resurfacing in the next 7 days
+  const todayStr = new Date().toISOString().split('T')[0]
+  const sevenDaysLater = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+  const sevenDaysLaterStr = sevenDaysLater.toISOString().split('T')[0]
+
+  const { data: upcomingContacts, error: upcomingContactsError } = await (supabase as any)
+    .from('contacts')
+    .select('*')
+    .eq('profile_id', profile.id)
+    .eq('pipeline_status', 'snoozed')
+    .gte('snoozed_until', todayStr)
+    .lte('snoozed_until', sevenDaysLaterStr)
+    .order('snoozed_until', { ascending: true })
+    .limit(5) as { data: Contact[] | null; error: any }
+
+  if (upcomingContactsError) {
+    console.error('[WorkspacePage] Error fetching upcoming contacts:', upcomingContactsError)
+  }
+
+  const workingListContacts = contactsList
+    .filter((c) => c.on_working_list)
+    .sort((a, b) => {
+      const aTime = a.working_list_added_at ? new Date(a.working_list_added_at).getTime() : 0
+      const bTime = b.working_list_added_at ? new Date(b.working_list_added_at).getTime() : 0
+      return aTime - bTime
+    })
+
+  const snoozedCount = contactsList.filter((c) => c.pipeline_status === 'snoozed').length
+  const totalContactsCount = contactsList.length
+  const inboxUnreadCount = await getUnreadInboxCount()
+
+  const stats = {
+    workingListCount: workingListContacts.length,
+    inboxCount: inboxUnreadCount,
+    snoozedCount,
+    totalContactsCount,
+  }
+
+  const followupRules = (profile.followup_rules as Record<string, number> | null) || { lead: 14, qualified: 7, bought: 30, leave_alone: 90 }
+  let overdueCount = 0
+
+  for (const contact of contactsList) {
+    if (contact.pipeline_status === 'snoozed') continue
+    const thresholdDays = followupRules[contact.pipeline_status] ?? 14
+    const referenceDateStr = contact.last_contacted_at || contact.created_at
+    if (referenceDateStr) {
+      const referenceDate = new Date(referenceDateStr)
+      const diffMs = Date.now() - referenceDate.getTime()
+      if (diffMs > thresholdDays * 24 * 60 * 60 * 1000) {
+        overdueCount++
+      }
+    } else {
+      overdueCount++
+    }
+  }
+
+  const healthPercentage = totalContactsCount > 0 ? Math.round(((totalContactsCount - overdueCount) / totalContactsCount) * 100) : 100
+
+  const { data: rawLabels } = await supabase
+    .from('labels')
+    .select('*')
+    .eq('profile_id', profile.id)
+    .order('name', { ascending: true })
+
+  const allLabels = (rawLabels as any[]) || []
+
+  const inboxItems = await getInboxItems()
+
+  const { data: userInteractions } = await (supabase as any)
+    .from('interactions')
+    .select('created_at')
+    .eq('profile_id', profile.id)
+    .order('created_at', { ascending: false })
+
+  const interactionsList = (userInteractions as { created_at: string }[]) || []
+
+  const completedTodayCount = interactionsList.filter(i => {
+    return new Date(i.created_at).toISOString().split('T')[0] === todayStr
+  }).length
+
+  const streakDays = calculateStreak(interactionsList)
+
+  return (
+    <>
+      <ResurfaceTrigger />
+      {/* Desktop layout — hidden on mobile */}
+      <div className="hidden md:block">
+        <WorkspaceDesktop
+          profileId={profile.id}
+          displayName={displayName}
+          workingList={workingListContacts}
+          stats={stats}
+          avatarUrl={avatarUrl}
+          healthPercentage={healthPercentage}
+          upcomingContacts={upcomingContacts || []}
+          allContacts={contactsList}
+          allLabels={allLabels}
+          inboxItems={inboxItems}
+          completedTodayCount={completedTodayCount}
+          streakDays={streakDays}
+        />
+      </div>
+
+      {/* Mobile layout — hidden on desktop */}
+      <div className="block md:hidden">
+        <WorkspaceMobile
+          profileId={profile.id}
+          displayName={displayName}
+          workingList={workingListContacts}
+          stats={stats}
+          avatarUrl={avatarUrl}
+          healthPercentage={healthPercentage}
+          upcomingContacts={upcomingContacts || []}
+          allContacts={contactsList}
+          allLabels={allLabels}
+          inboxItems={inboxItems}
+          completedTodayCount={completedTodayCount}
+          streakDays={streakDays}
+        />
+      </div>
+    </>
+  )
+}
+
+function calculateStreak(interactions: { created_at: string }[]): number {
+  if (!interactions || interactions.length === 0) return 0
+
+  const dates = Array.from(
+    new Set(
+      interactions.map(i => new Date(i.created_at).toISOString().split('T')[0])
+    )
+  ).sort((a, b) => b.localeCompare(a))
+
+  if (dates.length === 0) return 0
+
+  const todayStr = new Date().toISOString().split('T')[0]
+  const yesterday = new Date()
+  yesterday.setDate(yesterday.getDate() - 1)
+  const yesterdayStr = yesterday.toISOString().split('T')[0]
+
+  if (dates[0] !== todayStr && dates[0] !== yesterdayStr) {
+    return 0
+  }
+
+  let streak = 0
+  const currentDate = new Date(dates[0])
+
+  for (let i = 0; i < dates.length; i++) {
+    const expectedStr = currentDate.toISOString().split('T')[0]
+    if (dates[i] === expectedStr) {
+      streak++
+      currentDate.setDate(currentDate.getDate() - 1)
+    } else {
+      break
+    }
+  }
+
+  return streak
+}
