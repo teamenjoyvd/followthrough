@@ -4,6 +4,7 @@ import { useTransition } from 'react'
 import { formatDistanceToNow } from 'date-fns'
 import { Phone, Mail, FileText, Trash2 } from 'lucide-react'
 import { deleteInteraction } from '@/lib/actions/interactions'
+import { ConfirmDialog } from '@/components/ConfirmDialog'
 import type { InteractionWithDetails } from './types'
 
 const OUTCOME_LABELS: Record<string, string> = {
@@ -71,14 +72,21 @@ function DeleteButton({
   }
 
   return (
-    <button
-      onClick={handleDelete}
-      disabled={isPending}
-      className="opacity-0 group-hover:opacity-100 transition-all p-1.5 rounded-xl hover:bg-[#ffdad8]/50 text-[#74796e] hover:text-[#b83230] disabled:opacity-50 cursor-pointer"
-      aria-label="Delete interaction"
+    <ConfirmDialog
+      title="Delete this entry?"
+      description="This interaction log will be permanently removed."
+      confirmLabel="Delete this entry"
+      destructive
+      onConfirm={handleDelete}
     >
-      <Trash2 className="h-3.5 w-3.5" />
-    </button>
+      <button
+        disabled={isPending}
+        className="opacity-0 group-hover:opacity-100 transition-all p-1.5 rounded-xl hover:bg-[#ffdad8]/50 text-[#74796e] hover:text-[#b83230] disabled:opacity-50 cursor-pointer"
+        aria-label="Delete interaction"
+      >
+        <Trash2 className="h-3.5 w-3.5" />
+      </button>
+    </ConfirmDialog>
   )
 }
 

@@ -2,10 +2,11 @@
 
 import * as React from 'react'
 import { useWorkspaceStore } from '../store/useWorkspaceStore'
-import { Search, UserPlus, CheckCircle2, Clock, Trash2, Mail, Phone, Calendar, ArrowRight } from 'lucide-react'
+import { Search, UserPlus, CheckCircle2, Clock, Trash2 } from 'lucide-react'
 import type { Database } from '@/types/supabase'
-import { getInitials, getAvatarUrl, getContactDescription, getPreferredContactMethods, formatRelativeTime } from '@/lib/utils/dashboard'
+import { getInitials, getAvatarUrl, getContactDescription } from '@/lib/utils/dashboard'
 import { cn } from '@/lib/utils'
+import { useActionToast } from '@/components/ActionToast'
 
 type Contact = Database['public']['Tables']['contacts']['Row']
 
@@ -18,8 +19,11 @@ export default function FocusList() {
     pinContact, 
     unpinContact, 
     markContactDone, 
-    snoozeContact 
+    snoozeContact,
+    undoWindowSeconds,
   } = useWorkspaceStore()
+
+  const showToast = useActionToast()
 
   const [searchQuery, setSearchQuery] = React.useState('')
   const [showSuggestions, setShowSuggestions] = React.useState(false)
@@ -33,7 +37,6 @@ export default function FocusList() {
   
   const suggestionsRef = React.useRef<HTMLDivElement>(null)
 
-  // Filter contacts available to pin (not already in focus list)
   const filteredSuggestions = React.useMemo(() => {
     if (!searchQuery.trim()) return []
     const q = searchQuery.toLowerCase()
@@ -47,7 +50,6 @@ export default function FocusList() {
       .slice(0, 5)
   }, [searchQuery, allContacts, workingList])
 
-  // Close search suggestions on click outside
   React.useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (suggestionsRef.current && !suggestionsRef.current.contains(event.target as Node)) {
@@ -63,12 +65,20 @@ export default function FocusList() {
     setShowSuggestions(false)
     const res = await pinContact(contactId)
     if (res.error) triggerError(res.error)
-  };
+    else if (res.logId) {
+      const contact = allContacts.find(c => c.id === contactId)
+      showToast({
+        actionLabel: `${contact?.first_name ?? 'Contact'} added to Focus`,
+        logId: res.logId,
+        undoWindowSeconds,
+      })
+    }
+  }
 
   return (
     <div className="space-y-6">
       
-      {/* ── Header Area ─────────────────────────────────────── */}
+      {/* ── Header Area ───────────────────────────────────────────────── */}
       <div className="flex items-center justify-between">
         <div>
           <h2 className="font-headline text-2xl font-bold text-[#2e3230]">Focus List</h2>
@@ -84,7 +94,7 @@ export default function FocusList() {
         </div>
       )}
 
-      {/* ── Search & Pin Input Command Bar ─────────────────── */}
+      {/* ── Search & Pin Input Command Bar ────────────────────── */}
       <div className="relative" ref={suggestionsRef}>
         <div className="relative">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-[#74796e]" />
@@ -101,7 +111,6 @@ export default function FocusList() {
           />
         </div>
 
-        {/* Suggestion Dropdown */}
         {showSuggestions && filteredSuggestions.length > 0 && (
           <div className="absolute w-full mt-2 bg-[#faf6f0] border border-[#e4e0d8] rounded-2xl shadow-[0_8px_30px_rgba(46,50,48,0.12)] overflow-hidden z-50 animate-in fade-in-50 slide-in-from-top-2 duration-150">
             <div className="p-2 space-y-1">
@@ -132,7 +141,7 @@ export default function FocusList() {
         )}
       </div>
 
-      {/* ── Focus List Cards ────────────────────────────────── */}
+      {/* ── Focus List Cards ────────────────────────────────────────────────── */}
       {workingList.length === 0 ? (
         <div className="bg-[#f5f1ea] rounded-[24px] py-20 flex flex-col items-center text-center border border-[#e4e0d8]/40 shadow-[0_4px_24px_rgba(46,50,48,0.02)]">
           <div className="p-4 bg-[#c8e8d0] text-[#4a7c59] rounded-full mb-4">
@@ -148,7 +157,6 @@ export default function FocusList() {
           {workingList.map((c) => {
             const avatar = getAvatarUrl(c)
             const desc = getContactDescription(c)
-            const preferred = getPreferredContactMethods(c)
             const isSelected = selectedContact?.id === c.id
 
             return (
@@ -162,14 +170,11 @@ export default function FocusList() {
                     : "bg-[#f5f1ea] border-[#e4e0d8]/30 hover:bg-[#e4e0d8]/60 hover:border-[#e4e0d8]/70"
                 )}
               >
-                
-                {/* Visual Active Indicator Ribbon */}
                 {isSelected && (
                   <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-[#705c30]" />
                 )}
 
                 <div className="flex items-center justify-between">
-                  {/* Left Side: Avatar & Name */}
                   <div className="flex items-center gap-4 min-w-0 flex-1">
                     <div className="h-12 w-12 rounded-full overflow-hidden shrink-0 bg-[#f8e0a8] text-[#221a05] font-bold text-sm flex items-center justify-center font-sans">
                       {avatar ? <img className="w-full h-full object-cover" src={avatar} alt="" /> : getInitials(c.first_name, c.last_name)}
@@ -185,14 +190,12 @@ export default function FocusList() {
                     </div>
                   </div>
 
-                  {/* Right Side: Instant Actions */}
                   <div className="flex items-center gap-2 shrink-0 ml-4" onClick={(e) => e.stopPropagation()}>
-                    
-                    {/* Mark Done (Increment Game) */}
                     <button
                       onClick={async () => {
                         const res = await markContactDone(c.id)
                         if (res.error) triggerError(res.error)
+                        else if (res.logId) showToast({ actionLabel: `${c.first_name} marked done`, logId: res.logId, undoWindowSeconds })
                       }}
                       className="p-2 bg-[#4a7c59] text-white hover:bg-[#3d6649] rounded-xl active:scale-95 duration-100 transition-transform"
                       title="Log Contact & Mark Done"
@@ -200,7 +203,6 @@ export default function FocusList() {
                       <CheckCircle2 className="h-4.5 w-4.5" />
                     </button>
 
-                    {/* Clock Snooze Toggle */}
                     <button
                       onClick={() => setActiveSnoozeId(activeSnoozeId === c.id ? null : c.id)}
                       className={cn(
@@ -214,11 +216,11 @@ export default function FocusList() {
                       <Clock className="h-4.5 w-4.5" />
                     </button>
 
-                    {/* Unpin */}
                     <button
                       onClick={async () => {
                         const res = await unpinContact(c.id)
                         if (res.error) triggerError(res.error)
+                        else if (res.logId) showToast({ actionLabel: `${c.first_name} removed from Focus`, logId: res.logId, undoWindowSeconds })
                       }}
                       className="p-2 bg-[#eae6de] text-[#74796e] hover:text-[#b83230] hover:bg-[#ffdad8]/50 rounded-xl active:scale-95 duration-100 transition-transform"
                       title="Remove from Focus"
@@ -228,7 +230,6 @@ export default function FocusList() {
                   </div>
                 </div>
 
-                {/* Inline Snooze Widget */}
                 {activeSnoozeId === c.id && (
                   <div className="mt-4 p-4 bg-[#faf6f0] rounded-2xl border border-[#e4e0d8] space-y-3 animate-in slide-in-from-top-2 duration-150 relative z-20 self-end w-full max-w-sm" onClick={(e) => e.stopPropagation()}>
                     <p className="text-[10px] font-bold uppercase tracking-wider text-[#74796e] font-sans">Snooze until...</p>
@@ -241,6 +242,7 @@ export default function FocusList() {
                               setActiveSnoozeId(null)
                               const res = await snoozeContact(c.id, days)
                               if (res.error) triggerError(res.error)
+                              else if (res.logId) showToast({ actionLabel: `${c.first_name} snoozed ${label.toLowerCase()}`, logId: res.logId, undoWindowSeconds })
                             }}
                             className="py-2 px-3 text-center text-xs font-semibold bg-[#faf6f0] border border-[#e4e0d8] text-[#2e3230] hover:bg-[#c8e8d0] hover:text-[#4a7c59] hover:border-[#4a7c59]/30 rounded-xl transition-colors font-sans"
                           >
@@ -259,6 +261,7 @@ export default function FocusList() {
                             setActiveSnoozeId(null)
                             const res = await snoozeContact(c.id, new Date(e.target.value))
                             if (res.error) triggerError(res.error)
+                            else if (res.logId) showToast({ actionLabel: `${c.first_name} snoozed`, logId: res.logId, undoWindowSeconds })
                           }
                         }}
                         className="w-full text-xs border border-[#e4e0d8] rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#4a7c59] bg-[#faf6f0] font-sans text-[#2e3230]"
