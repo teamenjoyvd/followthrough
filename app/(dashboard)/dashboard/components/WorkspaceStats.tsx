@@ -4,7 +4,6 @@ import * as React from 'react'
 import { useWorkspaceStore } from '../store/useWorkspaceStore'
 import { Heart, Flame, Inbox, Plus, Check, Clock, EyeOff } from 'lucide-react'
 import { markInboxItemRead } from '@/lib/actions/inbox'
-import { getContact } from '@/lib/actions/contacts'
 import type { InboxItem } from '@/types/inbox'
 
 interface Props {
@@ -31,10 +30,7 @@ export default function WorkspaceStats({ initialInboxItems, healthPercentage }: 
   const handlePinFromInbox = async (itemId: string, contactId: string | null) => {
     if (!contactId) return
     setInboxItems(prev => prev.filter(item => item.id !== itemId))
-    const contact = await getContact(contactId)
-    if (contact) {
-      await pinContact(contact.id)
-    }
+    await pinContact(contactId)
     await markInboxItemRead(itemId)
   }
 

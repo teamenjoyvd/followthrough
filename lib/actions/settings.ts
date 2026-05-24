@@ -4,7 +4,7 @@ import { auth } from '@clerk/nextjs/server'
 import { revalidatePath } from 'next/cache'
 import { createSupabaseServerClient, getProfileId } from '@/lib/supabase/server'
 
-export interface FollowupRules {
+export type FollowupRules = {
   lead: number
   qualified: number
   bought: number
@@ -99,7 +99,7 @@ export async function updateFollowupRules(
 
   const { error } = await supabase
     .from('profiles')
-    .update({ followup_rules: rules as any })
+    .update({ followup_rules: rules })
     .eq('id', profileId)
 
   if (error) {
