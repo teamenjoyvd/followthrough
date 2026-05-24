@@ -757,12 +757,12 @@ export type Database = {
     Functions: {
       create_contact_with_phone: {
         Args: {
-          p_company: string
-          p_email: string
+          p_company: string | null
+          p_email: string | null
           p_first_name: string
-          p_job_title: string
-          p_last_name: string
-          p_phone: string
+          p_job_title: string | null
+          p_last_name: string | null
+          p_phone: string | null
           p_profile_id: string
         }
         Returns: string

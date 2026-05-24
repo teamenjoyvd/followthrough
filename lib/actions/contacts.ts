@@ -36,11 +36,11 @@ export async function createContact(formData: FormData): Promise<{ success: true
       .rpc('create_contact_with_phone', {
         p_profile_id: profileId,
         p_first_name: firstName.trim(),
-        p_last_name: (lastName?.trim() || null) as any,
-        p_email: (email?.trim() || null) as any,
-        p_company: (company?.trim() || null) as any,
-        p_job_title: (jobTitle?.trim() || null) as any,
-        p_phone: (phone?.trim() || null) as any
+        p_last_name: lastName?.trim() || null,
+        p_email: email?.trim() || null,
+        p_company: company?.trim() || null,
+        p_job_title: jobTitle?.trim() || null,
+        p_phone: phone?.trim() || null
       })
 
     if (rpcError) {
