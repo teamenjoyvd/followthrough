@@ -2,22 +2,10 @@
 
 import { auth } from '@clerk/nextjs/server'
 import { revalidatePath } from 'next/cache'
-import { createSupabaseServerClient } from '@/lib/supabase/server'
+import { createSupabaseServerClient, getProfileId } from '@/lib/supabase/server'
 import type { Database } from '@/types/supabase'
 
 type PipelineStatus = Database['public']['Enums']['pipeline_status']
-
-async function getProfileId(
-  supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>,
-  userId: string,
-): Promise<string | null> {
-  const { data } = await (supabase as any)
-    .from('profiles')
-    .select('id')
-    .eq('clerk_id', userId)
-    .maybeSingle()
-  return (data as { id: string } | null)?.id ?? null
-}
 
 export async function moveContact(
   contactId: string,
@@ -34,7 +22,7 @@ export async function moveContact(
   }
 
   try {
-    const { error } = await (supabase as any)
+    const { error } = await supabase
       .from('contacts')
       .update({ pipeline_status: newStatus })
       .eq('id', contactId)
@@ -44,7 +32,7 @@ export async function moveContact(
 
     revalidatePath('/pipeline')
     revalidatePath('/contacts')
-    revalidatePath(`/contacts/${contactId}`)
+    revalidatePath('/contacts/' + contactId)
     return { success: true }
   } catch (err: any) {
     return { error: err.message || 'An unexpected error occurred' }

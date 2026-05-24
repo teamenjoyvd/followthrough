@@ -36,11 +36,11 @@ export async function createContact(formData: FormData): Promise<{ success: true
       .rpc('create_contact_with_phone', {
         p_profile_id: profileId,
         p_first_name: firstName.trim(),
-        p_last_name: lastName?.trim() || null,
-        p_email: email?.trim() || null,
-        p_company: company?.trim() || null,
-        p_job_title: jobTitle?.trim() || null,
-        p_phone: phone?.trim() || null
+        p_last_name: (lastName?.trim() || null) as any,
+        p_email: (email?.trim() || null) as any,
+        p_company: (company?.trim() || null) as any,
+        p_job_title: (jobTitle?.trim() || null) as any,
+        p_phone: (phone?.trim() || null) as any
       })
 
     if (rpcError) {
@@ -262,8 +262,8 @@ export async function importContactsFromCSV(
         email: r.email?.trim() || null,
         company: r.company?.trim() || null,
         job_title: r.job_title?.trim() || null,
-        created_by_source: 'csv_import',
-        last_updated_by_source: 'csv_import',
+        created_by_source: 'csv_import' as const,
+        last_updated_by_source: 'csv_import' as const,
         source_detail: filename,
         import_log_id: logId
       }))
@@ -597,3 +597,20 @@ export async function updateContactDescription(
   }
 }
 
+export async function getContact(contactId: string): Promise<Database['public']['Tables']['contacts']['Row'] | null> {
+  const { userId } = await auth()
+  if (!userId) return null
+
+  const supabase = await createSupabaseServerClient()
+  const profileId = await getProfileId(supabase, userId)
+  if (!profileId) return null
+
+  const { data } = await supabase
+    .from('contacts')
+    .select('*')
+    .eq('id', contactId)
+    .eq('profile_id', profileId)
+    .single()
+
+  return data;
+}

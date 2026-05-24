@@ -4,10 +4,6 @@ import { auth } from '@clerk/nextjs/server'
 import { revalidatePath } from 'next/cache'
 import { createSupabaseServerClient, getProfileId } from '@/lib/supabase/server'
 
-// ---------------------------------------------------------------------------
-// addToWorkingList
-// ---------------------------------------------------------------------------
-
 export async function addToWorkingList(
   contactId: string,
 ): Promise<{ success: true } | { error: string }> {
@@ -18,17 +14,15 @@ export async function addToWorkingList(
   const profileId = await getProfileId(supabase, userId)
   if (!profileId) return { error: 'Profile not found' }
 
-  const { error } = await (supabase as any)
+  const { error } = await supabase
     .from('contacts')
     .update({ on_working_list: true, working_list_added_at: new Date().toISOString() })
     .eq('id', contactId)
     .eq('profile_id', profileId)
-    .select()
 
   if (error) return { error: error.message || 'Failed to add to working list' }
 
-  // Emit inbox item
-  await (supabase as any).from('inbox_items').insert({
+  await supabase.from('inbox_items').insert({
     profile_id: profileId,
     type: 'working_list_changed',
     contact_id: contactId,
@@ -37,13 +31,9 @@ export async function addToWorkingList(
   })
 
   revalidatePath('/dashboard')
-  revalidatePath(`/contacts/${contactId}`)
+  revalidatePath('/contacts/' + contactId)
   return { success: true }
 }
-
-// ---------------------------------------------------------------------------
-// removeFromWorkingList
-// ---------------------------------------------------------------------------
 
 export async function removeFromWorkingList(
   contactId: string,
@@ -55,23 +45,18 @@ export async function removeFromWorkingList(
   const profileId = await getProfileId(supabase, userId)
   if (!profileId) return { error: 'Profile not found' }
 
-  const { error } = await (supabase as any)
+  const { error } = await supabase
     .from('contacts')
     .update({ on_working_list: false, working_list_added_at: null })
     .eq('id', contactId)
     .eq('profile_id', profileId)
-    .select()
 
   if (error) return { error: error.message || 'Failed to remove from working list' }
 
   revalidatePath('/dashboard')
-  revalidatePath(`/contacts/${contactId}`)
+  revalidatePath('/contacts/' + contactId)
   return { success: true }
 }
-
-// ---------------------------------------------------------------------------
-// markDone — logs a no-interaction note completion, removes from working list
-// ---------------------------------------------------------------------------
 
 export async function markDone(
   contactId: string,
@@ -83,29 +68,18 @@ export async function markDone(
   const profileId = await getProfileId(supabase, userId)
   if (!profileId) return { error: 'Profile not found' }
 
-  // Insert a note interaction to record the completion
-  const { data: interaction, error: interactionError } = await (supabase as any)
-    .from('interactions')
-    .insert({ contact_id: contactId, profile_id: profileId, type: 'note' })
-    .select('id')
-    .single()
+  const { error: rpcError } = await supabase
+    .rpc('mark_done_with_note', {
+      p_contact_id: contactId,
+      p_profile_id: profileId,
+      p_note_body: 'Marked done from working list'
+    })
 
-  if (interactionError) return { error: interactionError.message || 'Failed to log completion' }
-
-  await (supabase as any).from('note_details').insert({
-    interaction_id: interaction.id,
-    body: 'Marked done from working list',
-  })
-
-  // Remove from working list
-  await (supabase as any)
-    .from('contacts')
-    .update({ on_working_list: false, working_list_added_at: null })
-    .eq('id', contactId)
-    .eq('profile_id', profileId)
-    .select()
+  if (rpcError) {
+    return { error: rpcError.message || 'Failed to complete task' }
+  }
 
   revalidatePath('/dashboard')
-  revalidatePath(`/contacts/${contactId}`)
+  revalidatePath('/contacts/' + contactId)
   return { success: true }
 }

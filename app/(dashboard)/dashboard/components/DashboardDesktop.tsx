@@ -26,11 +26,11 @@ interface Props {
   profileId: string
   displayName: string
   workingList: Contact[]
+  allContacts: Contact[]
   stats: Stats
   avatarUrl: string | null
   healthPercentage: number
   upcomingContacts: Contact[]
-  allContacts: Contact[]
   allLabels: Label[]
   inboxItems: InboxItem[]
   completedTodayCount: number
@@ -41,11 +41,11 @@ export default function DashboardDesktop({
   profileId,
   displayName,
   workingList,
+  allContacts,
   stats,
   avatarUrl,
   healthPercentage,
   upcomingContacts,
-  allContacts,
   allLabels,
   inboxItems,
   completedTodayCount,

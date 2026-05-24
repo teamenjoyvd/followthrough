@@ -17,12 +17,10 @@ export async function resolveConflict(
 
   const supabase = await createSupabaseServerClient()
 
-  // Verify the profile belongs to this user
   const verifiedProfileId = await getProfileId(supabase, userId)
   if (!verifiedProfileId || verifiedProfileId !== profileId) return { error: 'Unauthorized' }
 
-  // Fetch the conflict
-  const { data: conflict } = await (supabase as any)
+  const { data: conflict } = await supabase
     .from('sync_conflicts')
     .select('*')
     .eq('id', conflictId)
@@ -34,11 +32,10 @@ export async function resolveConflict(
 
   try {
     if (winner === 'google' && conflict.google_value !== null) {
-      // Apply the Google value to the contact
       const update: any = {
         [conflict.field_name]: conflict.google_value,
       }
-      const { error: updateErr } = await (supabase as any)
+      const { error: updateErr } = await supabase
         .from('contacts')
         .update(update)
         .eq('id', conflict.contact_id)
@@ -46,9 +43,8 @@ export async function resolveConflict(
 
       if (updateErr) return { error: updateErr.message }
     }
-    // If winner === 'ours', no contact update needed — just mark resolved
 
-    const { error: resolveErr } = await (supabase as any)
+    const { error: resolveErr } = await supabase
       .from('sync_conflicts')
       .update({ resolved: true })
       .eq('id', conflictId)

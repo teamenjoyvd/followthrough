@@ -54,7 +54,6 @@ function CallForm({
     setError(null)
     const result = await logCall({
       contactId,
-      profileId,
       outcome,
       durationSeconds: duration ? parseInt(duration, 10) * 60 : undefined,
       summary: summary || undefined,
@@ -149,7 +148,7 @@ function EmailForm({
   async function handleSubmit() {
     setPending(true)
     setError(null)
-    const result = await logEmail({ contactId, profileId, subject: subject || undefined, body: body || undefined })
+    const result = await logEmail({ contactId, subject: subject || undefined, body: body || undefined })
     setPending(false)
     if (result.error) {
       setError(result.error)
@@ -214,7 +213,7 @@ function NoteForm({
     if (!body.trim()) return
     setPending(true)
     setError(null)
-    const result = await logNote({ contactId, profileId, body })
+    const result = await logNote({ contactId, body })
     setPending(false)
     if (result.error) {
       setError(result.error)

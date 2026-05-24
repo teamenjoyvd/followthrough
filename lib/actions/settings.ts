@@ -32,7 +32,7 @@ export async function updateProfile(
   const profileId = await getProfileId(supabase, userId)
   if (!profileId) return { error: 'Profile not found' }
 
-  const { error } = await (supabase as any)
+  const { error } = await supabase
     .from('profiles')
     .update({ display_name: trimmed })
     .eq('id', profileId)
@@ -62,7 +62,7 @@ export async function updatePreferences({
   const profileId = await getProfileId(supabase, userId)
   if (!profileId) return { error: 'Profile not found' }
 
-  const { error } = await (supabase as any)
+  const { error } = await supabase
     .from('profiles')
     .update({
       confirmation_enabled: confirmationEnabled,
@@ -85,12 +85,11 @@ export async function updateFollowupRules(
   const { userId } = await auth()
   if (!userId) return { error: 'Unauthorized' }
 
-  // Validate: all thresholds must be positive integers
   const fields = Object.keys(DEFAULT_FOLLOWUP_RULES) as (keyof FollowupRules)[]
   for (const field of fields) {
     const val = rules[field]
     if (!Number.isInteger(val) || val < 1 || val > 365) {
-      return { error: `${field}: must be between 1 and 365 days` }
+      return { error: field + ': must be between 1 and 365 days' }
     }
   }
 
@@ -98,9 +97,9 @@ export async function updateFollowupRules(
   const profileId = await getProfileId(supabase, userId)
   if (!profileId) return { error: 'Profile not found' }
 
-  const { error } = await (supabase as any)
+  const { error } = await supabase
     .from('profiles')
-    .update({ followup_rules: rules })
+    .update({ followup_rules: rules as any })
     .eq('id', profileId)
 
   if (error) {
