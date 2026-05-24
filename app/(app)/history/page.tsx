@@ -11,7 +11,7 @@ export const metadata = {
   description: 'A chronological log of all actions taken in Followthrough.',
 }
 
-const PAGE_SIZE = 25
+export const PAGE_SIZE = 25
 
 export interface HistoryItem {
   id: string
@@ -57,7 +57,10 @@ export default async function HistoryPage({
     countQuery = countQuery.in('entity_type', entityTypes)
   }
 
-  const { count } = await countQuery
+  const { count, error: countError } = await countQuery
+  if (countError) {
+    console.error('[HistoryPage] count error:', countError)
+  }
   const totalCount = count ?? 0
 
   // Data query — left join contacts via entity_id when entity_type = 'contact'
@@ -102,10 +105,14 @@ export default async function HistoryPage({
   const contactNameMap = new Map<string, { first: string; last: string | null }>()
 
   if (contactIds.length > 0) {
-    const { data: contacts } = await supabase
+    const { data: contacts, error: contactsError } = await supabase
       .from('contacts')
       .select('id, first_name, last_name')
       .in('id', contactIds)
+
+    if (contactsError) {
+      console.error('[HistoryPage] contacts fetch error:', contactsError)
+    }
 
     for (const c of contacts ?? []) {
       contactNameMap.set(c.id, { first: c.first_name, last: c.last_name ?? null })
