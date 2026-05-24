@@ -1,7 +1,7 @@
 'use server'
 
 import { auth } from '@clerk/nextjs/server'
-import { createSupabaseServerClient, getProfile } from '@/lib/supabase/server'
+import { createSupabaseServerClient } from '@/lib/supabase/server'
 
 // ---------------------------------------------------------------------------
 // appendActionLog
@@ -18,13 +18,14 @@ export async function appendActionLog(input: {
 }): Promise<{ logId: string } | { error: string }> {
   try {
     const supabase = await createSupabaseServerClient()
+    const db = supabase as any // action_log not yet in generated types
 
     const undoExpiresAt =
       input.undoWindowSeconds !== null
         ? new Date(Date.now() + input.undoWindowSeconds * 1000).toISOString()
         : null
 
-    const { data, error } = await supabase
+    const { data, error } = await db
       .from('action_log')
       .insert({
         profile_id: input.profileId,
@@ -62,9 +63,10 @@ export async function undoAction(
 
   try {
     const supabase = await createSupabaseServerClient()
+    const db = supabase as any // action_log not yet in generated types
 
     // 1. Fetch and validate the log row
-    const { data: logRow, error: fetchError } = await supabase
+    const { data: logRow, error: fetchError } = await db
       .from('action_log')
       .select('*')
       .eq('id', logId)
@@ -211,13 +213,13 @@ export async function undoAction(
     }
 
     // 3. Mark original row as undone
-    await supabase
+    await db
       .from('action_log')
       .update({ undone_at: new Date().toISOString() })
       .eq('id', logId)
 
     // 4. Insert undo log row
-    await supabase.from('action_log').insert({
+    await db.from('action_log').insert({
       profile_id: logRow.profile_id,
       action_type: 'undo_' + logRow.action_type,
       entity_type: logRow.entity_type,
