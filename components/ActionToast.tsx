@@ -22,24 +22,23 @@ export function useActionToast() {
   const show = React.useCallback(
     ({ actionLabel, logId, undoWindowSeconds }: ActionToastOptions) => {
       const duration = undoWindowSeconds * 1000 + 300
+      const toastId = `action-${logId}`
 
       toast(
-        (t) => (
-          <ActionToastContent
-            toastId={t}
-            actionLabel={actionLabel}
-            logId={logId}
-            undoWindowSeconds={undoWindowSeconds}
-            onUndo={() => {
-              toast.dismiss(t)
-              router.refresh()
-            }}
-          />
-        ),
+        <ActionToastContent
+          toastId={toastId}
+          actionLabel={actionLabel}
+          logId={logId}
+          undoWindowSeconds={undoWindowSeconds}
+          onUndo={() => {
+            toast.dismiss(toastId)
+            router.refresh()
+          }}
+        />,
         {
+          id: toastId,
           duration,
           unstyled: false,
-          // prevent accidental swipe-dismiss during undo window
         }
       )
     },
@@ -50,7 +49,7 @@ export function useActionToast() {
 }
 
 interface ContentProps {
-  toastId: string | number
+  toastId: string
   actionLabel: string
   logId: string
   undoWindowSeconds: number
