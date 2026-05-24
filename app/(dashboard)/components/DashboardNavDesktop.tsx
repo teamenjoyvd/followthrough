@@ -88,7 +88,7 @@ export function DashboardNavDesktop({ displayName, avatarUrl }: Props) {
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuItem
-              className="text-destructive focus:text-destructive cursor-pointer"
+              className="text-destructive focus:text-destructive focus:bg-destructive/10 cursor-pointer"
               onClick={() => signOut({ redirectUrl: '/' })}
             >
               <LogOut className="h-4 w-4" />

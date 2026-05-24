@@ -1,5 +1,4 @@
 import { currentUser } from '@clerk/nextjs/server'
-import { Logo } from '@/components/Logo'
 import { DashboardNavDesktop } from './components/DashboardNavDesktop'
 import { DashboardNavMobile } from './components/DashboardNavMobile'
 
