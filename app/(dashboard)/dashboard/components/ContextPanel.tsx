@@ -181,21 +181,18 @@ export default function ContextPanel({ profileId, allLabels }: Props) {
       if (showLogForm === 'call') {
         await logCall({
           contactId: selectedContact.id,
-          profileId,
           outcome: callOutcome,
           summary: logSummary
         })
       } else if (showLogForm === 'email') {
         await logEmail({
           contactId: selectedContact.id,
-          profileId,
           subject: emailSubject,
           body: logSummary
         })
       } else if (showLogForm === 'meeting') {
         await logNote({
           contactId: selectedContact.id,
-          profileId,
           body: `[Meeting/Log]: ${logSummary}`
         })
       }

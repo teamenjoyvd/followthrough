@@ -71,3 +71,42 @@ export function formatRelativeTime(dateStr: string | null): string | null {
   if (diffDays < 30) return `${diffDays}d ago`
   return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
 }
+
+/**
+ * Calculates the active follow-up streak in days based on interaction timestamps.
+ */
+export function calculateStreak(interactions: { created_at: string }[]): number {
+  if (!interactions || interactions.length === 0) return 0
+
+  const dates = Array.from(
+    new Set(
+      interactions.map(i => new Date(i.created_at).toISOString().split('T')[0])
+    )
+  ).sort((a, b) => b.localeCompare(a))
+
+  if (dates.length === 0) return 0
+
+  const todayStr = new Date().toISOString().split('T')[0]
+  const yesterday = new Date()
+  yesterday.setDate(yesterday.getDate() - 1)
+  const yesterdayStr = yesterday.toISOString().split('T')[0]
+
+  if (dates[0] !== todayStr && dates[0] !== yesterdayStr) {
+    return 0
+  }
+
+  let streak = 0
+  const currentDate = new Date(dates[0])
+
+  for (let i = 0; i < dates.length; i++) {
+    const expectedStr = currentDate.toISOString().split('T')[0]
+    if (dates[i] === expectedStr) {
+      streak++
+      currentDate.setDate(currentDate.getDate() - 1)
+    } else {
+      break
+    }
+  }
+
+  return streak
+}

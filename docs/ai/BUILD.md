@@ -4,7 +4,8 @@ Default mode. Executes against a CLAIM-complete issue.
 
 ## Precondition
 
-Read the issue body. Verify `## Design Checklist` exists with all four items checked AND `## Branch` exists with the branch name. If either is absent or any item unchecked — stop, state exactly what is missing, do not proceed.
+Read the issue body. Verify `## Design Checklist` exists with all four items checked AND `## Branch` exists with the branch name. 
+**Verification**: Check that the branch is not already merged. Run `git fetch --all --prune` and ensure the target branch is not merged into `origin/main` (run `git branch -r --merged origin/main`). If either check fails — stop, state exactly what is missing or merged, do not proceed.
 
 ## READ
 

@@ -5,10 +5,6 @@ import { revalidatePath } from 'next/cache'
 import { createSupabaseServerClient, getProfileId } from '@/lib/supabase/server'
 import type { InboxItem as PopulatedInboxItem } from '@/types/inbox'
 
-// ---------------------------------------------------------------------------
-// markInboxItemRead
-// ---------------------------------------------------------------------------
-
 export async function markInboxItemRead(
   itemId: string,
 ): Promise<{ success: true } | { error: string }> {
@@ -19,12 +15,11 @@ export async function markInboxItemRead(
   const profileId = await getProfileId(supabase, userId)
   if (!profileId) return { error: 'Profile not found' }
 
-  const { error } = await (supabase as any)
+  const { error } = await supabase
     .from('inbox_items')
     .update({ read: true })
     .eq('id', itemId)
-    .eq('profile_id', profileId) // RLS enforcement in-query
-    .select()
+    .eq('profile_id', profileId)
 
   if (error) return { error: error.message || 'Failed to mark read' }
 
@@ -32,10 +27,6 @@ export async function markInboxItemRead(
   revalidatePath('/dashboard')
   return { success: true }
 }
-
-// ---------------------------------------------------------------------------
-// getUnreadInboxCount — called server-side for nav badge
-// ---------------------------------------------------------------------------
 
 export async function getUnreadInboxCount(): Promise<number> {
   const { userId } = await auth()
@@ -45,7 +36,7 @@ export async function getUnreadInboxCount(): Promise<number> {
   const profileId = await getProfileId(supabase, userId)
   if (!profileId) return 0
 
-  const { count, error } = await (supabase as any)
+  const { count, error } = await supabase
     .from('inbox_items')
     .select('id', { count: 'exact', head: true })
     .eq('profile_id', profileId)
@@ -55,10 +46,6 @@ export async function getUnreadInboxCount(): Promise<number> {
   return count ?? 0
 }
 
-// ---------------------------------------------------------------------------
-// getInboxItems
-// ---------------------------------------------------------------------------
-
 export async function getInboxItems(): Promise<PopulatedInboxItem[]> {
   const { userId } = await auth()
   if (!userId) return []
@@ -67,7 +54,7 @@ export async function getInboxItems(): Promise<PopulatedInboxItem[]> {
   const profileId = await getProfileId(supabase, userId)
   if (!profileId) return []
 
-  const { data, error } = await (supabase as any)
+  const { data, error } = await supabase
     .from('inbox_items')
     .select('*, contacts(first_name, last_name, company, pipeline_status)')
     .eq('profile_id', profileId)
@@ -78,5 +65,5 @@ export async function getInboxItems(): Promise<PopulatedInboxItem[]> {
     return []
   }
 
-  return (data || []) as PopulatedInboxItem[]
+  return (data || []) as unknown as PopulatedInboxItem[]
 }

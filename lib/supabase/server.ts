@@ -1,3 +1,5 @@
+'use server'
+
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import { auth } from '@clerk/nextjs/server'
@@ -6,7 +8,15 @@ import type { Database } from '@/types/supabase'
 
 type CookieToSet = { name: string; value: string; options?: Record<string, unknown> }
 
-export async function createSupabaseServerClient(): Promise<any> {
+export type TypedSupabaseClient = SupabaseClient<
+  Database,
+  'public',
+  'public',
+  Database['public'],
+  { PostgrestVersion: '14.5' }
+>
+
+export async function createSupabaseServerClient(): Promise<TypedSupabaseClient> {
   const cookieStore = await cookies()
 
   let supabaseToken: string | null = null
@@ -39,22 +49,22 @@ export async function createSupabaseServerClient(): Promise<any> {
   if (supabaseToken) {
     options.global = {
       headers: {
-        Authorization: `Bearer ${supabaseToken}`,
+        Authorization: 'Bearer ' + supabaseToken,
       },
     }
   }
 
-  return createServerClient<Omit<Database, '__InternalSupabase'>>(
+  return createServerClient<Database>(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     options
-  ) as any
+  ) as unknown as TypedSupabaseClient
 }
 
-export async function createSupabaseServiceClient(): Promise<any> {
+export async function createSupabaseServiceClient(): Promise<TypedSupabaseClient> {
   const cookieStore = await cookies()
 
-  return createServerClient<Omit<Database, '__InternalSupabase'>>(
+  return createServerClient<Database>(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!,
     {
@@ -71,11 +81,11 @@ export async function createSupabaseServiceClient(): Promise<any> {
         },
       },
     }
-  ) as any
+  ) as unknown as TypedSupabaseClient
 }
 
 export async function getProfileId(
-  supabase: any,
+  supabase: TypedSupabaseClient,
   userId: string,
 ): Promise<string | null> {
   const { data } = await supabase

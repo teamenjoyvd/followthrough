@@ -75,7 +75,7 @@ Violation = immediate stop, no exceptions.
 - **shadcn/ui for all interactive primitives** — dialog, popover, dropdown, sheet, tooltip, select, combobox, alert dialog.
 - **Component co-location** — new components scoped to one route go in `app/[route]/components/`. Promote to `/components` only when used by 2+ unrelated routes.
 - **Dual layout law** — NEVER a single responsive layout. Two complete separate layouts only. Canonical ref: `app/(dashboard)/dashboard/page.tsx`.
-- **NEVER call `create_or_update_file` or `push_files` before CLAIM is complete.** No file writes until the feature branch exists and is confirmed.
+- **NEVER modify or commit to a branch whose associated GitHub PR is closed/merged, or which is already merged into `origin/main`.** If a branch is closed or merged, any additional work must be done on a new branch created from the latest `main`.
 - **SSU, PLAN, CLAIM, and BUILD are mutually exclusive within a session.** PLAN does no writes of any kind. CLAIM does no file writes. BUILD does no design work. Violation = immediate stop.
 
 ---
@@ -93,7 +93,12 @@ Run at the start of every session. Warms up tools and establishes ground truth b
 
 2. `get_file_contents` on `CLAUDE.md` — confirms GitHub connectivity and loads current state.
 
-3. `list_pull_requests` — check for any open PRs.
+3. **Verify Git Sync & Branch Merge Status:**
+   - Run `git fetch --all --prune` to synchronize all remote branches.
+   - For the current local branch, run `git branch -r --merged origin/main` to check if it has already been merged into `main`.
+   - If the branch is already merged or closed, do NOT commit to it. Report this to the user immediately.
+
+4. `list_pull_requests` — check for any open PRs.
    - **Open PR found:** read its `## Session State` block and report what's in flight before doing anything else.
    - **No open PR, but a CLAIM-complete issue exists** (has `## Branch` block, no PR): report as CLAIM-complete/BUILD-not-started → ready to proceed to SHAPE.
    - **Nothing in flight:** report ready to pick up next issue.

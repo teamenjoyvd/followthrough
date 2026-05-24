@@ -46,82 +46,171 @@ export type Database = {
           },
         ]
       }
+      contact_labels: {
+        Row: {
+          contact_id: string
+          label_id: string
+          profile_id: string
+        }
+        Insert: {
+          contact_id: string
+          label_id: string
+          profile_id: string
+        }
+        Update: {
+          contact_id?: string
+          label_id?: string
+          profile_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contact_labels_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contact_labels_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts_search_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contact_labels_label_id_fkey"
+            columns: ["label_id"]
+            isOneToOne: false
+            referencedRelation: "labels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contact_labels_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       contacts: {
         Row: {
           avatar_url: string | null
           company: string | null
           created_at: string
+          created_by_source: Database["public"]["Enums"]["contact_source"]
           custom_description: string | null
           email: string | null
           first_name: string
           google_contact_id: string | null
           id: string
+          import_log_id: string | null
           job_title: string | null
           last_contacted_at: string | null
           last_name: string | null
+          last_updated_by_source: Database["public"]["Enums"]["contact_source"]
           on_working_list: boolean
           pipeline_status: Database["public"]["Enums"]["pipeline_status"]
+          pre_snooze_status: string | null
           preferred_contact_method: string | null
           profile_id: string
           snoozed_until: string | null
+          source_detail: string | null
           updated_at: string
           working_list_added_at: string | null
-          created_by_source: Database["public"]["Enums"]["contact_source"]
-          last_updated_by_source: Database["public"]["Enums"]["contact_source"]
-          source_detail: string | null
-          import_log_id: string | null
         }
         Insert: {
           avatar_url?: string | null
           company?: string | null
           created_at?: string
+          created_by_source?: Database["public"]["Enums"]["contact_source"]
           custom_description?: string | null
           email?: string | null
           first_name: string
           google_contact_id?: string | null
           id?: string
+          import_log_id?: string | null
           job_title?: string | null
           last_contacted_at?: string | null
           last_name?: string | null
+          last_updated_by_source?: Database["public"]["Enums"]["contact_source"]
           on_working_list?: boolean
           pipeline_status?: Database["public"]["Enums"]["pipeline_status"]
+          pre_snooze_status?: string | null
           preferred_contact_method?: string | null
           profile_id: string
           snoozed_until?: string | null
+          source_detail?: string | null
           updated_at?: string
           working_list_added_at?: string | null
-          created_by_source?: Database["public"]["Enums"]["contact_source"]
-          last_updated_by_source?: Database["public"]["Enums"]["contact_source"]
-          source_detail?: string | null
-          import_log_id?: string | null
         }
         Update: {
           avatar_url?: string | null
           company?: string | null
           created_at?: string
+          created_by_source?: Database["public"]["Enums"]["contact_source"]
           custom_description?: string | null
           email?: string | null
           first_name?: string
           google_contact_id?: string | null
           id?: string
+          import_log_id?: string | null
           job_title?: string | null
           last_contacted_at?: string | null
           last_name?: string | null
+          last_updated_by_source?: Database["public"]["Enums"]["contact_source"]
           on_working_list?: boolean
           pipeline_status?: Database["public"]["Enums"]["pipeline_status"]
+          pre_snooze_status?: string | null
           preferred_contact_method?: string | null
           profile_id?: string
           snoozed_until?: string | null
+          source_detail?: string | null
           updated_at?: string
           working_list_added_at?: string | null
-          created_by_source?: Database["public"]["Enums"]["contact_source"]
-          last_updated_by_source?: Database["public"]["Enums"]["contact_source"]
-          source_detail?: string | null
-          import_log_id?: string | null
         }
         Relationships: [
           {
+            foreignKeyName: "contacts_import_log_id_fkey"
+            columns: ["import_log_id"]
+            isOneToOne: false
+            referencedRelation: "csv_imports_log"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "contacts_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      csv_imports_log: {
+        Row: {
+          created_at: string
+          filename: string
+          id: string
+          profile_id: string
+          record_count: number
+        }
+        Insert: {
+          created_at?: string
+          filename: string
+          id?: string
+          profile_id: string
+          record_count?: number
+        }
+        Update: {
+          created_at?: string
+          filename?: string
+          id?: string
+          profile_id?: string
+          record_count?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "csv_imports_log_profile_id_fkey"
             columns: ["profile_id"]
             isOneToOne: false
             referencedRelation: "profiles"
@@ -230,6 +319,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "inbox_items_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts_search_view"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "inbox_items_profile_id_fkey"
             columns: ["profile_id"]
             isOneToOne: false
@@ -272,7 +368,46 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "interactions_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts_search_view"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "interactions_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      labels: {
+        Row: {
+          color: string
+          created_at: string
+          id: string
+          name: string
+          profile_id: string
+        }
+        Insert: {
+          color: string
+          created_at?: string
+          id?: string
+          name: string
+          profile_id: string
+        }
+        Update: {
+          color?: string
+          created_at?: string
+          id?: string
+          name?: string
+          profile_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "labels_profile_id_fkey"
             columns: ["profile_id"]
             isOneToOne: false
             referencedRelation: "profiles"
@@ -340,6 +475,13 @@ export type Database = {
             columns: ["contact_id"]
             isOneToOne: false
             referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "phone_numbers_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts_search_view"
             referencedColumns: ["id"]
           },
           {
@@ -421,6 +563,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "social_links_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts_search_view"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "social_links_profile_id_fkey"
             columns: ["profile_id"]
             isOneToOne: false
@@ -469,6 +618,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "sync_conflicts_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts_search_view"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "sync_conflicts_profile_id_fkey"
             columns: ["profile_id"]
             isOneToOne: false
@@ -477,148 +633,166 @@ export type Database = {
           },
         ]
       }
-      csv_imports_log: {
-        Row: {
-          id: string
-          profile_id: string
-          filename: string
-          record_count: number
-          created_at: string
-        }
-        Insert: {
-          id?: string
-          profile_id: string
-          filename: string
-          record_count?: number
-          created_at?: string
-        }
-        Update: {
-          id?: string
-          profile_id?: string
-          filename?: string
-          record_count?: number
-          created_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "csv_imports_log_profile_id_fkey"
-            columns: ["profile_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          }
-        ]
-      }
-      labels: {
-        Row: {
-          id: string
-          profile_id: string
-          name: string
-          color: string
-          created_at: string
-        }
-        Insert: {
-          id?: string
-          profile_id: string
-          name: string
-          color: string
-          created_at?: string
-        }
-        Update: {
-          id?: string
-          profile_id?: string
-          name?: string
-          color?: string
-          created_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "labels_profile_id_fkey"
-            columns: ["profile_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          }
-        ]
-      }
-      contact_labels: {
-        Row: {
-          contact_id: string
-          label_id: string
-          profile_id: string
-        }
-        Insert: {
-          contact_id: string
-          label_id: string
-          profile_id: string
-        }
-        Update: {
-          contact_id?: string
-          label_id?: string
-          profile_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "contact_labels_contact_id_fkey"
-            columns: ["contact_id"]
-            isOneToOne: false
-            referencedRelation: "contacts"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "contact_labels_label_id_fkey"
-            columns: ["label_id"]
-            isOneToOne: false
-            referencedRelation: "labels"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "contact_labels_profile_id_fkey"
-            columns: ["profile_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          }
-        ]
-      }
     }
     Views: {
       contacts_search_view: {
-        Row: Database['public']['Tables']['contacts']['Row'] & {
-          phone_numbers: Json
-          contact_labels: Json
+        Row: {
+          avatar_url: string | null
+          company: string | null
+          contact_labels: Json | null
+          created_at: string | null
+          created_by_source:
+            | Database["public"]["Enums"]["contact_source"]
+            | null
+          custom_description: string | null
+          email: string | null
+          first_name: string | null
+          google_contact_id: string | null
+          id: string | null
+          import_log_id: string | null
+          job_title: string | null
           label_ids: string[] | null
+          last_contacted_at: string | null
+          last_name: string | null
+          last_updated_by_source:
+            | Database["public"]["Enums"]["contact_source"]
+            | null
+          on_working_list: boolean | null
+          phone_numbers: Json | null
           phone_numbers_concat: string | null
+          pipeline_status: Database["public"]["Enums"]["pipeline_status"] | null
+          preferred_contact_method: string | null
+          profile_id: string | null
+          snoozed_until: string | null
+          source_detail: string | null
+          updated_at: string | null
+          working_list_added_at: string | null
         }
-        Insert: never
-        Update: never
+        Insert: {
+          avatar_url?: string | null
+          company?: string | null
+          contact_labels?: never
+          created_at?: string | null
+          created_by_source?:
+            | Database["public"]["Enums"]["contact_source"]
+            | null
+          custom_description?: string | null
+          email?: string | null
+          first_name?: string | null
+          google_contact_id?: string | null
+          id?: string | null
+          import_log_id?: string | null
+          job_title?: string | null
+          label_ids?: never
+          last_contacted_at?: string | null
+          last_name?: string | null
+          last_updated_by_source?:
+            | Database["public"]["Enums"]["contact_source"]
+            | null
+          on_working_list?: boolean | null
+          phone_numbers?: never
+          phone_numbers_concat?: never
+          pipeline_status?:
+            | Database["public"]["Enums"]["pipeline_status"]
+            | null
+          preferred_contact_method?: string | null
+          profile_id?: string | null
+          snoozed_until?: string | null
+          source_detail?: string | null
+          updated_at?: string | null
+          working_list_added_at?: string | null
+        }
+        Update: {
+          avatar_url?: string | null
+          company?: string | null
+          contact_labels?: never
+          created_at?: string | null
+          created_by_source?:
+            | Database["public"]["Enums"]["contact_source"]
+            | null
+          custom_description?: string | null
+          email?: string | null
+          first_name?: string | null
+          google_contact_id?: string | null
+          id?: string | null
+          import_log_id?: string | null
+          job_title?: string | null
+          label_ids?: never
+          last_contacted_at?: string | null
+          last_name?: string | null
+          last_updated_by_source?:
+            | Database["public"]["Enums"]["contact_source"]
+            | null
+          on_working_list?: boolean | null
+          phone_numbers?: never
+          phone_numbers_concat?: never
+          pipeline_status?:
+            | Database["public"]["Enums"]["pipeline_status"]
+            | null
+          preferred_contact_method?: string | null
+          profile_id?: string | null
+          snoozed_until?: string | null
+          source_detail?: string | null
+          updated_at?: string | null
+          working_list_added_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contacts_import_log_id_fkey"
+            columns: ["import_log_id"]
+            isOneToOne: false
+            referencedRelation: "csv_imports_log"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contacts_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Functions: {
-      get_my_clerk_id: { Args: never; Returns: string }
-      get_my_profile_id: { Args: never; Returns: string }
       create_contact_with_phone: {
         Args: {
-          p_profile_id: string
-          p_first_name: string
-          p_last_name: string | null
-          p_email: string | null
           p_company: string | null
+          p_email: string | null
+          p_first_name: string
           p_job_title: string | null
+          p_last_name: string | null
           p_phone: string | null
+          p_profile_id: string
         }
         Returns: string
       }
-      resurface_expired_contacts: {
+      get_crm_stats: {
+        Args: { p_profile_id: string }
+        Returns: {
+          overdue_contacts: number
+          snoozed_contacts: number
+          total_contacts: number
+        }[]
+      }
+      get_my_clerk_id: { Args: never; Returns: string }
+      get_my_profile_id: { Args: never; Returns: string }
+      mark_done_with_note: {
         Args: {
+          p_contact_id: string
+          p_note_body: string
           p_profile_id: string
-          p_today: string
         }
+        Returns: undefined
+      }
+      resurface_expired_contacts: {
+        Args: { p_profile_id: string; p_today: string }
         Returns: number
       }
     }
     Enums: {
       call_outcome: "connected" | "no_answer" | "voicemail"
+      contact_source: "manual" | "google_sync" | "csv_import" | "api"
       inbox_item_type: "resurfaced" | "working_list_changed" | "sync_conflict"
       interaction_type: "call" | "email" | "note"
       phone_type: "mobile" | "work" | "home"
@@ -629,7 +803,6 @@ export type Database = {
         | "leave_alone"
         | "snoozed"
       social_platform: "linkedin" | "twitter" | "instagram" | "other"
-      contact_source: "manual" | "google_sync" | "csv_import" | "api"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -758,6 +931,7 @@ export const Constants = {
   public: {
     Enums: {
       call_outcome: ["connected", "no_answer", "voicemail"],
+      contact_source: ["manual", "google_sync", "csv_import", "api"],
       inbox_item_type: ["resurfaced", "working_list_changed", "sync_conflict"],
       interaction_type: ["call", "email", "note"],
       phone_type: ["mobile", "work", "home"],
