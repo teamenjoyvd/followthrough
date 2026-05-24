@@ -91,7 +91,6 @@ export async function updateContact(contactId: string, formData: FormData): Prom
   }
 
   try {
-    // Read before-snapshot for undo
     const { data: before } = await supabase
       .from('contacts')
       .select('first_name, last_name, email, company, job_title')
@@ -187,7 +186,6 @@ export async function deleteContact(contactId: string): Promise<{ success: true 
   if (!profile) return { error: 'Profile not found' }
 
   try {
-    // Read full snapshot for audit log before deleting
     const { data: snapshot } = await supabase
       .from('contacts')
       .select('*')
@@ -212,7 +210,7 @@ export async function deleteContact(contactId: string): Promise<{ success: true 
         entityType: 'contact',
         entityId: contactId,
         payload: snapshot ?? {},
-        undoWindowSeconds: null, // confirm-popup action — not undoable
+        undoWindowSeconds: null,
       })
     } catch (e) {
       console.error('[deleteContact] appendActionLog failed:', e)
@@ -237,7 +235,6 @@ export async function updatePipelineStatus(contactId: string, status: PipelineSt
   const profile = await getProfile(supabase, userId)
   if (!profile) return
 
-  // Read before-snapshot
   const { data: before } = await supabase
     .from('contacts')
     .select('pipeline_status')
@@ -445,7 +442,6 @@ export async function bulkUpdateContacts(
   if (contactIds.length === 0) return { error: 'No contacts selected' }
 
   try {
-    // Read before-snapshots for undo
     const { data: snapshots } = await supabase
       .from('contacts')
       .select('id, pipeline_status, snoozed_until, company')
@@ -509,7 +505,7 @@ export async function bulkDeleteContacts(contactIds: string[]): Promise<{ succes
         actionType: 'bulkDeleteContacts',
         entityType: 'contact',
         payload: { contact_ids: contactIds },
-        undoWindowSeconds: null, // confirm-popup action — not undoable
+        undoWindowSeconds: null,
       })
     } catch (e) {
       console.error('[bulkDeleteContacts] appendActionLog failed:', e)
@@ -660,7 +656,7 @@ export async function deleteLabel(labelId: string): Promise<{ success: true } | 
 export async function updateContactDescription(
   contactId: string,
   description: string
-): Promise<{ success: true } | { error: string }> {
+): Promise<{ success: true; logId?: string } | { error: string }> {
   const { userId } = await auth()
   if (!userId) return { error: 'Unauthorized' }
 
@@ -669,7 +665,6 @@ export async function updateContactDescription(
   if (!profile) return { error: 'Profile not found' }
 
   try {
-    // Read before-snapshot
     const { data: before } = await supabase
       .from('contacts')
       .select('custom_description')
@@ -685,8 +680,9 @@ export async function updateContactDescription(
 
     if (error) throw error
 
+    let logId: string | undefined
     try {
-      await appendActionLog({
+      const logRes = await appendActionLog({
         profileId: profile.id,
         actionType: 'updateContactDescription',
         entityType: 'contact',
@@ -694,13 +690,14 @@ export async function updateContactDescription(
         payload: { custom_description: before?.custom_description ?? null },
         undoWindowSeconds: profile.undo_window_seconds,
       })
+      if ('logId' in logRes) logId = logRes.logId
     } catch (e) {
       console.error('[updateContactDescription] appendActionLog failed:', e)
     }
 
     revalidatePath('/workspace')
     revalidatePath(`/contacts/${contactId}`)
-    return { success: true }
+    return { success: true, logId }
   } catch (err: any) {
     return { error: err.message || 'Failed to update contact notes' }
   }
