@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Trash2, Tag, Calendar, X, ArrowRightLeft, Loader2 } from 'lucide-react'
+import { Trash2, Tag, Calendar, X, ArrowRightLeft } from 'lucide-react'
 import { PIPELINE_STATUSES } from '@/app/(app)/contacts/components/constants'
 import { getLabelColorClass, type Label } from '@/components/LabelManager'
 
@@ -13,6 +13,8 @@ interface BulkActionsToolbarProps {
   onLabelManage: (labelId: string, action: 'assign' | 'clear') => void
   onSnoozeChange: (days: number | null) => void
   onDelete: () => void
+  /** When provided, replaces the raw delete button with this node (e.g. a ConfirmDialog wrapper). */
+  deleteOverride?: React.ReactNode
 }
 
 export default function BulkActionsToolbar({
@@ -23,9 +25,10 @@ export default function BulkActionsToolbar({
   onLabelManage,
   onSnoozeChange,
   onDelete,
+  deleteOverride,
 }: BulkActionsToolbarProps) {
   const [activeMenu, setActiveMenu] = useState<'status' | 'label' | 'snooze' | null>(null)
-  
+
   if (selectedIds.size === 0) return null
 
   return (
@@ -39,7 +42,7 @@ export default function BulkActionsToolbar({
             selected contacts
           </span>
         </div>
-        
+
         <div className="flex items-center gap-1.5">
           <button
             onClick={onClearSelection}
@@ -198,14 +201,16 @@ export default function BulkActionsToolbar({
         {/* Spacer */}
         <div className="flex-1" />
 
-        {/* Mass Delete button */}
-        <button
-          onClick={onDelete}
-          className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold bg-[#b83230]/20 hover:bg-[#b83230] text-[#ff7875] hover:text-white border border-[#b83230]/40 hover:border-transparent transition-all duration-200"
-        >
-          <Trash2 className="h-3.5 w-3.5" />
-          <span>Delete Selected</span>
-        </button>
+        {/* Delete — use override (ConfirmDialog) when provided, else raw button */}
+        {deleteOverride ?? (
+          <button
+            onClick={onDelete}
+            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold bg-[#b83230]/20 hover:bg-[#b83230] text-[#ff7875] hover:text-white border border-[#b83230]/40 hover:border-transparent transition-all duration-200"
+          >
+            <Trash2 className="h-3.5 w-3.5" />
+            <span>Delete Selected</span>
+          </button>
+        )}
       </div>
     </div>
   )

@@ -8,6 +8,8 @@ import type { Database } from '@/types/supabase'
 import { getInitials, getAvatarUrl, getContactDescription } from '@/lib/utils/dashboard'
 import { logCall, logEmail, logNote, deleteInteraction } from '@/lib/actions/interactions'
 import { cn } from '@/lib/utils'
+import { useActionToast } from '@/components/ActionToast'
+import { ConfirmDialog } from '@/components/ConfirmDialog'
 
 type Contact = Database['public']['Tables']['contacts']['Row']
 type Label = Database['public']['Tables']['labels']['Row']
@@ -53,8 +55,9 @@ interface PopulatedInteraction {
 }
 
 export default function ContextPanel({ profileId, allLabels }: Props) {
-  const { selectedContact, updateContactDescription, toggleContactLabel } = useWorkspaceStore()
+  const { selectedContact, updateContactDescription, toggleContactLabel, undoWindowSeconds } = useWorkspaceStore()
   const supabase = createSupabaseBrowserClient()
+  const showToast = useActionToast()
 
   // Local State
   const [noteText, setNoteText] = React.useState('')
@@ -80,7 +83,7 @@ export default function ContextPanel({ profileId, allLabels }: Props) {
         .from('contact_labels')
         .select('label_id')
         .eq('contact_id', selectedContact.id)
-      
+
       interface ContactLabelRow {
         label_id: string
       }
@@ -114,6 +117,7 @@ export default function ContextPanel({ profileId, allLabels }: Props) {
   }, [selectedContact, loadDetails])
 
   // Debounced auto-save for working notes scratchpad
+  // Fires ActionToast on successful save so the user can undo the description change.
   React.useEffect(() => {
     if (!selectedContact) return
     if (noteText === (selectedContact.custom_description || '')) return
@@ -124,13 +128,20 @@ export default function ContextPanel({ profileId, allLabels }: Props) {
       if (res.success) {
         setSaveStatus('saved')
         setTimeout(() => setSaveStatus('idle'), 2000)
+        if (res.logId) {
+          showToast({
+            actionLabel: 'Note saved',
+            logId: res.logId,
+            undoWindowSeconds,
+          })
+        }
       } else {
         setSaveStatus('error')
       }
     }, 800)
 
     return () => clearTimeout(timer)
-  }, [noteText, selectedContact, updateContactDescription])
+  }, [noteText, selectedContact, updateContactDescription, showToast, undoWindowSeconds])
 
   if (!selectedContact) {
     return (
@@ -158,7 +169,7 @@ export default function ContextPanel({ profileId, allLabels }: Props) {
     charcoal: 'bg-[#eaebeb] text-[#373b3e] border-[#d1d5db]',
   }
 
-  // Toggle Label Tag in Database
+  // Toggle Label Tag in Database — fires ActionToast on success
   const handleToggleLabel = async (labelId: string) => {
     const isAssigned = activeLabelIds.includes(labelId)
     const action = isAssigned ? 'clear' : 'assign'
@@ -168,7 +179,14 @@ export default function ContextPanel({ profileId, allLabels }: Props) {
       isAssigned ? prev.filter(id => id !== labelId) : [...prev, labelId]
     )
 
-    await toggleContactLabel(selectedContact.id, labelId, action)
+    const res = await toggleContactLabel(selectedContact.id, labelId, action)
+    if (res.success) {
+      const label = allLabels.find(l => l.id === labelId)
+      if (label) {
+        // toggleContactLabel does not return a logId (bulk action — not individually undoable)
+        // No toast needed here per DoD; label toggles are not in the undoable action set.
+      }
+    }
   }
 
   // Handle logging new interaction
@@ -209,7 +227,7 @@ export default function ContextPanel({ profileId, allLabels }: Props) {
     }
   }
 
-  // Delete an interaction
+  // Delete an interaction — gated by ConfirmDialog at the call site below
   const handleDeleteInteraction = async (interactionId: string) => {
     // Optimistic removal
     setInteractions(prev => prev.filter(i => i.id !== interactionId))
@@ -219,7 +237,7 @@ export default function ContextPanel({ profileId, allLabels }: Props) {
 
   return (
     <div className="space-y-6 h-full flex flex-col justify-start">
-      
+
       {/* ── Contact Details card ────────────────────────────── */}
       <div className="bg-[#eae6de] rounded-[24px] p-6 shadow-[0_4px_24px_rgba(46,50,48,0.02)] border border-[#e4e0d8]/30">
         <div className="flex items-center gap-4">
@@ -236,7 +254,7 @@ export default function ContextPanel({ profileId, allLabels }: Props) {
 
         <div className="mt-4 pt-4 border-t border-[#dbd7cf]/60 space-y-2">
           {selectedContact.email && (
-            <a 
+            <a
               href={`mailto:${selectedContact.email}`}
               className="flex items-center gap-2.5 text-xs text-[#4a4e4a] hover:text-[#4a7c59] transition-colors font-sans py-1"
             >
@@ -288,7 +306,7 @@ export default function ContextPanel({ profileId, allLabels }: Props) {
                   onClick={() => handleToggleLabel(label.id)}
                   className={cn(
                     "px-2.5 py-1 text-[10px] font-sans font-medium rounded-full border transition-all active:scale-95 duration-100",
-                    isActive 
+                    isActive
                       ? `${baseColor} border-[#705c30] ring-1 ring-[#705c30]/20 font-semibold shadow-sm`
                       : "bg-[#faf6f0] border-[#e4e0d8] text-[#74796e] hover:bg-[#eae6de]/40"
                   )}
@@ -303,7 +321,7 @@ export default function ContextPanel({ profileId, allLabels }: Props) {
 
       {/* ── Quick Touchpoint Logging Feed ───────────────────── */}
       <div className="space-y-4 pt-2 border-t border-[#dbd7cf]/60">
-        
+
         {/* Toggle Form Buttons */}
         {showLogForm === 'none' ? (
           <div className="flex items-center gap-2">
@@ -332,8 +350,8 @@ export default function ContextPanel({ profileId, allLabels }: Props) {
               <span className="text-[10px] font-bold uppercase tracking-wider text-[#705c30] font-sans">
                 Logging {showLogForm}
               </span>
-              <button 
-                type="button" 
+              <button
+                type="button"
                 onClick={() => setShowLogForm('none')}
                 className="text-[10px] text-[#74796e] hover:text-[#2e3230] font-bold font-sans"
               >
@@ -350,7 +368,7 @@ export default function ContextPanel({ profileId, allLabels }: Props) {
                     onClick={() => setCallOutcome(outcome as any)}
                     className={cn(
                       "py-1 px-1.5 text-[9px] font-sans rounded-lg capitalize border transition-all text-center",
-                      callOutcome === outcome 
+                      callOutcome === outcome
                         ? "bg-[#4a7c59] text-white border-transparent"
                         : "bg-[#faf6f0] border-[#e4e0d8] text-[#74796e]"
                     )}
@@ -406,7 +424,7 @@ export default function ContextPanel({ profileId, allLabels }: Props) {
               {interactions.map(item => {
                 let title = 'Touchpoint'
                 let detail = ''
-                
+
                 if (item.type === 'call') {
                   title = 'Phone Call'
                   const outcome = item.call_details?.[0]?.outcome?.replace('_', ' ') || 'Completed'
@@ -422,8 +440,8 @@ export default function ContextPanel({ profileId, allLabels }: Props) {
                   detail = item.note_details?.[0]?.body || 'Completed Focus Task'
                 }
 
-                const dateStr = new Date(item.created_at).toLocaleDateString(undefined, { 
-                  month: 'short', 
+                const dateStr = new Date(item.created_at).toLocaleDateString(undefined, {
+                  month: 'short',
                   day: 'numeric',
                   hour: '2-digit',
                   minute: '2-digit'
@@ -433,16 +451,23 @@ export default function ContextPanel({ profileId, allLabels }: Props) {
                   <div key={item.id} className="relative space-y-1">
                     {/* Ring Timeline Node */}
                     <div className="absolute -left-[21px] top-1.5 h-2.5 w-2.5 rounded-full bg-[#eae6de] border-2 border-[#705c30]" />
-                    
+
                     <div className="flex items-center justify-between">
                       <p className="text-[11px] font-headline font-bold text-[#2e3230]">{title}</p>
-                      <button
-                        onClick={() => handleDeleteInteraction(item.id)}
-                        className="opacity-0 group-hover:opacity-100 hover:opacity-100 p-0.5 text-[#74796e] hover:text-[#b83230] rounded transition-all shrink-0"
-                        title="Delete log"
+                      <ConfirmDialog
+                        title="Delete this entry?"
+                        description="This interaction log will be permanently removed."
+                        confirmLabel="Delete this entry"
+                        destructive
+                        onConfirm={() => handleDeleteInteraction(item.id)}
                       >
-                        <Trash2 className="h-3 w-3" />
-                      </button>
+                        <button
+                          className="opacity-0 group-hover:opacity-100 hover:opacity-100 p-0.5 text-[#74796e] hover:text-[#b83230] rounded transition-all shrink-0"
+                          title="Delete log"
+                        >
+                          <Trash2 className="h-3 w-3" />
+                        </button>
+                      </ConfirmDialog>
                     </div>
                     <p className="text-[10px] text-[#4a4e4a] font-sans leading-relaxed pl-0.5 pr-2 break-words">
                       {detail}
