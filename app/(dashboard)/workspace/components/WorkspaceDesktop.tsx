@@ -32,6 +32,7 @@ interface Props {
   inboxItems: InboxItem[]
   completedTodayCount: number
   streakDays: number
+  undoWindowSeconds: number
 }
 
 export default function WorkspaceDesktop({
@@ -47,6 +48,7 @@ export default function WorkspaceDesktop({
   inboxItems,
   completedTodayCount,
   streakDays,
+  undoWindowSeconds,
 }: Props) {
   const { setInitialData } = useWorkspaceStore()
 
@@ -71,7 +73,7 @@ export default function WorkspaceDesktop({
 
           {/* CENTER COLUMN: Interactive Focus List & Command Pins (col-span-5) */}
           <div className="col-span-5 bg-[#eae6de]/30 rounded-[28px] p-6 border border-[#e4e0d8]/30 min-h-[500px]">
-            <FocusList />
+            <FocusList undoWindowSeconds={undoWindowSeconds} />
           </div>
 
           {/* RIGHT COLUMN: Contact Context, Auto-Notes, Tagging & Feeds (col-span-4) */}
@@ -79,6 +81,7 @@ export default function WorkspaceDesktop({
             <ContextPanel
               profileId={profileId}
               allLabels={allLabels}
+              undoWindowSeconds={undoWindowSeconds}
             />
           </div>
 

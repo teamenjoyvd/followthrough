@@ -34,6 +34,7 @@ interface Props {
   inboxItems: InboxItem[]
   completedTodayCount: number
   streakDays: number
+  undoWindowSeconds: number
 }
 
 export default function WorkspaceMobile({
@@ -49,6 +50,7 @@ export default function WorkspaceMobile({
   inboxItems,
   completedTodayCount,
   streakDays,
+  undoWindowSeconds,
 }: Props) {
   const { setInitialData, selectedContact, setSelectedContact, activeTab, setActiveTab } = useWorkspaceStore()
 
@@ -91,7 +93,7 @@ export default function WorkspaceMobile({
         {/* Tab Selection */}
         {activeTab === 'focus' ? (
           <div className="bg-[#eae6de]/20 rounded-[28px] p-5 border border-[#e4e0d8]/30">
-            <FocusList />
+            <FocusList undoWindowSeconds={undoWindowSeconds} />
           </div>
         ) : (
           <WorkspaceStats
@@ -121,7 +123,7 @@ export default function WorkspaceMobile({
 
             {/* Context Panel */}
             <div className="flex-1">
-              <ContextPanel profileId={profileId} allLabels={allLabels} />
+              <ContextPanel profileId={profileId} allLabels={allLabels} undoWindowSeconds={undoWindowSeconds} />
             </div>
           </div>
         </div>
