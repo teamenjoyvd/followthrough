@@ -6,7 +6,7 @@ import { History, Undo2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { getActionLabel } from '@/lib/action-log-labels'
 import { undoAction } from '@/lib/actions/action-log'
-import type { HistoryItem } from '../page'
+import type { HistoryItem } from '../history-types'
 import { PAGE_SIZE } from '../page'
 import { FILTER_TABS, isUndoable, formatRelativeTime } from '../history-utils'
 

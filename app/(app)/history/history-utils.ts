@@ -1,4 +1,4 @@
-import type { HistoryItem } from './page'
+import type { HistoryItem } from './history-types'
 
 export const FILTER_TABS = [
   { key: 'all', label: 'All' },
