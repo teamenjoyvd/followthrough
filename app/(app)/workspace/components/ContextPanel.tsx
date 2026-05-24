@@ -89,10 +89,10 @@ export default function ContextPanel({ profileId, allLabels }: Props) {
       }
       setActiveLabelIds((labelData as ContactLabelRow[])?.map(l => l.label_id) || [])
 
-      // 2. Fetch timeline/interactions
+      // 2. Fetch timeline/interactions — select only fields required for display
       const { data: interData } = await supabase
         .from('interactions')
-        .select('*, note_details(*), call_details(*), email_details(*)')
+        .select('id, type, created_at, note_details(body), call_details(outcome, summary), email_details(subject, body)')
         .eq('contact_id', selectedContact.id)
         .order('created_at', { ascending: false })
 
@@ -116,15 +116,22 @@ export default function ContextPanel({ profileId, allLabels }: Props) {
     loadDetails()
   }, [selectedContact, loadDetails])
 
-  // Debounced auto-save for working notes scratchpad
-  // Fires ActionToast on successful save so the user can undo the description change.
+  // Debounced auto-save for working notes scratchpad.
+  // Snapshot contactId and text at effect-setup time so the timeout callback
+  // always saves the correct contact even if selectedContact changes before
+  // the 800ms fires. The cleanup cancels the timer to avoid double-saves when
+  // the text continues changing, but a pending save is never silently dropped
+  // on contact switch — the snapshot ensures it targets the right record.
   React.useEffect(() => {
     if (!selectedContact) return
     if (noteText === (selectedContact.custom_description || '')) return
 
+    const contactId = selectedContact.id
+    const textToSave = noteText
+
     setSaveStatus('saving')
     const timer = setTimeout(async () => {
-      const res = await updateContactDescription(selectedContact.id, noteText)
+      const res = await updateContactDescription(contactId, textToSave)
       if (res.success) {
         setSaveStatus('saved')
         setTimeout(() => setSaveStatus('idle'), 2000)

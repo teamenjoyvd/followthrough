@@ -61,7 +61,7 @@ export default function WorkspaceDesktop({
       <main className="max-w-7xl mx-auto px-8 py-8">
         <div className="grid grid-cols-12 gap-8 items-start">
 
-          <div className="col-span-3 sticky top-24">
+          <div className="col-span-3 sticky top-6">
             <WorkspaceStats
               initialInboxItems={inboxItems}
               healthPercentage={healthPercentage}
@@ -72,7 +72,7 @@ export default function WorkspaceDesktop({
             <FocusList />
           </div>
 
-          <div className="col-span-4 bg-[#eae6de]/30 rounded-[28px] p-6 border border-[#e4e0d8]/30 sticky top-24 min-h-[500px]">
+          <div className="col-span-4 bg-[#eae6de]/30 rounded-[28px] p-6 border border-[#e4e0d8]/30 sticky top-6 min-h-[500px]">
             <ContextPanel
               profileId={profileId}
               allLabels={allLabels}
