@@ -88,7 +88,7 @@ export async function updatePreferences({
   const profileId = await getProfileId(supabase, userId)
   if (!profileId) return { error: 'Profile not found' }
 
-  const updatePayload: Record<string, unknown> = {
+  const updatePayload: any = {
     confirmation_enabled: confirmationEnabled,
     pipeline_view: pipelineView,
   }
@@ -137,7 +137,7 @@ export async function updateFollowupRules(
 
   const { error } = await supabase
     .from('profiles')
-    .update({ followup_rules: rules })
+    .update({ followup_rules: rules as any })
     .eq('id', profile.id)
 
   if (error) {
