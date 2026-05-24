@@ -77,11 +77,11 @@ export default function HomePage() {
                 <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
               </Link>
               <Link
-                href="/dashboard"
-                id="hero-cta-dashboard"
+                href="/workspace"
+                id="hero-cta-workspace"
                 className="inline-flex items-center justify-center px-6 py-3 rounded-xl bg-terra-surface-container-high text-primary font-semibold hover:bg-terra-surface-container-highest transition-all duration-200 hover:scale-[1.02] shadow-sm"
               >
-                Access Dashboard
+                Access Workspace
               </Link>
             </div>
           </div>

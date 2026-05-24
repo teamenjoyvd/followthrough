@@ -24,7 +24,7 @@ export async function markInboxItemRead(
   if (error) return { error: error.message || 'Failed to mark read' }
 
   revalidatePath('/inbox')
-  revalidatePath('/dashboard')
+  revalidatePath('/workspace')
   return { success: true }
 }
 

@@ -11,7 +11,7 @@ import {
 } from 'lucide-react'
 
 const NAV_ITEMS = [
-  { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+  { href: '/workspace', label: 'Workspace', icon: LayoutDashboard },
   { href: '/contacts', label: 'Contacts', icon: Users },
   { href: '/pipeline', label: 'Pipeline', icon: GitBranch },
   { href: '/inbox', label: 'Inbox', icon: Inbox },
