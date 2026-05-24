@@ -8,20 +8,20 @@ import SidebarNavLinks from './components/SidebarNavLinks'
 import { Logo } from '@/components/Logo'
 
 // ---------------------------------------------------------------------------
-// SidebarNav — RSC shell; nav links delegate to SidebarNavLinks (client)
-// Renders on all viewports: w-12 icon-only ribbon on mobile, w-56 with labels on desktop
+// SidebarNav — RSC shell
+// Mobile: w-12 icon-only ribbon | Desktop: w-56 with labels
 // ---------------------------------------------------------------------------
 function SidebarNav({ inboxUnreadCount }: { inboxUnreadCount: number }) {
   return (
     <nav
       aria-label="Main navigation"
-      className="flex flex-col w-12 md:w-56 shrink-0 border-r border-terra-outline-variant bg-terra-surface-container-low py-6 gap-1 items-center md:items-stretch px-0 md:px-3"
+      className="flex flex-col w-12 md:w-56 shrink-0 border-r border-terra-outline-variant bg-terra-surface-container-low py-6 gap-1"
     >
+      {/* Logo: icon-only on mobile, full on desktop */}
       <Link
         href="/workspace"
-        className="mb-6 flex items-center justify-center md:justify-start md:px-3 transition-transform duration-200 hover:scale-[1.02]"
+        className="flex items-center justify-center md:justify-start mb-6 md:px-3 transition-transform duration-200 hover:scale-[1.02]"
       >
-        {/* Icon-only on mobile, full logo on desktop */}
         <span className="md:hidden">
           <Logo iconOnly />
         </span>
@@ -30,7 +30,7 @@ function SidebarNav({ inboxUnreadCount }: { inboxUnreadCount: number }) {
         </span>
       </Link>
 
-      <SidebarNavLinks inboxUnreadCount={inboxUnreadCount} collapsed={false} />
+      <SidebarNavLinks inboxUnreadCount={inboxUnreadCount} />
     </nav>
   )
 }
@@ -48,14 +48,12 @@ export default async function AppLayout({
 
   const supabase = await createSupabaseServerClient()
 
-  // 1. Try to fetch the profile first to see if it already exists
   let { data: profile } = await (supabase as any)
     .from('profiles')
     .select('id')
     .eq('clerk_id', userId)
     .maybeSingle() as { data: { id: string } | null }
 
-  // 2. If the profile does not exist, provision a new one
   if (!profile) {
     let email = (sessionClaims?.email as string) || (sessionClaims?.primary_email as string) || ''
     let displayName = (sessionClaims?.name as string) || (sessionClaims?.full_name as string) || ''
@@ -73,7 +71,6 @@ export default async function AppLayout({
     profile = await ensureProfile(userId, email, displayName)
   }
 
-  // 3. Throw a robust error if profile still doesn't exist to prevent infinite redirect loops
   if (!profile) {
     throw new Error('Failed to guarantee user profile. Please check database connectivity.')
   }
