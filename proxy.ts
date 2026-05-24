@@ -10,9 +10,9 @@ const isPublicRoute = createRouteMatcher([
 export default clerkMiddleware(async (auth, request) => {
   const { userId } = await auth()
 
-  // Redirect authenticated users trying to access the landing page to dashboard
+  // Redirect authenticated users trying to access the landing page to workspace
   if (userId && request.nextUrl.pathname === '/') {
-    return NextResponse.redirect(new URL('/dashboard', request.url))
+    return NextResponse.redirect(new URL('/workspace', request.url))
   }
 
   if (!isPublicRoute(request)) {
