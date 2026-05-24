@@ -25,7 +25,13 @@ interface WorkspaceState {
   isPending: boolean
   
   // Actions
-  setInitialData: (workingList: Contact[], allContacts: Contact[], stats: Stats) => void
+  setInitialData: (
+    workingList: Contact[], 
+    allContacts: Contact[], 
+    stats: Stats,
+    completedTodayCount: number,
+    streakDays: number
+  ) => void
   setSelectedContact: (contact: Contact | null) => void
   setActiveTab: (tab: 'focus' | 'upcoming' | 'stats') => void
   
@@ -50,28 +56,17 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
   },
   completedTodayCount: 0,
   dailyGoal: 8,
-  streakDays: 5,
+  streakDays: 0,
   activeTab: 'focus',
   isPending: false,
 
-  setInitialData: (workingList, allContacts, stats) => {
-    // Determine completed today from localStorage or mock it to 3 initially for nice demo aesthetics, or count local completed sessions
-    let localCompleted = 0
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('followthrough_completed_today')
-      if (saved) {
-        localCompleted = parseInt(saved, 10)
-      } else {
-        localCompleted = 2 // Friendly starting state
-        localStorage.setItem('followthrough_completed_today', '2')
-      }
-    }
-    
+  setInitialData: (workingList, allContacts, stats, completedTodayCount, streakDays) => {
     set({
       workingList,
       allContacts,
       stats,
-      completedTodayCount: localCompleted,
+      completedTodayCount,
+      streakDays,
       selectedContact: get().selectedContact || workingList[0] || null
     })
   },

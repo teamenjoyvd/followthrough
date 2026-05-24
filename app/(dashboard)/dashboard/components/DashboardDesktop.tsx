@@ -33,6 +33,8 @@ interface Props {
   allContacts: Contact[]
   allLabels: Label[]
   inboxItems: InboxItem[]
+  completedTodayCount: number
+  streakDays: number
 }
 
 export default function DashboardDesktop({
@@ -46,13 +48,15 @@ export default function DashboardDesktop({
   allContacts,
   allLabels,
   inboxItems,
+  completedTodayCount,
+  streakDays,
 }: Props) {
   const { setInitialData } = useWorkspaceStore()
 
   // Initialize Zustand Workspace Store Cache
   React.useEffect(() => {
-    setInitialData(workingList, allContacts, stats)
-  }, [workingList, allContacts, stats, setInitialData])
+    setInitialData(workingList, allContacts, stats, completedTodayCount, streakDays)
+  }, [workingList, allContacts, stats, completedTodayCount, streakDays, setInitialData])
 
   const name = displayName || 'there'
 

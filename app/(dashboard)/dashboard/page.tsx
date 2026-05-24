@@ -156,6 +156,23 @@ export default async function DashboardPage() {
   // 5. Fetch all unread inbox items
   const inboxItems = await getInboxItems()
 
+  // 6. Query all user interactions to calculate completed today and streak days dynamically
+  const { data: userInteractions } = await (supabase as any)
+    .from('interactions')
+    .select('created_at')
+    .eq('profile_id', profile.id)
+    .order('created_at', { ascending: false })
+
+  const interactionsList = (userInteractions as { created_at: string }[]) || []
+  
+  // Completed actions today
+  const completedTodayCount = interactionsList.filter(i => {
+    return new Date(i.created_at).toISOString().split('T')[0] === todayStr
+  }).length
+
+  // Active follow-up streak days
+  const streakDays = calculateStreak(interactionsList)
+
   return (
     <>
       <ResurfaceTrigger />
@@ -172,6 +189,8 @@ export default async function DashboardPage() {
           allContacts={contactsList}
           allLabels={allLabels}
           inboxItems={inboxItems}
+          completedTodayCount={completedTodayCount}
+          streakDays={streakDays}
         />
       </div>
 
@@ -188,8 +207,46 @@ export default async function DashboardPage() {
           allContacts={contactsList}
           allLabels={allLabels}
           inboxItems={inboxItems}
+          completedTodayCount={completedTodayCount}
+          streakDays={streakDays}
         />
       </div>
     </>
   )
+}
+
+function calculateStreak(interactions: { created_at: string }[]): number {
+  if (!interactions || interactions.length === 0) return 0
+
+  const dates = Array.from(
+    new Set(
+      interactions.map(i => new Date(i.created_at).toISOString().split('T')[0])
+    )
+  ).sort((a, b) => b.localeCompare(a))
+
+  if (dates.length === 0) return 0
+
+  const todayStr = new Date().toISOString().split('T')[0]
+  const yesterday = new Date()
+  yesterday.setDate(yesterday.getDate() - 1)
+  const yesterdayStr = yesterday.toISOString().split('T')[0]
+
+  if (dates[0] !== todayStr && dates[0] !== yesterdayStr) {
+    return 0
+  }
+
+  let streak = 0
+  const currentDate = new Date(dates[0])
+
+  for (let i = 0; i < dates.length; i++) {
+    const expectedStr = currentDate.toISOString().split('T')[0]
+    if (dates[i] === expectedStr) {
+      streak++
+      currentDate.setDate(currentDate.getDate() - 1)
+    } else {
+      break
+    }
+  }
+
+  return streak
 }
