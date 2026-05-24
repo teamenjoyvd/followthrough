@@ -2,8 +2,9 @@
 
 import { auth } from '@clerk/nextjs/server'
 import { revalidatePath } from 'next/cache'
-import { createSupabaseServerClient, getProfileId } from '@/lib/supabase/server'
+import { createSupabaseServerClient, getProfile } from '@/lib/supabase/server'
 import type { Database } from '@/types/supabase'
+import { appendActionLog } from './action-log'
 
 type SocialPlatform = Database['public']['Enums']['social_platform']
 
@@ -16,14 +17,14 @@ export async function addSocialLink(
   if (!userId) return { error: 'Unauthorized' }
 
   const supabase = await createSupabaseServerClient()
-  const profileId = await getProfileId(supabase, userId)
-  if (!profileId) return { error: 'Profile not found' }
+  const profile = await getProfile(supabase, userId)
+  if (!profile) return { error: 'Profile not found' }
 
   const { data, error } = await supabase
     .from('social_links')
     .insert({
       contact_id: contactId,
-      profile_id: profileId,
+      profile_id: profile.id,
       platform,
       url: url.trim(),
     })
@@ -31,6 +32,19 @@ export async function addSocialLink(
     .single()
 
   if (error || !data) return { error: error?.message ?? 'Failed to add social link' }
+
+  try {
+    await appendActionLog({
+      profileId: profile.id,
+      actionType: 'addSocialLink',
+      entityType: 'social_link',
+      entityId: data.id,
+      payload: {},
+      undoWindowSeconds: profile.undo_window_seconds,
+    })
+  } catch (e) {
+    console.error('[addSocialLink] appendActionLog failed:', e)
+  }
 
   revalidatePath('/contacts/' + contactId)
   return { success: true, id: data.id }
@@ -46,16 +60,37 @@ export async function updateSocialLink(
   if (!userId) return { error: 'Unauthorized' }
 
   const supabase = await createSupabaseServerClient()
-  const profileId = await getProfileId(supabase, userId)
-  if (!profileId) return { error: 'Profile not found' }
+  const profile = await getProfile(supabase, userId)
+  if (!profile) return { error: 'Profile not found' }
+
+  // Read before-snapshot
+  const { data: before } = await supabase
+    .from('social_links')
+    .select('platform, url')
+    .eq('id', linkId)
+    .eq('profile_id', profile.id)
+    .maybeSingle()
 
   const { error } = await supabase
     .from('social_links')
     .update({ platform, url: url.trim() })
     .eq('id', linkId)
-    .eq('profile_id', profileId)
+    .eq('profile_id', profile.id)
 
   if (error) return { error: error.message }
+
+  try {
+    await appendActionLog({
+      profileId: profile.id,
+      actionType: 'updateSocialLink',
+      entityType: 'social_link',
+      entityId: linkId,
+      payload: { platform: before?.platform ?? null, url: before?.url ?? null },
+      undoWindowSeconds: profile.undo_window_seconds,
+    })
+  } catch (e) {
+    console.error('[updateSocialLink] appendActionLog failed:', e)
+  }
 
   revalidatePath('/contacts/' + contactId)
   return { success: true }
@@ -69,17 +104,18 @@ export async function deleteSocialLink(
   if (!userId) return { error: 'Unauthorized' }
 
   const supabase = await createSupabaseServerClient()
-  const profileId = await getProfileId(supabase, userId)
-  if (!profileId) return { error: 'Profile not found' }
+  const profile = await getProfile(supabase, userId)
+  if (!profile) return { error: 'Profile not found' }
 
   const { error } = await supabase
     .from('social_links')
     .delete()
     .eq('id', linkId)
-    .eq('profile_id', profileId)
+    .eq('profile_id', profile.id)
 
   if (error) return { error: error.message }
 
+  // deleteSocialLink has no undo (excluded from issue enum)
   revalidatePath('/contacts/' + contactId)
   return { success: true }
 }
