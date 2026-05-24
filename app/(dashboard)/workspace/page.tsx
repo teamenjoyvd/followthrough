@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { getUnreadInboxCount, getInboxItems } from '@/lib/actions/inbox'
 import { ensureProfile } from '@/lib/profile'
+import { DEFAULT_FOLLOWUP_RULES } from '@/lib/constants/followup'
 import WorkspaceDesktop from './components/WorkspaceDesktop'
 import WorkspaceMobile from './components/WorkspaceMobile'
 import ResurfaceTrigger from './components/ResurfaceTrigger'
@@ -119,7 +120,7 @@ export default async function WorkspacePage() {
     totalContactsCount,
   }
 
-  const followupRules = (profile.followup_rules as Record<string, number> | null) || { lead: 14, qualified: 7, bought: 30, leave_alone: 90 }
+  const followupRules = (profile.followup_rules as Record<string, number> | null) || DEFAULT_FOLLOWUP_RULES
   let overdueCount = 0
 
   for (const contact of contactsList) {
