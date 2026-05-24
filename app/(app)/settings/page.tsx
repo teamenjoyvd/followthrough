@@ -42,6 +42,7 @@ export default async function SettingsPage({
         confirmation_enabled: boolean
         pipeline_view: string
         followup_rules: any
+        undo_window_seconds: number | null
       } | null
     }
 
@@ -56,6 +57,7 @@ export default async function SettingsPage({
     confirmation_enabled: rawProfile.confirmation_enabled,
     pipeline_view: rawProfile.pipeline_view,
     followup_rules: followupRules,
+    undo_window_seconds: rawProfile.undo_window_seconds ?? 10,
   }
 
   const { data: rawSyncState } = (await supabase
