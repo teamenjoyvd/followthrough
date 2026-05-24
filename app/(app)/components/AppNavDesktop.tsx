@@ -45,8 +45,10 @@ export function AppNavDesktop({ inboxUnreadCount, displayName, avatarUrl }: Prop
   const { signOut } = useClerk()
 
   const initials = displayName
-    .split(' ')
+    .trim()
+    .split(/\s+/)
     .map((n) => n[0])
+    .filter(Boolean)
     .join('')
     .toUpperCase()
     .slice(0, 2)

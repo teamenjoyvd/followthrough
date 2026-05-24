@@ -31,7 +31,7 @@ export default async function WorkspacePage() {
     undo_window_seconds: number | null
   }
 
-  const { data: profileResult, error: profileError } = await (supabase as any)
+  const { data: profileResult, error: profileError } = await supabase
     .from('profiles')
     .select('id, display_name, followup_rules, undo_window_seconds')
     .eq('clerk_id', userId)
@@ -69,7 +69,7 @@ export default async function WorkspacePage() {
 
   const avatarUrl = (sessionClaims?.picture as string) || (sessionClaims?.avatar_url as string) || (sessionClaims?.image_url as string) || null
 
-  const { data: allContacts, error: allContactsError } = await (supabase as any)
+  const { data: allContacts, error: allContactsError } = await supabase
     .from('contacts')
     .select('*')
     .eq('profile_id', profile.id) as { data: Contact[] | null; error: any }
@@ -84,7 +84,7 @@ export default async function WorkspacePage() {
   const sevenDaysLater = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
   const sevenDaysLaterStr = sevenDaysLater.toISOString().split('T')[0]
 
-  const { data: upcomingContacts, error: upcomingContactsError } = await (supabase as any)
+  const { data: upcomingContacts, error: upcomingContactsError } = await supabase
     .from('contacts')
     .select('*')
     .eq('profile_id', profile.id)
@@ -147,17 +147,27 @@ export default async function WorkspacePage() {
 
   const inboxItems = await getInboxItems()
 
-  const { data: userInteractions } = await (supabase as any)
+  // Count today's interactions via targeted date-range query — avoids fetching
+  // the entire interaction history into memory.
+  const todayStart = `${todayStr}T00:00:00.000Z`
+  const tomorrowStart = `${new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().split('T')[0]}T00:00:00.000Z`
+
+  const { count: completedTodayCount } = await supabase
+    .from('interactions')
+    .select('id', { count: 'exact', head: true })
+    .eq('profile_id', profile.id)
+    .gte('created_at', todayStart)
+    .lt('created_at', tomorrowStart)
+
+  // Fetch recent interaction dates for streak calculation — only created_at needed.
+  const { data: recentInteractions } = await supabase
     .from('interactions')
     .select('created_at')
     .eq('profile_id', profile.id)
     .order('created_at', { ascending: false })
+    .limit(365)
 
-  const interactionsList = (userInteractions as { created_at: string }[]) || []
-
-  const completedTodayCount = interactionsList.filter(i => {
-    return new Date(i.created_at).toISOString().split('T')[0] === todayStr
-  }).length
+  const interactionsList = (recentInteractions as { created_at: string }[]) || []
 
   const streakDays = calculateStreak(interactionsList)
 
@@ -176,7 +186,7 @@ export default async function WorkspacePage() {
           allContacts={contactsList}
           allLabels={allLabels}
           inboxItems={inboxItems}
-          completedTodayCount={completedTodayCount}
+          completedTodayCount={completedTodayCount ?? 0}
           streakDays={streakDays}
           undoWindowSeconds={undoWindowSeconds}
         />
@@ -194,7 +204,7 @@ export default async function WorkspacePage() {
           allContacts={contactsList}
           allLabels={allLabels}
           inboxItems={inboxItems}
-          completedTodayCount={completedTodayCount}
+          completedTodayCount={completedTodayCount ?? 0}
           streakDays={streakDays}
           undoWindowSeconds={undoWindowSeconds}
         />
