@@ -1,10 +1,8 @@
 import { auth } from '@clerk/nextjs/server'
 import { redirect } from 'next/navigation'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
-import { SyncConflictList } from './components/SyncConflictList'
 import type { SyncConflictWithContact } from './components/SyncConflictList'
-import SettingsDesktop from './components/SettingsDesktop'
-import SettingsMobile from './components/SettingsMobile'
+import SettingsClient from './components/SettingsClient'
 import type { FollowupRules } from '@/lib/actions/settings'
 
 export const dynamic = 'force-dynamic'
@@ -103,17 +101,5 @@ export default async function SettingsPage({
     flashError: params.google_error,
   }
 
-  return (
-    <>
-      {/* Desktop layout */}
-      <div className="hidden md:block">
-        <SettingsDesktop {...sharedProps} />
-      </div>
-
-      {/* Mobile layout */}
-      <div className="block md:hidden">
-        <SettingsMobile {...sharedProps} />
-      </div>
-    </>
-  )
+  return <SettingsClient {...sharedProps} />
 }
