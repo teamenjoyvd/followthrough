@@ -3,36 +3,12 @@ import { redirect } from 'next/navigation'
 import { ensureProfile } from '@/lib/profile'
 import { getUnreadInboxCount } from '@/lib/actions/inbox'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
-import Link from 'next/link'
-import SidebarNavLinks from './components/SidebarNavLinks'
-import { Logo } from '@/components/Logo'
+import { AppNavDesktop } from './components/AppNavDesktop'
+import { AppNavMobile } from './components/AppNavMobile'
 
 // ---------------------------------------------------------------------------
-// SidebarNav — RSC shell
-// Mobile: w-12 icon-only ribbon | Desktop: w-56 with labels
-// ---------------------------------------------------------------------------
-function SidebarNav({ inboxUnreadCount }: { inboxUnreadCount: number }) {
-  return (
-    <nav
-      aria-label="Main navigation"
-      className="flex flex-col w-12 md:w-56 shrink-0 border-r border-terra-outline-variant bg-terra-surface-container-low py-6 gap-1"
-    >
-      {/* Logo: icon-only on mobile, full on desktop */}
-      <Link
-        href="/workspace"
-        className="flex items-center justify-center md:justify-start mb-6 md:px-3 transition-transform duration-200 hover:scale-[1.02]"
-      >
-        <Logo iconOnly className="md:hidden" />
-        <Logo className="hidden md:block" />
-      </Link>
-
-      <SidebarNavLinks inboxUnreadCount={inboxUnreadCount} />
-    </nav>
-  )
-}
-
-// ---------------------------------------------------------------------------
-// AppLayout
+// AppLayout — dual layout shell (dual layout law: two complete separate layouts)
+// Desktop: left sidebar w-56 | Mobile: sticky top header + Sheet
 // ---------------------------------------------------------------------------
 export default async function AppLayout({
   children,
@@ -46,9 +22,9 @@ export default async function AppLayout({
 
   let { data: profile } = await (supabase as any)
     .from('profiles')
-    .select('id')
+    .select('id, display_name')
     .eq('clerk_id', userId)
-    .maybeSingle() as { data: { id: string } | null }
+    .maybeSingle() as { data: { id: string; display_name: string | null } | null }
 
   if (!profile) {
     let email = (sessionClaims?.email as string) || (sessionClaims?.primary_email as string) || ''
@@ -71,12 +47,39 @@ export default async function AppLayout({
     throw new Error('Failed to guarantee user profile. Please check database connectivity.')
   }
 
+  const displayName =
+    (profile as any).display_name ||
+    (sessionClaims?.name as string) ||
+    ''
+
+  const avatarUrl =
+    (sessionClaims?.picture as string) ||
+    (sessionClaims?.avatar_url as string) ||
+    (sessionClaims?.image_url as string) ||
+    null
+
   const unreadInboxCount = await getUnreadInboxCount()
 
   return (
-    <div className="flex h-screen overflow-hidden bg-background">
-      <SidebarNav inboxUnreadCount={unreadInboxCount} />
-      <main className="flex-1 overflow-y-auto bg-background min-w-0">{children}</main>
-    </div>
+    <>
+      {/* ── Desktop layout ── */}
+      <div className="hidden md:flex h-screen overflow-hidden bg-background">
+        <AppNavDesktop
+          inboxUnreadCount={unreadInboxCount}
+          displayName={displayName}
+          avatarUrl={avatarUrl}
+        />
+        <main className="flex-1 overflow-y-auto bg-background min-w-0">{children}</main>
+      </div>
+
+      {/* ── Mobile layout ── */}
+      <div className="flex md:hidden flex-col min-h-screen bg-background">
+        <AppNavMobile
+          inboxUnreadCount={unreadInboxCount}
+          displayName={displayName}
+        />
+        <main className="flex-1 bg-background">{children}</main>
+      </div>
+    </>
   )
 }
