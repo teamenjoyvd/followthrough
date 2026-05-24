@@ -4,6 +4,7 @@ import { Literata, Nunito_Sans } from 'next/font/google'
 import { branding } from '@/config/branding'
 import { InjectBrandingStyles } from '@/components/InjectBrandingStyles'
 import { TooltipProvider } from '@/components/ui/tooltip'
+import { Toaster } from 'sonner'
 import './globals.css'
 
 const literata = Literata({
@@ -39,6 +40,7 @@ export default function RootLayout({
           <TooltipProvider delayDuration={300}>
             {children}
           </TooltipProvider>
+          <Toaster position="bottom-right" richColors={false} />
         </body>
       </html>
     </ClerkProvider>

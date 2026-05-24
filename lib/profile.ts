@@ -1,5 +1,4 @@
 import { createSupabaseServiceClient } from './supabase/server'
-import { SupabaseClient } from '@supabase/supabase-js'
 import type { Database } from '../types/supabase'
 
 /**
@@ -13,7 +12,7 @@ export async function ensureProfile(
   clerkId: string,
   email: string,
   displayName: string,
-): Promise<{ id: string; display_name: string | null; followup_rules: any }> {
+): Promise<{ id: string; display_name: string | null; followup_rules: any; undo_window_seconds: number | null }> {
   const supabase = await createSupabaseServiceClient()
 
   const { data, error } = await supabase
@@ -23,7 +22,7 @@ export async function ensureProfile(
       email,
       display_name: displayName,
     }, { onConflict: 'clerk_id' })
-    .select('id, display_name, followup_rules')
+    .select('id, display_name, followup_rules, undo_window_seconds')
     .single()
 
   if (error) {

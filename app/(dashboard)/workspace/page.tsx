@@ -28,12 +28,12 @@ export default async function WorkspacePage() {
     id: string
     display_name: string | null
     followup_rules: any
+    undo_window_seconds: number | null
   }
 
-  // 1. Try to fetch the profile first to see if it already exists
   const { data: profileResult, error: profileError } = await (supabase as any)
     .from('profiles')
-    .select('id, display_name, followup_rules')
+    .select('id, display_name, followup_rules, undo_window_seconds')
     .eq('clerk_id', userId)
     .maybeSingle() as { data: ProfileResult | null; error: any }
 
@@ -43,7 +43,6 @@ export default async function WorkspacePage() {
 
   let profile = profileResult
 
-  // 2. If the profile does not exist, provision a new one
   if (!profile) {
     let email = (sessionClaims?.email as string) || (sessionClaims?.primary_email as string) || ''
     let fullName = (sessionClaims?.name as string) || (sessionClaims?.full_name as string) || ''
@@ -61,16 +60,15 @@ export default async function WorkspacePage() {
     profile = await ensureProfile(userId, email, fullName)
   }
 
-  // 3. Throw a robust error if profile still doesn't exist to prevent infinite redirect loops
   if (!profile) {
     throw new Error('Failed to guarantee user profile. Please check database connectivity.')
   }
 
   const displayName = (profile.display_name ?? '').split(' ')[0] || 'there'
+  const undoWindowSeconds = (profile as any).undo_window_seconds ?? 10
 
   const avatarUrl = (sessionClaims?.picture as string) || (sessionClaims?.avatar_url as string) || (sessionClaims?.image_url as string) || null
 
-  // Fetch all contacts
   const { data: allContacts, error: allContactsError } = await (supabase as any)
     .from('contacts')
     .select('*')
@@ -82,7 +80,6 @@ export default async function WorkspacePage() {
 
   const contactsList = allContacts || []
 
-  // Fetch upcoming snoozed contacts resurfacing in the next 7 days
   const todayStr = new Date().toISOString().split('T')[0]
   const sevenDaysLater = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
   const sevenDaysLaterStr = sevenDaysLater.toISOString().split('T')[0]
@@ -167,7 +164,6 @@ export default async function WorkspacePage() {
   return (
     <>
       <ResurfaceTrigger />
-      {/* Desktop layout — hidden on mobile */}
       <div className="hidden md:block">
         <WorkspaceDesktop
           profileId={profile.id}
@@ -182,10 +178,10 @@ export default async function WorkspacePage() {
           inboxItems={inboxItems}
           completedTodayCount={completedTodayCount}
           streakDays={streakDays}
+          undoWindowSeconds={undoWindowSeconds}
         />
       </div>
 
-      {/* Mobile layout — hidden on desktop */}
       <div className="block md:hidden">
         <WorkspaceMobile
           profileId={profile.id}
@@ -200,6 +196,7 @@ export default async function WorkspacePage() {
           inboxItems={inboxItems}
           completedTodayCount={completedTodayCount}
           streakDays={streakDays}
+          undoWindowSeconds={undoWindowSeconds}
         />
       </div>
     </>

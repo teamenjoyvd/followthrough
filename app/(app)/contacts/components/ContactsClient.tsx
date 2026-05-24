@@ -3,12 +3,13 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { Plus, Upload, Download, Tag, Check, Loader2 } from 'lucide-react'
+import { Plus, Upload, Download, Tag, Loader2, Trash2 } from 'lucide-react'
 import ContactsDesktop from './ContactsDesktop'
 import ContactsMobile from './ContactsMobile'
 import CSVImportModal from '@/components/CSVImportModal'
 import LabelManager from '@/components/LabelManager'
 import BulkActionsToolbar from '@/components/BulkActionsToolbar'
+import { ConfirmDialog } from '@/components/ConfirmDialog'
 import type { Label } from '@/components/LabelManager'
 import type { Database } from '@/types/supabase'
 import { bulkUpdateContacts, bulkDeleteContacts, bulkManageContactLabels } from '@/lib/actions/contacts'
@@ -49,7 +50,6 @@ export default function ContactsClient({
   const [isImportOpen, setIsImportOpen] = useState(false)
   const [isLabelManagerOpen, setIsLabelManagerOpen] = useState(false)
 
-  // Batch process execution states
   const [isProcessing, setIsProcessing] = useState(false)
   const [processedCount, setProcessedCount] = useState(0)
   const [totalToProcess, setTotalToProcess] = useState(0)
@@ -58,28 +58,19 @@ export default function ContactsClient({
   const handleToggleSelect = (id: string) => {
     setSelectedIds((prev) => {
       const next = new Set(prev)
-      if (next.has(id)) {
-        next.delete(id)
-      } else {
-        next.add(id)
-      }
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
       return next
     })
   }
 
   const handleSelectAll = () => {
-    if (selectedIds.size === contacts.length) {
-      setSelectedIds(new Set())
-    } else {
-      setSelectedIds(new Set(contacts.map((c) => c.id)))
-    }
+    if (selectedIds.size === contacts.length) setSelectedIds(new Set())
+    else setSelectedIds(new Set(contacts.map((c) => c.id)))
   }
 
-  const handleClearSelection = () => {
-    setSelectedIds(new Set())
-  }
+  const handleClearSelection = () => setSelectedIds(new Set())
 
-  // Orchestrate batch actions with real-time progress state updates
   const startBatchProcess = async (
     message: string,
     idsToProcess: string[],
@@ -90,21 +81,18 @@ export default function ContactsClient({
     setTotalToProcess(idsToProcess.length)
     setProcessingMessage(message)
 
-    const batchSize = 100 // Safe, high-performance chunks to prevent PostgREST URI size limits
+    const batchSize = 100
     const items = [...idsToProcess]
 
     try {
       for (let i = 0; i < items.length; i += batchSize) {
         const batch = items.slice(i, i + batchSize)
         const res = await actionFn(batch)
-        if ('error' in res) {
-          throw new Error(res.error)
-        }
+        if ('error' in res) throw new Error(res.error)
         setProcessedCount(Math.min(i + batch.length, items.length))
       }
       setSelectedIds(new Set())
       setIsProcessing(false)
-      // Auto reload the page content safely via next.js soft refresh
       router.refresh()
     } catch (err: any) {
       alert(`Batch operation failed: ${err.message}`)
@@ -141,14 +129,8 @@ export default function ContactsClient({
     })
   }
 
-  const handleDelete = () => {
-    if (
-      !confirm(
-        `Are you sure you want to mass delete ${selectedIds.size} contact(s)? This action will permanently cascade delete all associated interactions and phone numbers, and cannot be undone.`
-      )
-    ) {
-      return
-    }
+  // Called from ConfirmDialog onConfirm — no native confirm()
+  const executeBulkDelete = () => {
     startBatchProcess('Cascade deleting selected contacts...', Array.from(selectedIds), async (batch) => {
       return await bulkDeleteContacts(batch)
     })
@@ -156,16 +138,8 @@ export default function ContactsClient({
 
   const handleExportCSV = () => {
     const headers = [
-      'First Name',
-      'Last Name',
-      'Email',
-      'Phone',
-      'Company',
-      'Job Title',
-      'Status',
-      'Created Source',
-      'Last Changed',
-      'Labels',
+      'First Name', 'Last Name', 'Email', 'Phone', 'Company',
+      'Job Title', 'Status', 'Created Source', 'Last Changed', 'Labels',
     ]
     const csvRows = [headers.join(',')]
 
@@ -208,18 +182,17 @@ export default function ContactsClient({
     URL.revokeObjectURL(url)
   }
 
-  // Cross-page selection states
   const isPageFullySelected = contacts.length > 0 && selectedIds.size === contacts.length
   const isAllMatchingSelected = selectedIds.size === allFilteredIds.length && allFilteredIds.length > contacts.length
 
+  const count = selectedIds.size
+
   return (
     <div className="flex-1 flex flex-col h-full overflow-hidden bg-[#faf6f0]">
-      {/* Header Controls Layout */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between px-4 md:px-6 py-4 border-b border-[#e4e0d8] bg-[#faf6f0] shrink-0 gap-3">
         <h1 className="font-headline text-2xl font-bold text-[#2e3230]">Contacts</h1>
         
         <div className="flex flex-wrap items-center gap-2.5">
-          {/* Export CSV button */}
           <button
             onClick={handleExportCSV}
             className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl border border-[#e4e0d8] bg-[#f5f1ea] text-[#74796e] hover:text-[#2e3230] text-xs font-semibold hover:bg-[#eae6de] transition-all shadow-sm active:scale-95 duration-200"
@@ -229,7 +202,6 @@ export default function ContactsClient({
             <span>Export CSV</span>
           </button>
 
-          {/* Import CSV button */}
           <button
             onClick={() => setIsImportOpen(true)}
             className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl border border-[#e4e0d8] bg-[#f5f1ea] text-[#74796e] hover:text-[#2e3230] text-xs font-semibold hover:bg-[#eae6de] transition-all shadow-sm active:scale-95 duration-200"
@@ -238,7 +210,6 @@ export default function ContactsClient({
             <span>Import CSV</span>
           </button>
 
-          {/* Manage Labels button */}
           <button
             onClick={() => setIsLabelManagerOpen(true)}
             className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl border border-[#e4e0d8] bg-[#f5f1ea] text-[#74796e] hover:text-[#2e3230] text-xs font-semibold hover:bg-[#eae6de] transition-all shadow-sm active:scale-95 duration-200"
@@ -247,7 +218,6 @@ export default function ContactsClient({
             <span>Manage Labels</span>
           </button>
 
-          {/* New Contact */}
           <Link
             href="/contacts/new"
             id="new-contact-btn"
@@ -259,12 +229,9 @@ export default function ContactsClient({
         </div>
       </div>
 
-      {/* Cross-page Select All Banners */}
       {isPageFullySelected && allFilteredIds.length > contacts.length && (
         <div className="bg-[#4a7c59]/10 border border-[#4a7c59]/20 px-4 py-3 rounded-xl mx-4 md:mx-6 my-2 text-xs font-semibold text-[#2e3230] flex flex-wrap items-center justify-between gap-2 font-body animate-in fade-in slide-in-from-top-1">
-          <span>
-            All <strong>{selectedIds.size}</strong> contacts on this page are selected.
-          </span>
+          <span>All <strong>{selectedIds.size}</strong> contacts on this page are selected.</span>
           <button
             onClick={() => setSelectedIds(new Set(allFilteredIds))}
             className="text-[#4a7c59] hover:underline font-bold"
@@ -276,21 +243,14 @@ export default function ContactsClient({
 
       {isAllMatchingSelected && (
         <div className="bg-[#4a7c59] text-white px-4 py-3 rounded-xl mx-4 md:mx-6 my-2 text-xs font-semibold flex flex-wrap items-center justify-between gap-2 font-body animate-in fade-in slide-in-from-top-1 shadow-sm">
-          <span>
-            All <strong>{selectedIds.size}</strong> contacts matching your active filters are selected.
-          </span>
-          <button
-            onClick={handleClearSelection}
-            className="text-white underline hover:no-underline font-bold"
-          >
+          <span>All <strong>{selectedIds.size}</strong> contacts matching your active filters are selected.</span>
+          <button onClick={handleClearSelection} className="text-white underline hover:no-underline font-bold">
             Clear selection
           </button>
         </div>
       )}
 
-      {/* Main Grid View */}
       <div className="flex-1 overflow-y-auto bg-[#faf6f0] pb-24">
-        {/* Desktop View */}
         <ContactsDesktop
           contacts={contacts}
           selectedIds={selectedIds}
@@ -304,8 +264,6 @@ export default function ContactsClient({
           currentLastContacted={currentLastContacted}
           currentCompany={currentCompany}
         />
-        
-        {/* Mobile View */}
         <ContactsMobile
           contacts={contacts}
           selectedIds={selectedIds}
@@ -314,7 +272,7 @@ export default function ContactsClient({
         />
       </div>
 
-      {/* Bulk Actions Sliding Floating Toolbar */}
+      {/* Bulk Actions Toolbar — delete slotted via deleteOverride with ConfirmDialog as the trigger wrapper */}
       <BulkActionsToolbar
         selectedIds={selectedIds}
         onClearSelection={handleClearSelection}
@@ -322,31 +280,37 @@ export default function ContactsClient({
         onStatusChange={handleStatusChange}
         onLabelManage={handleLabelManage}
         onSnoozeChange={handleSnoozeChange}
-        onDelete={handleDelete}
+        onDelete={() => { /* no-op: replaced by deleteOverride */ }}
+        deleteOverride={
+          <ConfirmDialog
+            title={`Delete ${count} contact${count !== 1 ? 's' : ''}?`}
+            description="This will permanently delete all selected contacts and their associated interactions. This cannot be undone."
+            confirmLabel={`Delete ${count} contact${count !== 1 ? 's' : ''}`}
+            destructive
+            onConfirm={executeBulkDelete}
+          >
+            <button className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold bg-[#b83230]/20 hover:bg-[#b83230] text-[#ff7875] hover:text-white border border-[#b83230]/40 hover:border-transparent transition-all duration-200">
+              <Trash2 className="h-3.5 w-3.5" />
+              <span>Delete Selected</span>
+            </button>
+          </ConfirmDialog>
+        }
       />
 
-      {/* Real-time batch progress overlay overlay */}
       {isProcessing && (
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center font-body animate-in fade-in duration-200">
           <div className="bg-[#faf6f0] border border-[#e4e0d8] rounded-[24px] p-6 shadow-[0_10px_35px_rgba(46,50,48,0.25)] max-w-sm w-full text-center space-y-4 animate-in zoom-in-95 duration-200">
-            <h3 className="font-headline text-lg font-bold text-[#2e3230]">
-              {processingMessage}
-            </h3>
-            
+            <h3 className="font-headline text-lg font-bold text-[#2e3230]">{processingMessage}</h3>
             <div className="w-full bg-[#eae6de] h-2.5 rounded-full overflow-hidden shadow-inner">
               <div
                 className="bg-[#4a7c59] h-full rounded-full transition-all duration-300"
                 style={{ width: `${(processedCount / totalToProcess) * 100}%` }}
               />
             </div>
-            
             <div className="flex justify-between text-xs text-[#74796e] font-semibold">
               <span>{Math.round((processedCount / totalToProcess) * 100)}% Completed</span>
-              <span>
-                {processedCount} / {totalToProcess}
-              </span>
+              <span>{processedCount} / {totalToProcess}</span>
             </div>
-            
             <div className="flex items-center justify-center gap-2 pt-2">
               <Loader2 className="h-4 w-4 animate-spin text-[#4a7c59]" />
               <span className="text-xs text-[#74796e] font-bold">Processing batches...</span>
@@ -355,10 +319,7 @@ export default function ContactsClient({
         </div>
       )}
 
-      {/* CSV Import Modal */}
       <CSVImportModal isOpen={isImportOpen} onClose={() => setIsImportOpen(false)} />
-
-      {/* Relationship Label Manager */}
       <LabelManager
         isOpen={isLabelManagerOpen}
         onClose={() => setIsLabelManagerOpen(false)}

@@ -23,6 +23,7 @@ interface WorkspaceState {
   streakDays: number
   activeTab: 'focus' | 'upcoming' | 'stats'
   isPending: boolean
+  undoWindowSeconds: number
   
   // Actions
   setInitialData: (
@@ -30,17 +31,18 @@ interface WorkspaceState {
     allContacts: Contact[], 
     stats: Stats,
     completedTodayCount: number,
-    streakDays: number
+    streakDays: number,
+    undoWindowSeconds?: number
   ) => void
   setSelectedContact: (contact: Contact | null) => void
   setActiveTab: (tab: 'focus' | 'upcoming' | 'stats') => void
   
   // Optimistic Workspace Operations
-  pinContact: (contactId: string) => Promise<{ success: boolean; error?: string }>
-  unpinContact: (contactId: string) => Promise<{ success: boolean; error?: string }>
-  markContactDone: (contactId: string) => Promise<{ success: boolean; error?: string }>
-  snoozeContact: (contactId: string, daysOrDate: number | Date) => Promise<{ success: boolean; error?: string }>
-  updateContactDescription: (contactId: string, description: string) => Promise<{ success: boolean; error?: string }>
+  pinContact: (contactId: string) => Promise<{ success: boolean; logId?: string; error?: string }>
+  unpinContact: (contactId: string) => Promise<{ success: boolean; logId?: string; error?: string }>
+  markContactDone: (contactId: string) => Promise<{ success: boolean; logId?: string; error?: string }>
+  snoozeContact: (contactId: string, daysOrDate: number | Date) => Promise<{ success: boolean; logId?: string; error?: string }>
+  updateContactDescription: (contactId: string, description: string) => Promise<{ success: boolean; logId?: string; error?: string }>
   toggleContactLabel: (contactId: string, labelId: string, action: 'assign' | 'clear') => Promise<{ success: boolean; error?: string }>
 }
 
@@ -59,14 +61,16 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
   streakDays: 0,
   activeTab: 'focus',
   isPending: false,
+  undoWindowSeconds: 10,
 
-  setInitialData: (workingList, allContacts, stats, completedTodayCount, streakDays) => {
+  setInitialData: (workingList, allContacts, stats, completedTodayCount, streakDays, undoWindowSeconds) => {
     set({
       workingList,
       allContacts,
       stats,
       completedTodayCount,
       streakDays,
+      undoWindowSeconds: undoWindowSeconds ?? get().undoWindowSeconds,
       selectedContact: get().selectedContact || workingList[0] || null
     })
   },
@@ -82,7 +86,6 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
     const updatedContact = { ...contact, on_working_list: true, working_list_added_at: new Date().toISOString() }
     const newWorkingList = [...workingList, updatedContact]
     
-    // Optimistic Update
     set({
       workingList: newWorkingList,
       stats: { ...stats, workingListCount: newWorkingList.length },
@@ -91,22 +94,17 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
 
     const res = await addToWorkingList(contactId)
     if ('error' in res) {
-      // Rollback
-      set({
-        workingList,
-        stats
-      })
+      set({ workingList, stats })
       return { success: false, error: res.error }
     }
 
-    return { success: true }
+    return { success: true, logId: res.logId }
   },
 
   unpinContact: async (contactId) => {
     const { workingList, stats, selectedContact } = get()
     const newWorkingList = workingList.filter(c => c.id !== contactId)
     
-    // Optimistic Update
     set({
       workingList: newWorkingList,
       stats: { ...stats, workingListCount: newWorkingList.length },
@@ -115,16 +113,11 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
 
     const res = await removeFromWorkingList(contactId)
     if ('error' in res) {
-      // Rollback
-      set({
-        workingList,
-        stats,
-        selectedContact
-      })
+      set({ workingList, stats, selectedContact })
       return { success: false, error: res.error }
     }
 
-    return { success: true }
+    return { success: true, logId: res.logId }
   },
 
   markContactDone: async (contactId) => {
@@ -132,7 +125,6 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
     const newWorkingList = workingList.filter(c => c.id !== contactId)
     const newCompletedCount = completedTodayCount + 1
 
-    // Optimistic Update
     set({
       workingList: newWorkingList,
       completedTodayCount: newCompletedCount,
@@ -142,25 +134,18 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
 
     const res = await markDone(contactId)
     if ('error' in res) {
-      // Rollback
       const rollbackCompleted = Math.max(0, newCompletedCount - 1)
-      set({
-        workingList,
-        completedTodayCount: rollbackCompleted,
-        stats,
-        selectedContact
-      })
+      set({ workingList, completedTodayCount: rollbackCompleted, stats, selectedContact })
       return { success: false, error: res.error }
     }
 
-    return { success: true }
+    return { success: true, logId: res.logId }
   },
 
   snoozeContact: async (contactId, daysOrDate) => {
     const { workingList, stats, selectedContact } = get()
     const newWorkingList = workingList.filter(c => c.id !== contactId)
 
-    // Optimistic Update
     set({
       workingList: newWorkingList,
       stats: { 
@@ -181,22 +166,16 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
 
     const res = await snoozeContact(contactId, targetDate)
     if ('error' in res) {
-      // Rollback
-      set({
-        workingList,
-        stats,
-        selectedContact
-      })
+      set({ workingList, stats, selectedContact })
       return { success: false, error: res.error }
     }
 
-    return { success: true }
+    return { success: true, logId: res.logId }
   },
 
   updateContactDescription: async (contactId, description) => {
     const { workingList, allContacts, selectedContact } = get()
     
-    // Optimistic Update local text
     const updateListItem = (list: Contact[]) =>
       list.map(c => (c.id === contactId ? { ...c, custom_description: description } : c))
 
@@ -208,25 +187,18 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
 
     const res = await updateContactDescriptionAction(contactId, description)
     if ('error' in res) {
-      // Rollback
-      set({
-        workingList,
-        allContacts,
-        selectedContact
-      })
+      set({ workingList, allContacts, selectedContact })
       return { success: false, error: res.error }
     }
 
-    return { success: true }
+    return { success: true, logId: res.logId }
   },
 
   toggleContactLabel: async (contactId, labelId, action) => {
-    // Invoke server action
     const res = await bulkManageContactLabels([contactId], [labelId], action)
     if ('error' in res) {
       return { success: false, error: res.error }
     }
-    
     return { success: true }
   }
 }))

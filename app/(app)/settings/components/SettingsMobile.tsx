@@ -8,6 +8,8 @@ import type { SyncConflictWithContact } from './SyncConflictList'
 import type { FollowupRules } from '@/lib/actions/settings'
 import type { useGoogleSync } from '../hooks/useGoogleSync'
 import type { useSettingsForm } from '../hooks/useSettingsForm'
+import { ConfirmDialog } from '@/components/ConfirmDialog'
+import { cn } from '@/lib/utils'
 
 interface Props {
   profile: {
@@ -17,6 +19,7 @@ interface Props {
     confirmation_enabled: boolean
     pipeline_view: string
     followup_rules: FollowupRules
+    undo_window_seconds: number
   }
   isConnected: boolean
   syncState: { last_synced_at: string | null } | null
@@ -56,6 +59,8 @@ export default function SettingsMobile({
         setConfirmation={settingsForm.setConfirmation}
         view={settingsForm.view}
         setView={settingsForm.setView}
+        undoWindowSeconds={settingsForm.undoWindowSeconds}
+        setUndoWindowSeconds={settingsForm.setUndoWindowSeconds}
         isPending={settingsForm.isPreferencesPending}
         feedback={settingsForm.preferencesFeedback}
         onSave={settingsForm.handlePreferencesSave}
@@ -84,7 +89,7 @@ export default function SettingsMobile({
   )
 }
 
-// ── Profile ───────────────────────────────────────────────────────────────────
+// ── Profile ─────────────────────────────────────────────────────────────────────────
 
 function ProfileSectionMobile({
   email,
@@ -134,13 +139,21 @@ function ProfileSectionMobile({
   )
 }
 
-// ── Preferences ───────────────────────────────────────────────────────────────
+// ── Preferences ─────────────────────────────────────────────────────────────────────
+
+const UNDO_WINDOW_OPTIONS: { label: string; value: 5 | 10 | 30 }[] = [
+  { label: '5s', value: 5 },
+  { label: '10s', value: 10 },
+  { label: '30s', value: 30 },
+]
 
 function PreferencesSectionMobile({
   confirmation,
   setConfirmation,
   view,
   setView,
+  undoWindowSeconds,
+  setUndoWindowSeconds,
   isPending,
   feedback,
   onSave,
@@ -149,6 +162,8 @@ function PreferencesSectionMobile({
   setConfirmation: (v: boolean) => void
   view: string
   setView: (v: string) => void
+  undoWindowSeconds: 5 | 10 | 30
+  setUndoWindowSeconds: (v: 5 | 10 | 30) => void
   isPending: boolean
   feedback: { ok: boolean; msg: string } | null
   onSave: () => void
@@ -171,6 +186,26 @@ function PreferencesSectionMobile({
             <ToggleGroupItem value="list" className="flex-1">List</ToggleGroupItem>
           </ToggleGroup>
         </div>
+        <div className="space-y-2">
+          <p className="text-sm font-medium text-terra-on-surface">Undo window</p>
+          <p className="text-xs text-terra-outline">How long you have to undo an action</p>
+          <div className="flex rounded-xl overflow-hidden border border-terra-surface-container-highest">
+            {UNDO_WINDOW_OPTIONS.map(({ label, value }) => (
+              <button
+                key={value}
+                onClick={() => setUndoWindowSeconds(value)}
+                className={cn(
+                  'flex-1 py-2 text-xs font-bold transition-colors',
+                  undoWindowSeconds === value
+                    ? 'bg-terra-primary text-white'
+                    : 'bg-terra-surface-container-low text-terra-on-surface hover:bg-terra-surface-container-high'
+                )}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        </div>
         <button
           onClick={onSave}
           disabled={isPending}
@@ -188,7 +223,7 @@ function PreferencesSectionMobile({
   )
 }
 
-// ── Follow-up Rules ───────────────────────────────────────────────────────────
+// ── Follow-up Rules ───────────────────────────────────────────────────────────────────
 
 const RULE_LABELS: Record<keyof FollowupRules, string> = {
   lead: 'Lead',
@@ -263,7 +298,7 @@ function FollowupRulesSectionMobile({
   )
 }
 
-// ── Google Sync ───────────────────────────────────────────────────────────────
+// ── Google Sync ──────────────────────────────────────────────────────────────────────
 
 function GoogleSyncSectionMobile({
   isConnected,
@@ -369,13 +404,20 @@ function GoogleSyncSectionMobile({
               {disconnectError && (
                 <p className="text-xs text-destructive mb-2">{disconnectError}</p>
               )}
-              <button
-                onClick={handleDisconnect}
-                disabled={isDisconnecting}
-                className="w-full text-sm font-medium text-destructive border border-destructive/30 rounded-xl py-2 hover:bg-destructive/5 transition-colors disabled:opacity-50"
+              <ConfirmDialog
+                title="Disconnect Google?"
+                description="This will remove your Google Contacts sync. Existing contacts will not be deleted."
+                confirmLabel="Disconnect Google"
+                destructive
+                onConfirm={handleDisconnect}
               >
-                {isDisconnecting ? 'Disconnecting…' : 'Disconnect Google'}
-              </button>
+                <button
+                  disabled={isDisconnecting}
+                  className="w-full text-sm font-medium text-destructive border border-destructive/30 rounded-xl py-2 hover:bg-destructive/5 transition-colors disabled:opacity-50"
+                >
+                  {isDisconnecting ? 'Disconnecting…' : 'Disconnect Google'}
+                </button>
+              </ConfirmDialog>
             </div>
           </>
         )}
@@ -384,7 +426,7 @@ function GoogleSyncSectionMobile({
   )
 }
 
-// ── Danger Zone ───────────────────────────────────────────────────────────────
+// ── Danger Zone ───────────────────────────────────────────────────────────────────────
 
 function DangerZoneSectionMobile() {
   return (

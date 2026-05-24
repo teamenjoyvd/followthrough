@@ -10,6 +10,7 @@ export function useSettingsForm(initialProfile: {
   confirmation_enabled: boolean
   pipeline_view: string
   followup_rules: FollowupRules
+  undo_window_seconds: number
 }) {
   const router = useRouter()
 
@@ -34,13 +35,22 @@ export function useSettingsForm(initialProfile: {
   // ── Preferences Form ───────────────────────────────────────────────────────
   const [confirmation, setConfirmation] = useState(initialProfile.confirmation_enabled)
   const [view, setView] = useState(initialProfile.pipeline_view)
+  const [undoWindowSeconds, setUndoWindowSeconds] = useState<5 | 10 | 30>(
+    ([5, 10, 30] as const).includes(initialProfile.undo_window_seconds as 5 | 10 | 30)
+      ? (initialProfile.undo_window_seconds as 5 | 10 | 30)
+      : 10
+  )
   const [isPreferencesPending, startPreferencesTransition] = useTransition()
   const [preferencesFeedback, setPreferencesFeedback] = useState<{ ok: boolean; msg: string } | null>(null)
 
   const handlePreferencesSave = useCallback(() => {
     setPreferencesFeedback(null)
     startPreferencesTransition(async () => {
-      const result = await updatePreferences({ confirmationEnabled: confirmation, pipelineView: view })
+      const result = await updatePreferences({
+        confirmationEnabled: confirmation,
+        pipelineView: view,
+        undoWindowSeconds,
+      })
       if ('error' in result) {
         setPreferencesFeedback({ ok: false, msg: result.error })
       } else {
@@ -48,7 +58,7 @@ export function useSettingsForm(initialProfile: {
         router.refresh()
       }
     })
-  }, [confirmation, view, router])
+  }, [confirmation, view, undoWindowSeconds, router])
 
   // ── Follow-up Rules Form ───────────────────────────────────────────────────
   const [rawRuleInputs, setRawRuleInputs] = useState<Record<keyof FollowupRules, string>>({
@@ -134,6 +144,8 @@ export function useSettingsForm(initialProfile: {
     setConfirmation,
     view,
     setView,
+    undoWindowSeconds,
+    setUndoWindowSeconds,
     isPreferencesPending,
     preferencesFeedback,
     handlePreferencesSave,

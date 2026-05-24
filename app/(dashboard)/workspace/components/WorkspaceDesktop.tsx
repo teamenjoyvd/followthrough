@@ -32,6 +32,7 @@ interface Props {
   inboxItems: InboxItem[]
   completedTodayCount: number
   streakDays: number
+  undoWindowSeconds: number
 }
 
 export default function WorkspaceDesktop({
@@ -47,21 +48,19 @@ export default function WorkspaceDesktop({
   inboxItems,
   completedTodayCount,
   streakDays,
+  undoWindowSeconds,
 }: Props) {
   const { setInitialData } = useWorkspaceStore()
 
   React.useEffect(() => {
-    setInitialData(workingList, allContacts, stats, completedTodayCount, streakDays)
-  }, [workingList, allContacts, stats, completedTodayCount, streakDays, setInitialData])
+    setInitialData(workingList, allContacts, stats, completedTodayCount, streakDays, undoWindowSeconds)
+  }, [workingList, allContacts, stats, completedTodayCount, streakDays, undoWindowSeconds, setInitialData])
 
   return (
     <div className="min-h-screen bg-[#faf6f0] pb-12 font-body text-[#2e3230]">
-
-      {/* ── Focus Workspace: Three-Column Split Layout ───────── */}
       <main className="max-w-7xl mx-auto px-8 py-8">
         <div className="grid grid-cols-12 gap-8 items-start">
 
-          {/* LEFT COLUMN: Stats, Streaks, CRM Health & Focus Inbox (col-span-3) */}
           <div className="col-span-3 sticky top-24">
             <WorkspaceStats
               initialInboxItems={inboxItems}
@@ -69,12 +68,10 @@ export default function WorkspaceDesktop({
             />
           </div>
 
-          {/* CENTER COLUMN: Interactive Focus List & Command Pins (col-span-5) */}
           <div className="col-span-5 bg-[#eae6de]/30 rounded-[28px] p-6 border border-[#e4e0d8]/30 min-h-[500px]">
             <FocusList />
           </div>
 
-          {/* RIGHT COLUMN: Contact Context, Auto-Notes, Tagging & Feeds (col-span-4) */}
           <div className="col-span-4 bg-[#eae6de]/30 rounded-[28px] p-6 border border-[#e4e0d8]/30 sticky top-24 min-h-[500px]">
             <ContextPanel
               profileId={profileId}
@@ -84,7 +81,6 @@ export default function WorkspaceDesktop({
 
         </div>
       </main>
-
     </div>
   )
 }

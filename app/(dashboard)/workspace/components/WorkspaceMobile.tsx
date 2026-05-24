@@ -34,6 +34,7 @@ interface Props {
   inboxItems: InboxItem[]
   completedTodayCount: number
   streakDays: number
+  undoWindowSeconds: number
 }
 
 export default function WorkspaceMobile({
@@ -49,20 +50,18 @@ export default function WorkspaceMobile({
   inboxItems,
   completedTodayCount,
   streakDays,
+  undoWindowSeconds,
 }: Props) {
   const { setInitialData, selectedContact, setSelectedContact, activeTab, setActiveTab } = useWorkspaceStore()
 
   React.useEffect(() => {
-    setInitialData(workingList, allContacts, stats, completedTodayCount, streakDays)
-  }, [workingList, allContacts, stats, completedTodayCount, streakDays, setInitialData])
+    setInitialData(workingList, allContacts, stats, completedTodayCount, streakDays, undoWindowSeconds)
+  }, [workingList, allContacts, stats, completedTodayCount, streakDays, undoWindowSeconds, setInitialData])
 
   return (
     <div className="min-h-screen bg-[#faf6f0] font-body text-[#2e3230] flex flex-col">
 
-      {/* ── Main Viewport Content ────────────────────────────── */}
       <main className="flex-1 px-6 py-6 overflow-y-auto">
-
-        {/* Toggle Nav Bar at the top of the content */}
         <div className="flex bg-[#eae6de] p-1 rounded-2xl mb-6">
           <button
             onClick={() => setActiveTab('focus')}
@@ -88,7 +87,6 @@ export default function WorkspaceMobile({
           </button>
         </div>
 
-        {/* Tab Selection */}
         {activeTab === 'focus' ? (
           <div className="bg-[#eae6de]/20 rounded-[28px] p-5 border border-[#e4e0d8]/30">
             <FocusList />
@@ -101,14 +99,12 @@ export default function WorkspaceMobile({
         )}
       </main>
 
-      {/* ── Mobile Detail Drawer Slide-up (Context Panel Bottom Sheet) ── */}
       {selectedContact && (
         <div className="fixed inset-0 bg-[#2e3230]/50 z-50 animate-in fade-in duration-200 flex flex-col justify-end" onClick={() => setSelectedContact(null)}>
           <div
             className="w-full max-h-[85vh] bg-[#faf6f0] rounded-t-[32px] p-6 shadow-[0_-8px_30px_rgba(0,0,0,0.15)] border-t border-[#e4e0d8] overflow-y-auto animate-in slide-in-from-bottom duration-300 flex flex-col"
             onClick={(e) => e.stopPropagation()}
           >
-            {/* Drawer Drag Bar */}
             <div className="flex items-center justify-between mb-4 border-b border-[#dbd7cf]/40 pb-3">
               <div className="w-12 h-1.5 bg-[#dbd7cf] rounded-full mx-auto" onClick={() => setSelectedContact(null)} />
               <button
@@ -118,8 +114,6 @@ export default function WorkspaceMobile({
                 <X className="h-4 w-4" />
               </button>
             </div>
-
-            {/* Context Panel */}
             <div className="flex-1">
               <ContextPanel profileId={profileId} allLabels={allLabels} />
             </div>
