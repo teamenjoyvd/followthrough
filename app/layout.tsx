@@ -3,6 +3,7 @@ import { ClerkProvider } from '@clerk/nextjs'
 import { Literata, Nunito_Sans } from 'next/font/google'
 import { branding } from '@/config/branding'
 import { InjectBrandingStyles } from '@/components/InjectBrandingStyles'
+import { TooltipProvider } from '@/components/ui/tooltip'
 import './globals.css'
 
 const literata = Literata({
@@ -34,9 +35,12 @@ export default function RootLayout({
         <head>
           <InjectBrandingStyles />
         </head>
-        <body>{children}</body>
+        <body>
+          <TooltipProvider delayDuration={300}>
+            {children}
+          </TooltipProvider>
+        </body>
       </html>
     </ClerkProvider>
   )
 }
-

@@ -4,25 +4,33 @@ import { ensureProfile } from '@/lib/profile'
 import { getUnreadInboxCount } from '@/lib/actions/inbox'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import Link from 'next/link'
-import BottomNav from './components/BottomNav'
 import SidebarNavLinks from './components/SidebarNavLinks'
-
 import { Logo } from '@/components/Logo'
 
 // ---------------------------------------------------------------------------
 // SidebarNav — RSC shell; nav links delegate to SidebarNavLinks (client)
+// Renders on all viewports: w-12 icon-only ribbon on mobile, w-56 with labels on desktop
 // ---------------------------------------------------------------------------
 function SidebarNav({ inboxUnreadCount }: { inboxUnreadCount: number }) {
   return (
     <nav
-      aria-label="Desktop navigation"
-      className="hidden md:flex flex-col w-56 shrink-0 border-r border-terra-outline-variant bg-terra-surface-container-low px-3 py-6 gap-1"
+      aria-label="Main navigation"
+      className="flex flex-col w-12 md:w-56 shrink-0 border-r border-terra-outline-variant bg-terra-surface-container-low py-6 gap-1 items-center md:items-stretch px-0 md:px-3"
     >
-      <Link href="/workspace" className="px-3 mb-6 block transition-transform duration-200 hover:scale-[1.02]">
-        <Logo />
+      <Link
+        href="/workspace"
+        className="mb-6 flex items-center justify-center md:justify-start md:px-3 transition-transform duration-200 hover:scale-[1.02]"
+      >
+        {/* Icon-only on mobile, full logo on desktop */}
+        <span className="md:hidden">
+          <Logo iconOnly />
+        </span>
+        <span className="hidden md:block">
+          <Logo />
+        </span>
       </Link>
 
-      <SidebarNavLinks inboxUnreadCount={inboxUnreadCount} />
+      <SidebarNavLinks inboxUnreadCount={inboxUnreadCount} collapsed={false} />
     </nav>
   )
 }
@@ -62,7 +70,6 @@ export default async function AppLayout({
         userId
     }
 
-    // Provision the profile using the service client and assign directly
     profile = await ensureProfile(userId, email, displayName)
   }
 
@@ -75,15 +82,8 @@ export default async function AppLayout({
 
   return (
     <div className="flex h-screen overflow-hidden bg-background">
-      {/* Desktop Sidebar — RSC shell, client nav links */}
       <SidebarNav inboxUnreadCount={unreadInboxCount} />
-
-      <div className="flex flex-col flex-1 min-w-0">
-        <main className="flex-1 overflow-y-auto bg-background">{children}</main>
-
-        {/* Mobile Bottom Nav — client component (needs usePathname) */}
-        <BottomNav inboxUnreadCount={unreadInboxCount} />
-      </div>
+      <main className="flex-1 overflow-y-auto bg-background min-w-0">{children}</main>
     </div>
   )
 }

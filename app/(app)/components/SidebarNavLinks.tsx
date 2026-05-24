@@ -9,6 +9,11 @@ import {
   Inbox,
   Settings,
 } from 'lucide-react'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
 
 const NAV_ITEMS = [
   { href: '/workspace', label: 'Workspace', icon: LayoutDashboard },
@@ -20,9 +25,10 @@ const NAV_ITEMS = [
 
 interface Props {
   inboxUnreadCount: number
+  collapsed: boolean
 }
 
-export default function SidebarNavLinks({ inboxUnreadCount }: Props) {
+export default function SidebarNavLinks({ inboxUnreadCount, collapsed }: Props) {
   const pathname = usePathname()
 
   return (
@@ -30,7 +36,33 @@ export default function SidebarNavLinks({ inboxUnreadCount }: Props) {
       {NAV_ITEMS.map(({ href, label, icon: Icon }) => {
         const active = pathname === href || pathname.startsWith(href + '/')
         const showBadge = label === 'Inbox' && inboxUnreadCount > 0
-        return (
+
+        const linkContent = collapsed ? (
+          // Icon-only with Tooltip
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Link
+                href={href}
+                className={`relative flex items-center justify-center w-10 h-10 rounded-lg transition-colors ${
+                  active
+                    ? 'bg-terra-primary-fixed text-primary'
+                    : 'text-muted-foreground hover:bg-muted hover:text-primary'
+                }`}
+                aria-label={label}
+              >
+                <Icon className="h-5 w-5 shrink-0" aria-hidden="true" />
+                {showBadge && (
+                  <span className="absolute top-1 right-1 inline-flex items-center justify-center bg-destructive text-white font-extrabold text-[8px] rounded-full h-3.5 w-3.5 border border-background" />
+                )}
+              </Link>
+            </TooltipTrigger>
+            <TooltipContent side="right">
+              {label}
+              {showBadge && ` (${inboxUnreadCount})`}
+            </TooltipContent>
+          </Tooltip>
+        ) : (
+          // Icon + label
           <Link
             key={href}
             href={href}
@@ -50,6 +82,12 @@ export default function SidebarNavLinks({ inboxUnreadCount }: Props) {
               </span>
             )}
           </Link>
+        )
+
+        return (
+          <div key={href}>
+            {linkContent}
+          </div>
         )
       })}
     </>
