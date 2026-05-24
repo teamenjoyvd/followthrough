@@ -62,7 +62,7 @@ export default function SettingsDesktop({
           onSave={settingsForm.handlePreferencesSave}
         />
         <FollowupRulesSection
-          values={settingsForm.ruleValues}
+          values={settingsForm.rawRuleInputs}
           onChange={settingsForm.handleRuleChange}
           isPending={settingsForm.isRulesPending}
           feedback={settingsForm.rulesFeedback}
@@ -215,7 +215,7 @@ function FollowupRulesSection({
   hasValidationErrors,
   onSave,
 }: {
-  values: FollowupRules
+  values: Record<keyof FollowupRules, string>
   onChange: (field: keyof FollowupRules, raw: string) => void
   isPending: boolean
   feedback: { ok: boolean; msg: string } | null
@@ -239,7 +239,7 @@ function FollowupRulesSection({
                   type="number"
                   min={1}
                   max={365}
-                  value={values[field] || ''}
+                  value={values[field]}
                   onChange={e => onChange(field, e.target.value)}
                   className={`w-20 rounded-xl border bg-terra-surface-container-low px-3 py-2 text-sm text-terra-on-surface focus:outline-none focus:ring-2 focus:ring-terra-primary ${
                     validationErrors[field] ? 'border-destructive focus:ring-destructive' : 'border-terra-surface-container-highest'

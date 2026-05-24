@@ -5,15 +5,6 @@ import { useRouter } from 'next/navigation'
 import { updateProfile, updatePreferences, updateFollowupRules } from '@/lib/actions/settings'
 import type { FollowupRules } from '@/lib/actions/settings'
 
-interface ProfileInput {
-  displayName: string | null
-}
-
-interface PreferencesInput {
-  confirmationEnabled: boolean
-  pipelineView: string
-}
-
 export function useSettingsForm(initialProfile: {
   display_name: string | null
   confirmation_enabled: boolean
@@ -60,7 +51,12 @@ export function useSettingsForm(initialProfile: {
   }, [confirmation, view, router])
 
   // ── Follow-up Rules Form ───────────────────────────────────────────────────
-  const [ruleValues, setRuleValues] = useState<FollowupRules>({ ...initialProfile.followup_rules })
+  const [rawRuleInputs, setRawRuleInputs] = useState<Record<keyof FollowupRules, string>>({
+    lead: String(initialProfile.followup_rules.lead),
+    qualified: String(initialProfile.followup_rules.qualified),
+    bought: String(initialProfile.followup_rules.bought),
+    leave_alone: String(initialProfile.followup_rules.leave_alone),
+  })
   const [isRulesPending, startRulesTransition] = useTransition()
   const [rulesFeedback, setRulesFeedback] = useState<{ ok: boolean; msg: string } | null>(null)
   const [validationErrors, setValidationErrors] = useState<Record<keyof FollowupRules, string | null>>({
@@ -72,20 +68,21 @@ export function useSettingsForm(initialProfile: {
 
   const handleRuleChange = useCallback((field: keyof FollowupRules, raw: string) => {
     setRulesFeedback(null)
+    setRawRuleInputs(prev => ({ ...prev, [field]: raw }))
+
     const n = parseInt(raw, 10)
     
     // Validate rules inline
     let errorMsg: string | null = null
     if (raw.trim() === '') {
       errorMsg = 'Value cannot be empty'
-    } else if (isNaN(n)) {
-      errorMsg = 'Must be a valid number'
+    } else if (isNaN(n) || !/^\d+$/.test(raw.trim())) {
+      errorMsg = 'Must be a valid integer'
     } else if (n < 1 || n > 365) {
       errorMsg = 'Must be between 1 and 365 days'
     }
 
     setValidationErrors(prev => ({ ...prev, [field]: errorMsg }))
-    setRuleValues(prev => ({ ...prev, [field]: isNaN(n) ? 0 : n }))
   }, [])
 
   const hasValidationErrors = Object.values(validationErrors).some(err => err !== null)
@@ -96,10 +93,17 @@ export function useSettingsForm(initialProfile: {
       return
     }
 
+    const updatedRules: FollowupRules = {
+      lead: parseInt(rawRuleInputs.lead, 10),
+      qualified: parseInt(rawRuleInputs.qualified, 10),
+      bought: parseInt(rawRuleInputs.bought, 10),
+      leave_alone: parseInt(rawRuleInputs.leave_alone, 10),
+    }
+
     // Secondary sanity check
-    for (const key of Object.keys(ruleValues) as (keyof FollowupRules)[]) {
-      const val = ruleValues[key]
-      if (val < 1 || val > 365) {
+    for (const key of Object.keys(updatedRules) as (keyof FollowupRules)[]) {
+      const val = updatedRules[key]
+      if (isNaN(val) || val < 1 || val > 365) {
         setRulesFeedback({ ok: false, msg: 'All rules must be between 1 and 365 days.' })
         return
       }
@@ -107,7 +111,7 @@ export function useSettingsForm(initialProfile: {
 
     setRulesFeedback(null)
     startRulesTransition(async () => {
-      const result = await updateFollowupRules(ruleValues)
+      const result = await updateFollowupRules(updatedRules)
       if ('error' in result) {
         setRulesFeedback({ ok: false, msg: result.error })
       } else {
@@ -115,7 +119,7 @@ export function useSettingsForm(initialProfile: {
         router.refresh()
       }
     })
-  }, [ruleValues, hasValidationErrors, router])
+  }, [rawRuleInputs, hasValidationErrors, router])
 
   return {
     // Profile
@@ -135,7 +139,7 @@ export function useSettingsForm(initialProfile: {
     handlePreferencesSave,
 
     // Rules
-    ruleValues,
+    rawRuleInputs,
     handleRuleChange,
     isRulesPending,
     rulesFeedback,
