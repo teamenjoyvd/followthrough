@@ -7,7 +7,7 @@ import { appendActionLog } from './action-log'
 
 export async function addToWorkingList(
   contactId: string,
-): Promise<{ success: true } | { error: string }> {
+): Promise<{ success: true; logId?: string } | { error: string }> {
   const { userId } = await auth()
   if (!userId) return { error: 'Unauthorized' }
 
@@ -31,8 +31,9 @@ export async function addToWorkingList(
     read: false,
   })
 
+  let logId: string | undefined
   try {
-    await appendActionLog({
+    const logRes = await appendActionLog({
       profileId: profile.id,
       actionType: 'addToWorkingList',
       entityType: 'contact',
@@ -40,18 +41,19 @@ export async function addToWorkingList(
       payload: { on_working_list: false },
       undoWindowSeconds: profile.undo_window_seconds,
     })
+    if ('logId' in logRes) logId = logRes.logId
   } catch (e) {
     console.error('[addToWorkingList] appendActionLog failed:', e)
   }
 
   revalidatePath('/workspace')
   revalidatePath('/contacts/' + contactId)
-  return { success: true }
+  return { success: true, logId }
 }
 
 export async function removeFromWorkingList(
   contactId: string,
-): Promise<{ success: true } | { error: string }> {
+): Promise<{ success: true; logId?: string } | { error: string }> {
   const { userId } = await auth()
   if (!userId) return { error: 'Unauthorized' }
 
@@ -59,7 +61,6 @@ export async function removeFromWorkingList(
   const profile = await getProfile(supabase, userId)
   if (!profile) return { error: 'Profile not found' }
 
-  // Read before-snapshot for undo
   const { data: contact } = await supabase
     .from('contacts')
     .select('on_working_list, working_list_added_at')
@@ -75,8 +76,9 @@ export async function removeFromWorkingList(
 
   if (error) return { error: error.message || 'Failed to remove from working list' }
 
+  let logId: string | undefined
   try {
-    await appendActionLog({
+    const logRes = await appendActionLog({
       profileId: profile.id,
       actionType: 'removeFromWorkingList',
       entityType: 'contact',
@@ -87,18 +89,19 @@ export async function removeFromWorkingList(
       },
       undoWindowSeconds: profile.undo_window_seconds,
     })
+    if ('logId' in logRes) logId = logRes.logId
   } catch (e) {
     console.error('[removeFromWorkingList] appendActionLog failed:', e)
   }
 
   revalidatePath('/workspace')
   revalidatePath('/contacts/' + contactId)
-  return { success: true }
+  return { success: true, logId }
 }
 
 export async function markDone(
   contactId: string,
-): Promise<{ success: true } | { error: string }> {
+): Promise<{ success: true; logId?: string } | { error: string }> {
   const { userId } = await auth()
   if (!userId) return { error: 'Unauthorized' }
 
@@ -106,7 +109,6 @@ export async function markDone(
   const profile = await getProfile(supabase, userId)
   if (!profile) return { error: 'Profile not found' }
 
-  // Read before-snapshot for undo
   const { data: contact } = await supabase
     .from('contacts')
     .select('on_working_list, pipeline_status, last_contacted_at')
@@ -125,8 +127,9 @@ export async function markDone(
     return { error: rpcError.message || 'Failed to complete task' }
   }
 
+  let logId: string | undefined
   try {
-    await appendActionLog({
+    const logRes = await appendActionLog({
       profileId: profile.id,
       actionType: 'markDone',
       entityType: 'contact',
@@ -138,11 +141,12 @@ export async function markDone(
       },
       undoWindowSeconds: profile.undo_window_seconds,
     })
+    if ('logId' in logRes) logId = logRes.logId
   } catch (e) {
     console.error('[markDone] appendActionLog failed:', e)
   }
 
   revalidatePath('/workspace')
   revalidatePath('/contacts/' + contactId)
-  return { success: true }
+  return { success: true, logId }
 }

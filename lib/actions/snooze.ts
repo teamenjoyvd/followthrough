@@ -8,7 +8,7 @@ import { appendActionLog } from './action-log'
 export async function snoozeContact(
   contactId: string,
   until: Date,
-): Promise<{ success: true } | { error: string }> {
+): Promise<{ success: true; logId?: string } | { error: string }> {
   const { userId } = await auth()
   if (!userId) return { error: 'Unauthorized' }
 
@@ -40,8 +40,9 @@ export async function snoozeContact(
 
   if (error) return { error: error.message || 'Failed to snooze contact' }
 
+  let logId: string | undefined
   try {
-    await appendActionLog({
+    const logRes = await appendActionLog({
       profileId: profile.id,
       actionType: 'snoozeContact',
       entityType: 'contact',
@@ -54,13 +55,14 @@ export async function snoozeContact(
       },
       undoWindowSeconds: profile.undo_window_seconds,
     })
+    if ('logId' in logRes) logId = logRes.logId
   } catch (e) {
     console.error('[snoozeContact] appendActionLog failed:', e)
   }
 
   revalidatePath('/workspace')
   revalidatePath(`/contacts/${contactId}`)
-  return { success: true }
+  return { success: true, logId }
 }
 
 export async function checkResurfaced(): Promise<{ success: true; count: number } | { error: string }> {
