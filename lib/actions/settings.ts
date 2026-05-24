@@ -2,7 +2,7 @@
 
 import { auth } from '@clerk/nextjs/server'
 import { revalidatePath } from 'next/cache'
-import { createSupabaseServerClient, getProfile, getProfileId } from '@/lib/supabase/server'
+import { createSupabaseServerClient, getProfile } from '@/lib/supabase/server'
 import { appendActionLog } from './action-log'
 
 export type FollowupRules = {
@@ -85,8 +85,8 @@ export async function updatePreferences({
   }
 
   const supabase = await createSupabaseServerClient()
-  const profileId = await getProfileId(supabase, userId)
-  if (!profileId) return { error: 'Profile not found' }
+  const profile = await getProfile(supabase, userId)
+  if (!profile) return { error: 'Profile not found' }
 
   const updatePayload: any = {
     confirmation_enabled: confirmationEnabled,
@@ -99,7 +99,7 @@ export async function updatePreferences({
   const { error } = await supabase
     .from('profiles')
     .update(updatePayload)
-    .eq('id', profileId)
+    .eq('id', profile.id)
 
   if (error) {
     console.error('updatePreferences error:', error)

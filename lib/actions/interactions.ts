@@ -188,42 +188,34 @@ export async function deleteInteraction(
   const profile = await getProfile(supabase, userId)
   if (!profile) return { error: 'Profile not found' }
 
-  // Pre-read required for audit log — deleteInteraction previously had no before-read
-  const { data: interactionRow } = await supabase
+  // Pre-read required for audit log — single query via resource embedding
+  const { data: interaction } = await supabase
     .from('interactions')
-    .select('type')
+    .select('type, call_details(*), note_details(*), email_details(*)')
     .eq('id', interactionId)
+    .eq('profile_id', profile.id)
     .maybeSingle()
 
+  if (!interaction) return { error: 'Interaction not found' }
+
   let detailSnapshot: Record<string, unknown> = {}
-  if (interactionRow?.type === 'call') {
-    const { data } = await supabase
-      .from('call_details')
-      .select('*')
-      .eq('interaction_id', interactionId)
-      .maybeSingle()
-    if (data) detailSnapshot = data as Record<string, unknown>
-  } else if (interactionRow?.type === 'note') {
-    const { data } = await supabase
-      .from('note_details')
-      .select('*')
-      .eq('interaction_id', interactionId)
-      .maybeSingle()
-    if (data) detailSnapshot = data as Record<string, unknown>
-  } else if (interactionRow?.type === 'email') {
-    const { data } = await supabase
-      .from('email_details')
-      .select('*')
-      .eq('interaction_id', interactionId)
-      .maybeSingle()
-    if (data) detailSnapshot = data as Record<string, unknown>
+  const cd = (interaction as any).call_details
+  const nd = (interaction as any).note_details
+  const ed = (interaction as any).email_details
+  if (interaction.type === 'call' && cd?.[0]) {
+    detailSnapshot = cd[0] as Record<string, unknown>
+  } else if (interaction.type === 'note' && nd?.[0]) {
+    detailSnapshot = nd[0] as Record<string, unknown>
+  } else if (interaction.type === 'email' && ed?.[0]) {
+    detailSnapshot = ed[0] as Record<string, unknown>
   }
 
-  // RLS enforces ownership
+  // RLS enforces ownership; profile_id filter adds defence-in-depth
   const { error } = await supabase
     .from('interactions')
     .delete()
     .eq('id', interactionId)
+    .eq('profile_id', profile.id)
 
   if (error) return { error: error.message }
 
@@ -233,7 +225,7 @@ export async function deleteInteraction(
       actionType: 'deleteInteraction',
       entityType: 'interaction',
       entityId: interactionId,
-      payload: { type: interactionRow?.type ?? null, detail: detailSnapshot },
+      payload: { type: interaction.type, detail: detailSnapshot },
       undoWindowSeconds: null, // confirm-popup action — not undoable
     })
   } catch (e) {

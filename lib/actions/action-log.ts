@@ -1,7 +1,7 @@
 'use server'
 
 import { auth } from '@clerk/nextjs/server'
-import { createSupabaseServerClient } from '@/lib/supabase/server'
+import { createSupabaseServerClient, getProfile } from '@/lib/supabase/server'
 
 // ---------------------------------------------------------------------------
 // appendActionLog
@@ -65,11 +65,15 @@ export async function undoAction(
     const supabase = await createSupabaseServerClient()
     const db = supabase as any // action_log not yet in generated types
 
+    const profile = await getProfile(supabase, userId)
+    if (!profile) return { error: 'Profile not found' }
+
     // 1. Fetch and validate the log row
     const { data: logRow, error: fetchError } = await db
       .from('action_log')
       .select('*')
       .eq('id', logId)
+      .eq('profile_id', profile.id)
       .maybeSingle()
 
     if (fetchError || !logRow) return { error: 'Action log entry not found' }
@@ -89,6 +93,7 @@ export async function undoAction(
           .from('contacts')
           .update({ on_working_list: false, working_list_added_at: null })
           .eq('id', entityId)
+          .eq('profile_id', logRow.profile_id)
         break
       }
       case 'removeFromWorkingList': {
@@ -100,6 +105,7 @@ export async function undoAction(
             working_list_added_at: (payload.working_list_added_at as string) ?? new Date().toISOString(),
           })
           .eq('id', entityId)
+          .eq('profile_id', logRow.profile_id)
         break
       }
       case 'markDone': {
@@ -112,12 +118,17 @@ export async function undoAction(
             last_contacted_at: payload.last_contacted_at as string ?? null,
           })
           .eq('id', entityId)
+          .eq('profile_id', logRow.profile_id)
         break
       }
       // --- contacts ---
       case 'createContact': {
         if (!entityId) return { error: 'Missing entity_id' }
-        await supabase.from('contacts').delete().eq('id', entityId)
+        await supabase
+          .from('contacts')
+          .delete()
+          .eq('id', entityId)
+          .eq('profile_id', logRow.profile_id)
         break
       }
       case 'updateContact':
@@ -127,21 +138,35 @@ export async function undoAction(
       case 'pinContact':
       case 'unpinContact': {
         if (!entityId) return { error: 'Missing entity_id' }
-        await supabase.from('contacts').update(payload as any).eq('id', entityId)
+        await supabase
+          .from('contacts')
+          .update(payload as any)
+          .eq('id', entityId)
+          .eq('profile_id', logRow.profile_id)
         break
       }
       case 'bulkUpdateContacts': {
         const snapshots = payload.snapshots as Array<{ id: string; [key: string]: unknown }>
         if (!snapshots?.length) return { error: 'Missing snapshots payload' }
-        for (const snap of snapshots) {
-          const { id, ...fields } = snap
-          await supabase.from('contacts').update(fields as any).eq('id', id)
-        }
+        await Promise.all(
+          snapshots.map((snap) => {
+            const { id, ...fields } = snap
+            return supabase
+              .from('contacts')
+              .update(fields as any)
+              .eq('id', id)
+              .eq('profile_id', logRow.profile_id)
+          })
+        )
         break
       }
       case 'updateProfile': {
         if (!entityId) return { error: 'Missing entity_id' }
-        await supabase.from('profiles').update(payload as any).eq('id', entityId)
+        await supabase
+          .from('profiles')
+          .update(payload as any)
+          .eq('id', entityId)
+          .eq('clerk_id', userId)
         break
       }
       case 'updateFollowupRules': {
@@ -150,6 +175,7 @@ export async function undoAction(
           .from('profiles')
           .update({ followup_rules: payload.followup_rules as any })
           .eq('id', entityId)
+          .eq('clerk_id', userId)
         break
       }
       // --- interactions ---
@@ -157,7 +183,11 @@ export async function undoAction(
       case 'logEmail':
       case 'logNote': {
         if (!entityId) return { error: 'Missing entity_id' }
-        await supabase.from('interactions').delete().eq('id', entityId)
+        await supabase
+          .from('interactions')
+          .delete()
+          .eq('id', entityId)
+          .eq('profile_id', logRow.profile_id)
         break
       }
       // --- snooze ---
@@ -172,18 +202,27 @@ export async function undoAction(
             on_working_list: payload.on_working_list as boolean,
           })
           .eq('id', entityId)
+          .eq('profile_id', logRow.profile_id)
         break
       }
       // --- inbox ---
       case 'markInboxItemRead': {
         if (!entityId) return { error: 'Missing entity_id' }
-        await supabase.from('inbox_items').update({ read: false }).eq('id', entityId)
+        await supabase
+          .from('inbox_items')
+          .update({ read: false })
+          .eq('id', entityId)
+          .eq('profile_id', logRow.profile_id)
         break
       }
       // --- phone numbers ---
       case 'addPhoneNumber': {
         if (!entityId) return { error: 'Missing entity_id' }
-        await supabase.from('phone_numbers').delete().eq('id', entityId)
+        await supabase
+          .from('phone_numbers')
+          .delete()
+          .eq('id', entityId)
+          .eq('profile_id', logRow.profile_id)
         break
       }
       case 'updatePhoneNumber': {
@@ -192,12 +231,17 @@ export async function undoAction(
           .from('phone_numbers')
           .update({ number: payload.number as string, type: payload.type as any })
           .eq('id', entityId)
+          .eq('profile_id', logRow.profile_id)
         break
       }
       // --- social links ---
       case 'addSocialLink': {
         if (!entityId) return { error: 'Missing entity_id' }
-        await supabase.from('social_links').delete().eq('id', entityId)
+        await supabase
+          .from('social_links')
+          .delete()
+          .eq('id', entityId)
+          .eq('profile_id', logRow.profile_id)
         break
       }
       case 'updateSocialLink': {
@@ -206,6 +250,7 @@ export async function undoAction(
           .from('social_links')
           .update({ platform: payload.platform as any, url: payload.url as string })
           .eq('id', entityId)
+          .eq('profile_id', logRow.profile_id)
         break
       }
       default:
@@ -217,6 +262,7 @@ export async function undoAction(
       .from('action_log')
       .update({ undone_at: new Date().toISOString() })
       .eq('id', logId)
+      .eq('profile_id', profile.id)
 
     // 4. Insert undo log row
     await db.from('action_log').insert({
