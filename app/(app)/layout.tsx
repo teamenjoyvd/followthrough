@@ -4,22 +4,26 @@ import { ensureProfile } from '@/lib/profile'
 import { getUnreadInboxCount } from '@/lib/actions/inbox'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import Link from 'next/link'
-import BottomNav from './components/BottomNav'
 import SidebarNavLinks from './components/SidebarNavLinks'
-
 import { Logo } from '@/components/Logo'
 
 // ---------------------------------------------------------------------------
-// SidebarNav — RSC shell; nav links delegate to SidebarNavLinks (client)
+// SidebarNav — RSC shell
+// Mobile: w-12 icon-only ribbon | Desktop: w-56 with labels
 // ---------------------------------------------------------------------------
 function SidebarNav({ inboxUnreadCount }: { inboxUnreadCount: number }) {
   return (
     <nav
-      aria-label="Desktop navigation"
-      className="hidden md:flex flex-col w-56 shrink-0 border-r border-terra-outline-variant bg-terra-surface-container-low px-3 py-6 gap-1"
+      aria-label="Main navigation"
+      className="flex flex-col w-12 md:w-56 shrink-0 border-r border-terra-outline-variant bg-terra-surface-container-low py-6 gap-1"
     >
-      <Link href="/dashboard" className="px-3 mb-6 block transition-transform duration-200 hover:scale-[1.02]">
-        <Logo />
+      {/* Logo: icon-only on mobile, full on desktop */}
+      <Link
+        href="/workspace"
+        className="flex items-center justify-center md:justify-start mb-6 md:px-3 transition-transform duration-200 hover:scale-[1.02]"
+      >
+        <Logo iconOnly className="md:hidden" />
+        <Logo className="hidden md:block" />
       </Link>
 
       <SidebarNavLinks inboxUnreadCount={inboxUnreadCount} />
@@ -40,14 +44,12 @@ export default async function AppLayout({
 
   const supabase = await createSupabaseServerClient()
 
-  // 1. Try to fetch the profile first to see if it already exists
   let { data: profile } = await (supabase as any)
     .from('profiles')
     .select('id')
     .eq('clerk_id', userId)
     .maybeSingle() as { data: { id: string } | null }
 
-  // 2. If the profile does not exist, provision a new one
   if (!profile) {
     let email = (sessionClaims?.email as string) || (sessionClaims?.primary_email as string) || ''
     let displayName = (sessionClaims?.name as string) || (sessionClaims?.full_name as string) || ''
@@ -62,11 +64,9 @@ export default async function AppLayout({
         userId
     }
 
-    // Provision the profile using the service client and assign directly
     profile = await ensureProfile(userId, email, displayName)
   }
 
-  // 3. Throw a robust error if profile still doesn't exist to prevent infinite redirect loops
   if (!profile) {
     throw new Error('Failed to guarantee user profile. Please check database connectivity.')
   }
@@ -75,15 +75,8 @@ export default async function AppLayout({
 
   return (
     <div className="flex h-screen overflow-hidden bg-background">
-      {/* Desktop Sidebar — RSC shell, client nav links */}
       <SidebarNav inboxUnreadCount={unreadInboxCount} />
-
-      <div className="flex flex-col flex-1 min-w-0">
-        <main className="flex-1 overflow-y-auto bg-background">{children}</main>
-
-        {/* Mobile Bottom Nav — client component (needs usePathname) */}
-        <BottomNav inboxUnreadCount={unreadInboxCount} />
-      </div>
+      <main className="flex-1 overflow-y-auto bg-background min-w-0">{children}</main>
     </div>
   )
 }
