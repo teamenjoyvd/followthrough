@@ -2,7 +2,7 @@ import { create } from 'zustand'
 import type { Database } from '@/types/supabase'
 import { addToWorkingList, removeFromWorkingList, markDone } from '@/lib/actions/working-list'
 import { snoozeContact } from '@/lib/actions/snooze'
-import { bulkManageContactLabels } from '@/lib/actions/contacts'
+import { bulkManageContactLabels, updateContactDescription as updateContactDescriptionAction } from '@/lib/actions/contacts'
 
 type Contact = Database['public']['Tables']['contacts']['Row']
 
@@ -218,9 +218,7 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
       selectedContact: selectedContact?.id === contactId ? { ...selectedContact, custom_description: description } : selectedContact
     })
 
-    // Import dynamically to run server actions
-    const { updateContactDescription: saveDescription } = await import('@/lib/actions/contacts')
-    const res = await saveDescription(contactId, description)
+    const res = await updateContactDescriptionAction(contactId, description)
     if ('error' in res) {
       // Rollback
       set({
@@ -235,18 +233,6 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
   },
 
   toggleContactLabel: async (contactId, labelId, action) => {
-    const { workingList, allContacts, selectedContact } = get()
-    
-    const updateListItem = (list: Contact[]) =>
-      list.map(c => {
-        if (c.id === contactId) {
-          // Note: labelsFilter/label_ids are represented dynamically. 
-          // If we had local mapping, we update it. Let's just trigger server and let optimistic update carry the action.
-          return c
-        }
-        return c
-      })
-
     // Invoke server action
     const res = await bulkManageContactLabels([contactId], [labelId], action)
     if ('error' in res) {

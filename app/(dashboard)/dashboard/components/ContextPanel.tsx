@@ -17,6 +17,41 @@ interface Props {
   allLabels: Label[]
 }
 
+interface NoteDetail {
+  id: string
+  interaction_id: string
+  body: string
+  created_at: string
+}
+
+interface CallDetail {
+  id: string
+  interaction_id: string
+  outcome: Database['public']['Enums']['call_outcome']
+  duration_seconds: number | null
+  summary: string | null
+  created_at: string
+}
+
+interface EmailDetail {
+  id: string
+  interaction_id: string
+  subject: string | null
+  body: string | null
+  created_at: string
+}
+
+interface PopulatedInteraction {
+  id: string
+  contact_id: string
+  profile_id: string
+  type: 'call' | 'email' | 'meeting' | 'note'
+  created_at: string
+  note_details: NoteDetail[]
+  call_details: CallDetail[]
+  email_details: EmailDetail[]
+}
+
 export default function ContextPanel({ profileId, allLabels }: Props) {
   const { selectedContact, updateContactDescription, toggleContactLabel } = useWorkspaceStore()
   const supabase = createSupabaseBrowserClient()
@@ -25,7 +60,7 @@ export default function ContextPanel({ profileId, allLabels }: Props) {
   const [noteText, setNoteText] = React.useState('')
   const [saveStatus, setSaveStatus] = React.useState<'idle' | 'saving' | 'saved' | 'error'>('idle')
   const [activeLabelIds, setActiveLabelIds] = React.useState<string[]>([])
-  const [interactions, setInteractions] = React.useState<any[]>([])
+  const [interactions, setInteractions] = React.useState<PopulatedInteraction[]>([])
   const [loadingTimeline, setLoadingTimeline] = React.useState(false)
 
   // Log Form State
@@ -34,6 +69,37 @@ export default function ContextPanel({ profileId, allLabels }: Props) {
   const [callOutcome, setCallOutcome] = React.useState<'connected' | 'no_answer' | 'voicemail'>('connected')
   const [emailSubject, setEmailSubject] = React.useState('')
   const [isLogging, setIsLogging] = React.useState(false)
+
+  // Load Details Reusable Callback (GCR recommendation)
+  const loadDetails = React.useCallback(async () => {
+    if (!selectedContact) return
+    setLoadingTimeline(true)
+    try {
+      // 1. Fetch active label assignments
+      const { data: labelData } = await supabase
+        .from('contact_labels')
+        .select('label_id')
+        .eq('contact_id', selectedContact.id)
+      
+      interface ContactLabelRow {
+        label_id: string
+      }
+      setActiveLabelIds((labelData as ContactLabelRow[])?.map(l => l.label_id) || [])
+
+      // 2. Fetch timeline/interactions
+      const { data: interData } = await supabase
+        .from('interactions')
+        .select('*, note_details(*), call_details(*), email_details(*)')
+        .eq('contact_id', selectedContact.id)
+        .order('created_at', { ascending: false })
+
+      setInteractions((interData || []) as unknown as PopulatedInteraction[])
+    } catch (err) {
+      console.error('Error loading details:', err)
+    } finally {
+      setLoadingTimeline(false)
+    }
+  }, [selectedContact, supabase])
 
   // Load Contact Details (Notes, Labels, Timeline)
   React.useEffect(() => {
@@ -44,34 +110,8 @@ export default function ContextPanel({ profileId, allLabels }: Props) {
     setShowLogForm('none')
     setLogSummary('')
 
-    const loadDetails = async () => {
-      setLoadingTimeline(true)
-      try {
-        // 1. Fetch active label assignments
-        const { data: labelData } = await supabase
-          .from('contact_labels')
-          .select('label_id')
-          .eq('contact_id', selectedContact.id)
-        
-        setActiveLabelIds((labelData as any[])?.map(l => l.label_id) || [])
-
-        // 2. Fetch timeline/interactions
-        const { data: interData } = await supabase
-          .from('interactions')
-          .select('*, note_details(*), call_details(*), email_details(*)')
-          .eq('contact_id', selectedContact.id)
-          .order('created_at', { ascending: false })
-
-        setInteractions(interData || [])
-      } catch (err) {
-        console.error('Error loading details:', err)
-      } finally {
-        setLoadingTimeline(false)
-      }
-    }
-
     loadDetails()
-  }, [selectedContact, supabase])
+  }, [selectedContact, loadDetails])
 
   // Debounced auto-save for working notes scratchpad
   React.useEffect(() => {
@@ -160,14 +200,8 @@ export default function ContextPanel({ profileId, allLabels }: Props) {
         })
       }
 
-      // Re-fetch timeline
-      const { data: interData } = await supabase
-        .from('interactions')
-        .select('*, note_details(*), call_details(*), email_details(*)')
-        .eq('contact_id', selectedContact.id)
-        .order('created_at', { ascending: false })
-
-      setInteractions(interData || [])
+      // Re-fetch timeline using extracted reusable callback
+      await loadDetails()
       setShowLogForm('none')
       setLogSummary('')
       setEmailSubject('')
@@ -183,6 +217,7 @@ export default function ContextPanel({ profileId, allLabels }: Props) {
     // Optimistic removal
     setInteractions(prev => prev.filter(i => i.id !== interactionId))
     await deleteInteraction(interactionId, selectedContact.id)
+    await loadDetails()
   }
 
   return (

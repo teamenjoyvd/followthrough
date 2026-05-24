@@ -24,6 +24,12 @@ export default function FocusList() {
   const [searchQuery, setSearchQuery] = React.useState('')
   const [showSuggestions, setShowSuggestions] = React.useState(false)
   const [activeSnoozeId, setActiveSnoozeId] = React.useState<string | null>(null)
+  const [errorMsg, setErrorMsg] = React.useState<string | null>(null)
+
+  const triggerError = (msg: string) => {
+    setErrorMsg(msg)
+    setTimeout(() => setErrorMsg(null), 4000)
+  }
   
   const suggestionsRef = React.useRef<HTMLDivElement>(null)
 
@@ -56,7 +62,7 @@ export default function FocusList() {
     setSearchQuery('')
     setShowSuggestions(false)
     const res = await pinContact(contactId)
-    if (res.error) alert(res.error)
+    if (res.error) triggerError(res.error)
   };
 
   return (
@@ -71,6 +77,12 @@ export default function FocusList() {
           </p>
         </div>
       </div>
+
+      {errorMsg && (
+        <div className="bg-[#fbf0f0] border border-[#f2d8d7] text-[#a14b49] px-4 py-3 rounded-2xl text-xs font-sans animate-in slide-in-from-top-1">
+          {errorMsg}
+        </div>
+      )}
 
       {/* ── Search & Pin Input Command Bar ─────────────────── */}
       <div className="relative" ref={suggestionsRef}>
@@ -180,7 +192,7 @@ export default function FocusList() {
                     <button
                       onClick={async () => {
                         const res = await markContactDone(c.id)
-                        if (res.error) alert(res.error)
+                        if (res.error) triggerError(res.error)
                       }}
                       className="p-2 bg-[#4a7c59] text-white hover:bg-[#3d6649] rounded-xl active:scale-95 duration-100 transition-transform"
                       title="Log Contact & Mark Done"
@@ -206,7 +218,7 @@ export default function FocusList() {
                     <button
                       onClick={async () => {
                         const res = await unpinContact(c.id)
-                        if (res.error) alert(res.error)
+                        if (res.error) triggerError(res.error)
                       }}
                       className="p-2 bg-[#eae6de] text-[#74796e] hover:text-[#b83230] hover:bg-[#ffdad8]/50 rounded-xl active:scale-95 duration-100 transition-transform"
                       title="Remove from Focus"
@@ -228,7 +240,7 @@ export default function FocusList() {
                             onClick={async () => {
                               setActiveSnoozeId(null)
                               const res = await snoozeContact(c.id, days)
-                              if (res.error) alert(res.error)
+                              if (res.error) triggerError(res.error)
                             }}
                             className="py-2 px-3 text-center text-xs font-semibold bg-[#faf6f0] border border-[#e4e0d8] text-[#2e3230] hover:bg-[#c8e8d0] hover:text-[#4a7c59] hover:border-[#4a7c59]/30 rounded-xl transition-colors font-sans"
                           >
@@ -246,7 +258,7 @@ export default function FocusList() {
                           if (e.target.value) {
                             setActiveSnoozeId(null)
                             const res = await snoozeContact(c.id, new Date(e.target.value))
-                            if (res.error) alert(res.error)
+                            if (res.error) triggerError(res.error)
                           }
                         }}
                         className="w-full text-xs border border-[#e4e0d8] rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#4a7c59] bg-[#faf6f0] font-sans text-[#2e3230]"
