@@ -148,7 +148,7 @@ export async function undoAction(
         if (!entityId) return { error: 'Missing entity_id' }
         await supabase
           .from('profiles')
-          .update({ followup_rules: payload.followup_rules })
+          .update({ followup_rules: payload.followup_rules as any })
           .eq('id', entityId)
         break
       }
