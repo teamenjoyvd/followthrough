@@ -7,6 +7,7 @@ import {
   Users,
   GitBranch,
   Inbox,
+  History,
   Settings,
 } from 'lucide-react'
 import {
@@ -20,6 +21,7 @@ const NAV_ITEMS = [
   { href: '/contacts', label: 'Contacts', icon: Users },
   { href: '/pipeline', label: 'Pipeline', icon: GitBranch },
   { href: '/inbox', label: 'Inbox', icon: Inbox },
+  { href: '/history', label: 'History', icon: History },
   { href: '/settings', label: 'Settings', icon: Settings },
 ] as const
 
