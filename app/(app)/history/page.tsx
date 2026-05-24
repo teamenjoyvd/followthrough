@@ -4,6 +4,7 @@ import { createSupabaseServerClient } from '@/lib/supabase/server'
 import HistoryDesktop from './components/HistoryDesktop'
 import HistoryMobile from './components/HistoryMobile'
 import type { HistoryItem } from './history-types'
+import { PAGE_SIZE } from './history-utils'
 
 export const dynamic = 'force-dynamic'
 
@@ -11,8 +12,6 @@ export const metadata = {
   title: 'History — Followthrough',
   description: 'A chronological log of all actions taken in Followthrough.',
 }
-
-export const PAGE_SIZE = 25
 
 export type { HistoryItem }
 
@@ -31,7 +30,6 @@ export default async function HistoryPage({
   const supabase = await createSupabaseServerClient()
   const db = supabase as any
 
-  // Build filter predicate
   const ENTITY_TYPE_MAP: Record<string, string[]> = {
     contacts: ['contact'],
     interactions: ['interaction', 'inbox_item'],
@@ -39,7 +37,6 @@ export default async function HistoryPage({
   }
   const entityTypes = ENTITY_TYPE_MAP[filter] ?? null
 
-  // Count query
   let countQuery = db
     .from('action_log')
     .select('id', { count: 'exact', head: true })
@@ -54,10 +51,6 @@ export default async function HistoryPage({
   }
   const totalCount = count ?? 0
 
-  // Data query — left join contacts via entity_id when entity_type = 'contact'
-  // Supabase JS doesn't support conditional joins, so we do two-step:
-  // 1. fetch action_log rows
-  // 2. batch-fetch contact names for contact-type rows
   let dataQuery = db
     .from('action_log')
     .select('id, action_type, entity_type, entity_id, created_at, undo_expires_at, undone_at')
@@ -84,7 +77,6 @@ export default async function HistoryPage({
     undone_at: string | null
   }> = rows ?? []
 
-  // Batch-fetch contact names for contact-type rows
   const contactIds = [
     ...new Set(
       rawRows

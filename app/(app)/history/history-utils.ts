@@ -1,5 +1,7 @@
 import type { HistoryItem } from './history-types'
 
+export const PAGE_SIZE = 25
+
 export const FILTER_TABS = [
   { key: 'all', label: 'All' },
   { key: 'contacts', label: 'Contacts' },

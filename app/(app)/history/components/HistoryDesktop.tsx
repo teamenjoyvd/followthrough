@@ -7,8 +7,7 @@ import { cn } from '@/lib/utils'
 import { getActionLabel } from '@/lib/action-log-labels'
 import { undoAction } from '@/lib/actions/action-log'
 import type { HistoryItem } from '../history-types'
-import { PAGE_SIZE } from '../page'
-import { FILTER_TABS, isUndoable, formatRelativeTime } from '../history-utils'
+import { PAGE_SIZE, FILTER_TABS, isUndoable, formatRelativeTime } from '../history-utils'
 
 interface Props {
   items: HistoryItem[]
@@ -108,15 +107,11 @@ export default function HistoryDesktop({ items, totalCount, page, filter }: Prop
   )
 }
 
-// ---------------------------------------------------------------------------
-// HistoryRow — client sub-component that owns undo state + expiry countdown
-// ---------------------------------------------------------------------------
 function HistoryRow({ item, onUndone }: { item: HistoryItem; onUndone: () => void }) {
   const [undoStatus, setUndoStatus] = React.useState<'idle' | 'loading' | 'done' | 'error'>('idle')
   const [errorMsg, setErrorMsg] = React.useState<string | null>(null)
   const [canUndo, setCanUndo] = React.useState(() => isUndoable(item))
 
-  // Tick every second to hide Undo button when undo_expires_at passes
   React.useEffect(() => {
     if (!item.undo_expires_at || item.undone_at) return
     const interval = setInterval(() => {
@@ -149,20 +144,15 @@ function HistoryRow({ item, onUndone }: { item: HistoryItem; onUndone: () => voi
 
   return (
     <div className={cn('relative py-4 pl-5 group', isUndone && 'opacity-50')}>
-      {/* Timeline node */}
       <div className="absolute -left-[22px] top-5 h-2.5 w-2.5 rounded-full bg-[#eae6de] border-2 border-[#705c30]" />
-
       <div className="flex items-start justify-between gap-4">
         <div className="min-w-0">
           <p className="text-sm font-semibold text-[#2e3230] font-sans">{label}</p>
           <p className="text-xs text-[#74796e] font-sans mt-0.5">
             {entityName} &middot; {relTime}
           </p>
-          {errorMsg && (
-            <p className="text-xs text-[#b83230] mt-1">{errorMsg}</p>
-          )}
+          {errorMsg && <p className="text-xs text-[#b83230] mt-1">{errorMsg}</p>}
         </div>
-
         <div className="shrink-0">
           {isUndone ? (
             <span className="text-xs font-sans text-[#74796e] italic">Undone</span>

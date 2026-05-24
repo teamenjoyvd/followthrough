@@ -7,8 +7,7 @@ import { cn } from '@/lib/utils'
 import { getActionLabel } from '@/lib/action-log-labels'
 import { undoAction } from '@/lib/actions/action-log'
 import type { HistoryItem } from '../history-types'
-import { PAGE_SIZE } from '../page'
-import { FILTER_TABS, isUndoable, formatRelativeTime } from '../history-utils'
+import { PAGE_SIZE, FILTER_TABS, isUndoable, formatRelativeTime } from '../history-utils'
 
 interface Props {
   items: HistoryItem[]
@@ -46,7 +45,7 @@ export default function HistoryMobile({ items, totalCount, page, filter }: Props
           </div>
         </div>
 
-        {/* Filter tabs — horizontally scrollable on narrow screens */}
+        {/* Filter tabs */}
         <div className="flex gap-1 bg-[#eae6de] p-1 rounded-2xl mb-5 overflow-x-auto">
           {FILTER_TABS.map((tab) => (
             <button
@@ -154,11 +153,8 @@ function MobileHistoryRow({ item, onUndone }: { item: HistoryItem; onUndone: () 
           <p className="text-[10px] text-[#74796e] font-sans mt-0.5">
             {entityName} &middot; {relTime}
           </p>
-          {errorMsg && (
-            <p className="text-[10px] text-[#b83230] mt-1">{errorMsg}</p>
-          )}
+          {errorMsg && <p className="text-[10px] text-[#b83230] mt-1">{errorMsg}</p>}
         </div>
-
         <div className="shrink-0">
           {isUndone ? (
             <span className="text-[10px] font-sans text-[#74796e] italic">Undone</span>
