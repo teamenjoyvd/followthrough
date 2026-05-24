@@ -22,12 +22,8 @@ function SidebarNav({ inboxUnreadCount }: { inboxUnreadCount: number }) {
         href="/workspace"
         className="flex items-center justify-center md:justify-start mb-6 md:px-3 transition-transform duration-200 hover:scale-[1.02]"
       >
-        <span className="md:hidden">
-          <Logo iconOnly />
-        </span>
-        <span className="hidden md:block">
-          <Logo />
-        </span>
+        <Logo iconOnly className="md:hidden" />
+        <Logo className="hidden md:block" />
       </Link>
 
       <SidebarNavLinks inboxUnreadCount={inboxUnreadCount} />
