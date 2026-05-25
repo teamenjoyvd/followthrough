@@ -58,14 +58,15 @@ export default function WorkspaceMobile({
     setInitialData(workingList, allContacts, stats, completedTodayCount, streakDays, undoWindowSeconds)
   }, [workingList, allContacts, stats, completedTodayCount, streakDays, undoWindowSeconds, setInitialData])
 
-  // Reset selection on unmount so the store does not carry selectedContact
-  // across navigation. The Zustand store is a singleton — without this,
-  // navigating away and back reopens the bottom sheet.
+  // Reset selection and view state on unmount or context change so the store
+  // does not carry state across navigation. The Zustand store is a singleton
+  // — without this, navigating away and back preserves stale UI state.
   React.useEffect(() => {
     return () => {
       setSelectedContact(null)
+      setActiveTab('focus')
     }
-  }, [setSelectedContact])
+  }, [setSelectedContact, setActiveTab, profileId])
 
   return (
     <div className="min-h-screen bg-[#faf6f0] font-body text-[#2e3230] flex flex-col">
