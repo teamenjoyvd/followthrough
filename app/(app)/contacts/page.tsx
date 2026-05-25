@@ -7,6 +7,7 @@ import { PIPELINE_STATUSES } from './components/constants'
 import { ContactFilterBar } from '@/components/ContactFilterBar'
 import { FilterShortcuts } from '@/components/FilterShortcuts'
 import { SearchInput } from './components/SearchInput'
+import { MobileFilterBar } from '@/components/MobileFilterBar'
 import type { Database } from '@/types/supabase'
 
 type PipelineStatus = Database['public']['Enums']['pipeline_status']
@@ -44,7 +45,7 @@ interface SearchParams {
   has_email?: string
   has_phone?: string
   source?: string
-  labels?: string // comma-separated active label IDs
+  labels?: string
   page?: string
 }
 
@@ -168,18 +169,15 @@ export default async function ContactsPage({
   const lastContactedFilter = params.last_contacted ?? ''
   const companyFilter = (params.company ?? '').trim()
   
-  // Specific field filters
   const firstNameFilter = (params.first_name ?? '').trim()
   const lastNameFilter = (params.last_name ?? '').trim()
   const phoneFilter = (params.phone ?? '').trim()
   const emailFilter = (params.email ?? '').trim()
   
-  // Composition filters
   const hasEmailFilter = params.has_email ?? ''
   const hasPhoneFilter = params.has_phone ?? ''
   const sourceFilter = params.source ?? ''
   
-  // Relational Labels Filters
   const labelsFilter = params.labels ? params.labels.split(',').filter(Boolean) : []
   
   const sortKey: SortKey = VALID_SORT_KEYS.includes(params.sort as SortKey)
@@ -197,7 +195,6 @@ export default async function ContactsPage({
 
   if (!profile) redirect('/sign-in')
 
-  // 1. Fetch available custom labels for the user profile
   const { data: rawLabels } = await supabase
     .from('labels')
     .select('*')
@@ -206,11 +203,9 @@ export default async function ContactsPage({
 
   const userLabels = (rawLabels as any[]) || []
 
-  // Pre-calculate pagination active page before query
   const pageParam = Number(params.page || 1)
   let activePage = isNaN(pageParam) || pageParam < 1 ? 1 : pageParam
 
-  // 2. Query contacts search view with all active filters at the database level
   let dbQuery = supabase
     .from('contacts_search_view')
     .select('*', { count: 'exact' })
@@ -231,14 +226,12 @@ export default async function ContactsPage({
     query
   })
 
-  // Sorting
   if (sortKey === 'pipeline_status') {
     dbQuery = dbQuery.order('pipeline_status', { ascending: sortDir === 'asc' })
   } else {
     dbQuery = dbQuery.order(sortKey, { ascending: sortDir === 'asc', nullsFirst: false })
   }
 
-  // Paginated execute
   const { data: contactsData, count, error: fetchError } = await dbQuery
     .range((activePage - 1) * PAGE_SIZE, activePage * PAGE_SIZE - 1)
 
@@ -249,7 +242,6 @@ export default async function ContactsPage({
   const totalPages = Math.ceil(totalContacts / PAGE_SIZE) || 1
   activePage = Math.min(totalPages, activePage)
 
-  // 3. Lightweight query to get all matched IDs (cross-page selection ids state)
   let idsQuery = supabase
     .from('contacts_search_view')
     .select('id')
@@ -275,14 +267,47 @@ export default async function ContactsPage({
 
   const allFilteredIds = (matchedIdsData as { id: string }[] || []).map(item => item.id)
 
+  // Compute active filter count for mobile badge
+  const activeFilterCount = [
+    statusFilter,
+    lastContactedFilter,
+    companyFilter,
+    firstNameFilter,
+    lastNameFilter,
+    phoneFilter,
+    emailFilter,
+    hasEmailFilter,
+    hasPhoneFilter,
+    sourceFilter,
+    labelsFilter.length > 0 ? 'labels' : '',
+  ].filter(Boolean).length
+
   return (
     <div className="flex flex-col h-full bg-[#faf6f0]">
-      {/* Search + Filters */}
-      <div className="px-4 md:px-6 py-4 bg-[#faf6f0] border-b border-[#e4e0d8] space-y-4 shrink-0">
-        <SearchInput
-          defaultValue={query}
+      {/* ── Mobile filter bar (collapsed by default) ── */}
+      <div className="md:hidden">
+        <MobileFilterBar
+          currentQuery={query}
+          currentStatus={statusFilter}
+          currentLastContacted={lastContactedFilter}
+          currentCompany={companyFilter}
+          currentSort={sortKey}
+          currentDir={sortDir}
+          currentFirstName={firstNameFilter}
+          currentLastName={lastNameFilter}
+          currentPhone={phoneFilter}
+          currentEmail={emailFilter}
+          currentHasEmail={hasEmailFilter}
+          currentHasPhone={hasPhoneFilter}
+          currentSource={sourceFilter}
+          currentLabels={params.labels ?? ''}
+          activeFilterCount={activeFilterCount}
         />
+      </div>
 
+      {/* ── Desktop filter bar (unchanged) ── */}
+      <div className="hidden md:block px-4 md:px-6 py-4 bg-[#faf6f0] border-b border-[#e4e0d8] space-y-4 shrink-0">
+        <SearchInput defaultValue={query} />
         <ContactFilterBar
           currentStatus={statusFilter}
           currentLastContacted={lastContactedFilter}
@@ -299,11 +324,9 @@ export default async function ContactsPage({
           currentHasPhone={hasPhoneFilter}
           currentSource={sourceFilter}
         />
-
         <FilterShortcuts />
       </div>
 
-      {/* Contacts List Client Component Orchestrator */}
       <ContactsClient
         contacts={paginatedContacts}
         allFilteredIds={allFilteredIds}
@@ -316,7 +339,6 @@ export default async function ContactsPage({
         currentCompany={companyFilter}
       />
 
-      {/* Pagination Bar */}
       {totalPages > 1 && (
         <div className="flex items-center justify-between px-4 md:px-6 py-3.5 border-t border-[#e4e0d8] bg-[#faf6f0] shrink-0">
           <div className="flex items-center gap-2">
@@ -332,7 +354,6 @@ export default async function ContactsPage({
                 Previous
               </span>
             )}
-
             {activePage < totalPages ? (
               <Link
                 href={buildPaginationHref(params, activePage + 1)}
@@ -346,14 +367,12 @@ export default async function ContactsPage({
               </span>
             )}
           </div>
-          
           <span className="text-xs text-[#74796e] font-medium font-body">
             Page <span className="font-semibold text-[#2e3230]">{activePage}</span> of <span className="font-semibold text-[#2e3230]">{totalPages}</span>
           </span>
         </div>
       )}
 
-      {/* Footer count */}
       <div className="px-4 md:px-6 py-3 border-t border-[#e4e0d8] bg-[#faf6f0] shrink-0">
         <p className="text-xs text-[#74796e] font-body">
           {totalContacts} contact{totalContacts !== 1 ? 's' : ''}
