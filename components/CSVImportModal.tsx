@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useTransition, useRef } from 'react'
-import { Upload, ArrowRight, Check, AlertCircle, FileSpreadsheet, Loader2 } from 'lucide-react'
+import { Upload, ArrowRight, Check, AlertCircle, FileSpreadsheet, Loader2, ChevronDown, ChevronUp } from 'lucide-react'
 import Papa from 'papaparse'
 import {
   Dialog,
@@ -26,23 +26,29 @@ const TARGET_FIELDS = [
   { key: 'job_title', label: 'Job Title', required: false },
 ] as const
 
+interface SkippedRecord {
+  row: number
+  raw: string
+}
+
 export default function CSVImportModal({ isOpen, onClose }: CSVImportModalProps) {
   const [isPending, startTransition] = useTransition()
   const fileInputRef = useRef<HTMLInputElement>(null)
-  
+
   // Steps: 'upload' | 'mapping' | 'preview'
   const [step, setStep] = useState<'upload' | 'mapping' | 'preview'>('upload')
   const [fileName, setFileName] = useState('')
   const [headers, setHeaders] = useState<string[]>([])
   const [parsedRows, setParsedRows] = useState<string[][]>([])
-  
+
   // Mapping state: key is target field, value is index of csv header
   const [mapping, setMapping] = useState<Record<string, number>>({})
   const [error, setError] = useState<string | null>(null)
-  
+
   // Preview / Dry run stats
   const [validRecords, setValidRecords] = useState<any[]>([])
-  const [invalidCount, setInvalidCount] = useState(0)
+  const [skippedRecords, setSkippedRecords] = useState<SkippedRecord[]>([])
+  const [showSkipped, setShowSkipped] = useState(false)
 
   const resetState = () => {
     setStep('upload')
@@ -52,7 +58,8 @@ export default function CSVImportModal({ isOpen, onClose }: CSVImportModalProps)
     setMapping({})
     setError(null)
     setValidRecords([])
-    setInvalidCount(0)
+    setSkippedRecords([])
+    setShowSkipped(false)
     if (fileInputRef.current) fileInputRef.current.value = ''
   }
 
@@ -112,7 +119,6 @@ export default function CSVImportModal({ isOpen, onClose }: CSVImportModalProps)
   }
 
   const handleMappingSubmit = () => {
-    // Validate mapping
     if (mapping.first_name === undefined || mapping.first_name === -1) {
       setError('First Name is a required field mapping.')
       return
@@ -120,14 +126,14 @@ export default function CSVImportModal({ isOpen, onClose }: CSVImportModalProps)
 
     setError(null)
 
-    // Run dry run verification
     const valid: any[] = []
-    let invalid = 0
+    const skipped: SkippedRecord[] = []
 
-    parsedRows.forEach((row) => {
+    parsedRows.forEach((row, index) => {
       const firstNameVal = row[mapping.first_name]
       if (!firstNameVal?.trim()) {
-        invalid++
+        // Row number is 1-based relative to data rows (excluding header)
+        skipped.push({ row: index + 1, raw: firstNameVal ?? '' })
         return
       }
 
@@ -148,7 +154,8 @@ export default function CSVImportModal({ isOpen, onClose }: CSVImportModalProps)
     })
 
     setValidRecords(valid)
-    setInvalidCount(invalid)
+    setSkippedRecords(skipped)
+    setShowSkipped(false)
     setStep('preview')
   }
 
@@ -217,13 +224,13 @@ export default function CSVImportModal({ isOpen, onClose }: CSVImportModalProps)
 
             <div className="space-y-2.5 max-h-[300px] overflow-y-auto pr-1">
               <span className="block text-[10px] font-bold text-[#74796e] uppercase tracking-wider mb-2">Map CSV columns to CRM fields</span>
-              
+
               {TARGET_FIELDS.map((field) => (
                 <div key={field.key} className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-2.5 rounded-xl bg-[#f5f1ea] border border-[#e4e0d8]/80 hover:bg-[#eae6de]/50 transition-colors">
                   <span className="text-xs font-semibold text-[#2e3230] font-body">
                     {field.label}
                   </span>
-                  
+
                   <select
                     value={mapping[field.key] !== undefined ? mapping[field.key] : -1}
                     onChange={(e) => {
@@ -264,6 +271,7 @@ export default function CSVImportModal({ isOpen, onClose }: CSVImportModalProps)
         {/* Step 3: Dry-run Verification & Preview */}
         {step === 'preview' && (
           <div className="space-y-4 animate-in fade-in duration-200 font-body">
+            {/* Summary card */}
             <div className="p-4 rounded-xl bg-[#eae6de]/40 border border-[#e4e0d8] space-y-2">
               <h4 className="text-sm font-semibold text-[#2e3230] font-headline">Import Dry Run Summary</h4>
               <div className="grid grid-cols-2 gap-4 text-xs font-medium">
@@ -273,11 +281,46 @@ export default function CSVImportModal({ isOpen, onClose }: CSVImportModalProps)
                 </div>
                 <div>
                   <span className="text-[#74796e] block">Skipped (No first name)</span>
-                  <span className="text-lg font-bold text-[#b83230]">{invalidCount} records</span>
+                  <span className="text-lg font-bold text-[#b83230]">{skippedRecords.length} records</span>
                 </div>
               </div>
             </div>
 
+            {/* Skipped rows — collapsible, only shown when there are skipped rows */}
+            {skippedRecords.length > 0 && (
+              <div className="border border-[#f2d8d7] rounded-xl overflow-hidden">
+                <button
+                  type="button"
+                  onClick={() => setShowSkipped(v => !v)}
+                  className="w-full flex items-center justify-between px-3 py-2.5 bg-[#fbf0f0] text-xs font-semibold text-[#a14b49] hover:bg-[#f9e8e8] transition-colors"
+                >
+                  <span>{showSkipped ? 'Hide' : 'Show'} skipped rows ({skippedRecords.length})</span>
+                  {showSkipped ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+                </button>
+                {showSkipped && (
+                  <table className="w-full text-left text-xs border-t border-[#f2d8d7]">
+                    <thead>
+                      <tr className="bg-[#fdf5f5] text-[#a14b49]">
+                        <th className="px-3 py-2 font-semibold w-16">Row #</th>
+                        <th className="px-3 py-2 font-semibold">Name column value</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-[#f2d8d7]">
+                      {skippedRecords.map((r) => (
+                        <tr key={r.row} className="bg-white">
+                          <td className="px-3 py-2 text-[#74796e] font-mono">{r.row}</td>
+                          <td className="px-3 py-2 text-[#a14b49] italic">
+                            {r.raw === '' ? <span className="text-[#b0aea8]">(empty)</span> : r.raw}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                )}
+              </div>
+            )}
+
+            {/* Valid records preview */}
             <div className="space-y-2">
               <span className="block text-[10px] font-bold text-[#74796e] uppercase tracking-wider">Previewing first 5 rows</span>
               <div className="border border-[#e4e0d8] rounded-xl overflow-hidden text-xs">

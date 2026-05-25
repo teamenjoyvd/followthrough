@@ -19,34 +19,24 @@ interface Props {
   allLabels: Label[]
 }
 
+// Matches the narrowed select:
+// id, type, created_at, note_details(body), call_details(outcome, summary), email_details(subject, body)
 interface NoteDetail {
-  id: string
-  interaction_id: string
   body: string
-  created_at: string
 }
 
 interface CallDetail {
-  id: string
-  interaction_id: string
   outcome: Database['public']['Enums']['call_outcome']
-  duration_seconds: number | null
   summary: string | null
-  created_at: string
 }
 
 interface EmailDetail {
-  id: string
-  interaction_id: string
   subject: string | null
   body: string | null
-  created_at: string
 }
 
 interface PopulatedInteraction {
   id: string
-  contact_id: string
-  profile_id: string
   type: 'call' | 'email' | 'meeting' | 'note'
   created_at: string
   note_details: NoteDetail[]
@@ -73,7 +63,7 @@ export default function ContextPanel({ profileId, allLabels }: Props) {
   const [emailSubject, setEmailSubject] = React.useState('')
   const [isLogging, setIsLogging] = React.useState(false)
 
-  // Load Details Reusable Callback (GCR recommendation)
+  // Load Details Reusable Callback
   const loadDetails = React.useCallback(async () => {
     if (!selectedContact) return
     setLoadingTimeline(true)
@@ -89,14 +79,15 @@ export default function ContextPanel({ profileId, allLabels }: Props) {
       }
       setActiveLabelIds((labelData as ContactLabelRow[])?.map(l => l.label_id) || [])
 
-      // 2. Fetch timeline/interactions — select only fields required for display
+      // 2. Fetch timeline — select only fields required for display
       const { data: interData } = await supabase
         .from('interactions')
         .select('id, type, created_at, note_details(body), call_details(outcome, summary), email_details(subject, body)')
         .eq('contact_id', selectedContact.id)
         .order('created_at', { ascending: false })
 
-      setInteractions((interData || []) as unknown as PopulatedInteraction[])
+      // Single cast: PopulatedInteraction mirrors the narrowed select shape exactly
+      setInteractions((interData || []) as PopulatedInteraction[])
     } catch (err) {
       console.error('Error loading details:', err)
     } finally {
@@ -119,9 +110,7 @@ export default function ContextPanel({ profileId, allLabels }: Props) {
   // Debounced auto-save for working notes scratchpad.
   // Snapshot contactId and text at effect-setup time so the timeout callback
   // always saves the correct contact even if selectedContact changes before
-  // the 800ms fires. The cleanup cancels the timer to avoid double-saves when
-  // the text continues changing, but a pending save is never silently dropped
-  // on contact switch — the snapshot ensures it targets the right record.
+  // the 800ms fires.
   React.useEffect(() => {
     if (!selectedContact) return
     if (noteText === (selectedContact.custom_description || '')) return
@@ -176,7 +165,7 @@ export default function ContextPanel({ profileId, allLabels }: Props) {
     charcoal: 'bg-[#eaebeb] text-[#373b3e] border-[#d1d5db]',
   }
 
-  // Toggle Label Tag in Database — fires ActionToast on success
+  // Toggle Label Tag in Database
   const handleToggleLabel = async (labelId: string) => {
     const isAssigned = activeLabelIds.includes(labelId)
     const action = isAssigned ? 'clear' : 'assign'
@@ -186,14 +175,7 @@ export default function ContextPanel({ profileId, allLabels }: Props) {
       isAssigned ? prev.filter(id => id !== labelId) : [...prev, labelId]
     )
 
-    const res = await toggleContactLabel(selectedContact.id, labelId, action)
-    if (res.success) {
-      const label = allLabels.find(l => l.id === labelId)
-      if (label) {
-        // toggleContactLabel does not return a logId (bulk action — not individually undoable)
-        // No toast needed here per DoD; label toggles are not in the undoable action set.
-      }
-    }
+    await toggleContactLabel(selectedContact.id, labelId, action)
   }
 
   // Handle logging new interaction
@@ -222,7 +204,6 @@ export default function ContextPanel({ profileId, allLabels }: Props) {
         })
       }
 
-      // Re-fetch timeline using extracted reusable callback
       await loadDetails()
       setShowLogForm('none')
       setLogSummary('')
@@ -236,7 +217,6 @@ export default function ContextPanel({ profileId, allLabels }: Props) {
 
   // Delete an interaction — gated by ConfirmDialog at the call site below
   const handleDeleteInteraction = async (interactionId: string) => {
-    // Optimistic removal
     setInteractions(prev => prev.filter(i => i.id !== interactionId))
     await deleteInteraction(interactionId, selectedContact.id)
     await loadDetails()
@@ -329,7 +309,6 @@ export default function ContextPanel({ profileId, allLabels }: Props) {
       {/* ── Quick Touchpoint Logging Feed ───────────────────── */}
       <div className="space-y-4 pt-2 border-t border-[#dbd7cf]/60">
 
-        {/* Toggle Form Buttons */}
         {showLogForm === 'none' ? (
           <div className="flex items-center gap-2">
             <button
@@ -456,9 +435,7 @@ export default function ContextPanel({ profileId, allLabels }: Props) {
 
                 return (
                   <div key={item.id} className="relative space-y-1">
-                    {/* Ring Timeline Node */}
                     <div className="absolute -left-[21px] top-1.5 h-2.5 w-2.5 rounded-full bg-[#eae6de] border-2 border-[#705c30]" />
-
                     <div className="flex items-center justify-between">
                       <p className="text-[11px] font-headline font-bold text-[#2e3230]">{title}</p>
                       <ConfirmDialog
