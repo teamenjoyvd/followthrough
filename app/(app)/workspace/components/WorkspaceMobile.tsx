@@ -52,7 +52,16 @@ export default function WorkspaceMobile({
   streakDays,
   undoWindowSeconds,
 }: Props) {
-  const { setInitialData, selectedContact, setSelectedContact, activeTab, setActiveTab } = useWorkspaceStore()
+  const {
+    setInitialData,
+    selectedContact,
+    setSelectedContact,
+    activeTab,
+    setActiveTab,
+    // Reactive list from the store — stays in sync after client-side mutations
+    // (unpin, done, snooze). The `workingList` prop is only the server snapshot.
+    workingList: storeWorkingList,
+  } = useWorkspaceStore()
 
   React.useEffect(() => {
     setInitialData(workingList, allContacts, stats, completedTodayCount, streakDays, undoWindowSeconds)
@@ -79,12 +88,12 @@ export default function WorkspaceMobile({
                 : "text-[#74796e] hover:text-[#2e3230]"
             )}
           >
-            {/* Status dot: visible when there are active focus items, derives from
-                the same workingList prop passed down from the server — no new subscription. */}
-            {workingList.length > 0 && (
+            {/* Status dot: reads storeWorkingList so it stays in sync after
+                client-side mutations (unpin, done, snooze). */}
+            {storeWorkingList.length > 0 && (
               <span className="h-1.5 w-1.5 rounded-full bg-[#4a7c59] shrink-0" aria-hidden="true" />
             )}
-            Focus List ({workingList.length})
+            Focus List ({storeWorkingList.length})
           </button>
           <button
             onClick={() => setActiveTab('stats')}
