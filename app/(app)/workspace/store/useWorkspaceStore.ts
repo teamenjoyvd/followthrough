@@ -71,7 +71,10 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
       completedTodayCount,
       streakDays,
       undoWindowSeconds: undoWindowSeconds ?? get().undoWindowSeconds,
-      selectedContact: get().selectedContact || workingList[0] || null
+      // Preserve existing selection on re-init (fires on every prop change, not just mount).
+      // This removes the workingList[0] auto-open that caused the stale sheet bug.
+      // Root cause (Zustand store surviving navigation) needs a follow-up issue.
+      selectedContact: get().selectedContact
     })
   },
 
