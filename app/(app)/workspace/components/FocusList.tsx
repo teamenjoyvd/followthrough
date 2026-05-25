@@ -132,7 +132,7 @@ export default function FocusList() {
                         <p className="text-xs text-[#74796e] truncate font-sans">{desc}</p>
                       </div>
                     </div>
-                    <UserPlus className="h-4.5 w-4.5 text-[#4a7c59] mr-1 shrink-0" />
+                    <UserPlus className="h-5 w-5 text-[#4a7c59] mr-1 shrink-0" />
                   </button>
                 )
               })}
@@ -200,7 +200,7 @@ export default function FocusList() {
                       className="p-2 bg-[#4a7c59] text-white hover:bg-[#3d6649] rounded-xl active:scale-95 duration-100 transition-transform"
                       title="Log Contact & Mark Done"
                     >
-                      <CheckCircle2 className="h-4.5 w-4.5" />
+                      <CheckCircle2 className="h-5 w-5" />
                     </button>
 
                     <button
@@ -213,7 +213,7 @@ export default function FocusList() {
                       )}
                       title="Snooze"
                     >
-                      <Clock className="h-4.5 w-4.5" />
+                      <Clock className="h-5 w-5" />
                     </button>
 
                     <button
@@ -225,7 +225,7 @@ export default function FocusList() {
                       className="p-2 bg-[#eae6de] text-[#74796e] hover:text-[#b83230] hover:bg-[#ffdad8]/50 rounded-xl active:scale-95 duration-100 transition-transform"
                       title="Remove from Focus"
                     >
-                      <Trash2 className="h-4.5 w-4.5" />
+                      <Trash2 className="h-5 w-5" />
                     </button>
                   </div>
                 </div>
