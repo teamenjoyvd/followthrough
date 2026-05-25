@@ -4,7 +4,7 @@ import * as React from 'react'
 import { useWorkspaceStore } from '../store/useWorkspaceStore'
 import { Search, UserPlus, CheckCircle2, Clock, Trash2 } from 'lucide-react'
 import type { Database } from '@/types/supabase'
-import { getInitials, getAvatarUrl, getContactDescription } from '@/lib/utils/dashboard'
+import { getContactDescription } from '@/lib/utils/dashboard'
 import { cn } from '@/lib/utils'
 import { useActionToast } from '@/components/ActionToast'
 
@@ -105,7 +105,6 @@ export default function FocusList() {
           <div className="absolute w-full mt-2 bg-[#faf6f0] border border-[#e4e0d8] rounded-2xl shadow-[0_8px_30px_rgba(46,50,48,0.12)] overflow-hidden z-50 animate-in fade-in-50 slide-in-from-top-2 duration-150">
             <div className="p-2 space-y-1">
               {filteredSuggestions.map((c) => {
-                const avatar = getAvatarUrl(c)
                 const desc = getContactDescription(c)
                 return (
                   <button
@@ -114,9 +113,6 @@ export default function FocusList() {
                     className="w-full flex items-center justify-between p-3 rounded-xl hover:bg-[#eae6de] text-left transition-colors active:scale-[0.99] duration-100"
                   >
                     <div className="flex items-center gap-3 min-w-0">
-                      <div className="h-9 w-9 rounded-full overflow-hidden shrink-0 bg-[#f8e0a8] text-[#221a05] font-bold text-xs flex items-center justify-center font-sans">
-                        {avatar ? <img className="w-full h-full object-cover" src={avatar} alt="" /> : getInitials(c.first_name, c.last_name)}
-                      </div>
                       <div className="min-w-0">
                         <p className="text-sm font-bold text-[#2e3230] truncate">{c.first_name} {c.last_name || ''}</p>
                         <p className="text-xs text-[#74796e] truncate font-sans">{desc}</p>
@@ -145,7 +141,6 @@ export default function FocusList() {
       ) : (
         <div className="space-y-4">
           {workingList.map((c) => {
-            const avatar = getAvatarUrl(c)
             const desc = getContactDescription(c)
             const isSelected = selectedContact?.id === c.id
 
@@ -166,10 +161,6 @@ export default function FocusList() {
 
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-4 min-w-0 flex-1">
-                    <div className="h-12 w-12 rounded-full overflow-hidden shrink-0 bg-[#f8e0a8] text-[#221a05] font-bold text-sm flex items-center justify-center font-sans">
-                      {avatar ? <img className="w-full h-full object-cover" src={avatar} alt="" /> : getInitials(c.first_name, c.last_name)}
-                    </div>
-                    
                     <div className="min-w-0">
                       <h4 className="font-headline text-base font-bold text-[#2e3230]">
                         {c.first_name} {c.last_name || ''}

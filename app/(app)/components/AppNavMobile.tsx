@@ -4,13 +4,14 @@ import * as React from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useClerk } from '@clerk/nextjs'
-import { Menu, LogOut, LayoutDashboard, Users, GitBranch, Inbox, History, Settings } from 'lucide-react'
+import { Menu, LogOut, LayoutDashboard, Users, GitBranch, Inbox, History, Settings, X } from 'lucide-react'
 import { Logo } from '@/components/Logo'
 import {
   Sheet,
   SheetContent,
   SheetHeader,
   SheetTitle,
+  SheetClose,
 } from '@/components/ui/sheet'
 import { cn } from '@/lib/utils'
 
@@ -41,9 +42,6 @@ export function AppNavMobile({ inboxUnreadCount, displayName }: Props) {
     <>
       <header className="sticky top-0 z-40 w-full border-b border-terra-outline-variant bg-terra-surface-container-low/95 backdrop-blur-sm">
         <div className="px-4 h-14 flex items-center justify-between">
-          {/* icon-only logo in the sticky header — saves ~56px vertical height on mobile.
-              The full wordmark is retained inside the Sheet drawer where it serves as
-              a navigation landmark. */}
           <Link href="/workspace" aria-label="Go to workspace">
             <Logo iconOnly />
           </Link>
@@ -58,13 +56,23 @@ export function AppNavMobile({ inboxUnreadCount, displayName }: Props) {
       </header>
 
       <Sheet open={open} onOpenChange={setOpen}>
-        <SheetContent side="left" className="w-72 p-0 bg-terra-surface-container-low border-r border-terra-outline-variant [&>button]:top-[18px]">
+        <SheetContent side="left" className="w-72 p-0 bg-terra-surface-container-low border-r border-terra-outline-variant">
           <SheetHeader className="px-6 pt-5 pb-4 border-b border-terra-outline-variant text-left">
-            <SheetTitle asChild>
-              <Link href="/workspace" className="flex items-center" aria-label="Go to workspace">
-                <Logo />
-              </Link>
-            </SheetTitle>
+            <div className="flex items-center justify-between">
+              <SheetTitle asChild>
+                <Link href="/workspace" className="flex items-center" aria-label="Go to workspace">
+                  <Logo />
+                </Link>
+              </SheetTitle>
+              <SheetClose asChild>
+                <button
+                  aria-label="Close navigation menu"
+                  className="p-1.5 rounded-lg hover:bg-muted transition-colors text-muted-foreground"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </SheetClose>
+            </div>
           </SheetHeader>
 
           <nav className="flex flex-col px-3 py-4 gap-1">
