@@ -116,19 +116,25 @@ export default function ContextPanel({ profileId, allLabels }: Props) {
   // is about to occur. Setting it before the timeout causes a spurious
   // "Saving..." indicator on every keystroke and a stuck spinner whenever
   // the effect cleanup cancels the timer.
+  // The `active` flag ensures all state updates after the async write are
+  // discarded if the effect has been cleaned up (contact switched, component
+  // unmounted) before the await resolves.
   React.useEffect(() => {
     if (!selectedContact) return
     if (noteText === (selectedContact.custom_description || '')) return
 
+    let active = true
     const contactId = selectedContact.id
     const textToSave = noteText
 
     const timer = setTimeout(async () => {
+      if (!active) return
       setSaveStatus('saving')
       const res = await updateContactDescription(contactId, textToSave)
+      if (!active) return
       if (res.success) {
         setSaveStatus('saved')
-        setTimeout(() => setSaveStatus('idle'), 2000)
+        setTimeout(() => { if (active) setSaveStatus('idle') }, 2000)
         if (res.logId) {
           showToast({
             actionLabel: 'Note saved',
@@ -141,7 +147,10 @@ export default function ContextPanel({ profileId, allLabels }: Props) {
       }
     }, 800)
 
-    return () => clearTimeout(timer)
+    return () => {
+      active = false
+      clearTimeout(timer)
+    }
   }, [noteText, selectedContact, updateContactDescription, showToast, undoWindowSeconds])
 
   if (!selectedContact) {
