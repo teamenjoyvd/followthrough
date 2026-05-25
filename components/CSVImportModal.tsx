@@ -298,24 +298,26 @@ export default function CSVImportModal({ isOpen, onClose }: CSVImportModalProps)
                   {showSkipped ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
                 </button>
                 {showSkipped && (
-                  <table className="w-full text-left text-xs border-t border-[#f2d8d7]">
-                    <thead>
-                      <tr className="bg-[#fdf5f5] text-[#a14b49]">
-                        <th className="px-3 py-2 font-semibold w-16">Row #</th>
-                        <th className="px-3 py-2 font-semibold">Name column value</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-[#f2d8d7]">
-                      {skippedRecords.map((r) => (
-                        <tr key={r.row} className="bg-white">
-                          <td className="px-3 py-2 text-[#74796e] font-mono">{r.row}</td>
-                          <td className="px-3 py-2 text-[#a14b49] italic">
-                            {r.raw === '' ? <span className="text-[#b0aea8]">(empty)</span> : r.raw}
-                          </td>
+                  <div className="max-h-[240px] overflow-y-auto border-t border-[#f2d8d7]">
+                    <table className="w-full text-left text-xs">
+                      <thead>
+                        <tr className="bg-[#fdf5f5] text-[#a14b49] sticky top-0">
+                          <th className="px-3 py-2 font-semibold w-16">Row #</th>
+                          <th className="px-3 py-2 font-semibold">Name column value</th>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                      </thead>
+                      <tbody className="divide-y divide-[#f2d8d7]">
+                        {skippedRecords.map((r) => (
+                          <tr key={r.row} className="bg-white">
+                            <td className="px-3 py-2 text-[#74796e] font-mono">{r.row}</td>
+                            <td className="px-3 py-2 text-[#a14b49] italic">
+                              {!r.raw.trim() ? <span className="text-[#b0aea8]">(empty)</span> : r.raw}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
                 )}
               </div>
             )}

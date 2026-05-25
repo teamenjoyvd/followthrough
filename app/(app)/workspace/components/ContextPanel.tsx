@@ -165,17 +165,23 @@ export default function ContextPanel({ profileId, allLabels }: Props) {
     charcoal: 'bg-[#eaebeb] text-[#373b3e] border-[#d1d5db]',
   }
 
-  // Toggle Label Tag in Database
+  // Toggle Label Tag in Database — optimistic update with rollback on failure
   const handleToggleLabel = async (labelId: string) => {
     const isAssigned = activeLabelIds.includes(labelId)
     const action = isAssigned ? 'clear' : 'assign'
 
-    // Optimistic Update
+    // Optimistic update
     setActiveLabelIds(prev =>
       isAssigned ? prev.filter(id => id !== labelId) : [...prev, labelId]
     )
 
-    await toggleContactLabel(selectedContact.id, labelId, action)
+    const res = await toggleContactLabel(selectedContact.id, labelId, action)
+    if (!res.success) {
+      // Rollback on failure
+      setActiveLabelIds(prev =>
+        isAssigned ? [...prev, labelId] : prev.filter(id => id !== labelId)
+      )
+    }
   }
 
   // Handle logging new interaction
