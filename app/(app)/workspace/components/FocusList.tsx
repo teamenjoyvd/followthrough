@@ -164,14 +164,17 @@ export default function FocusList() {
                 key={c.id}
                 onClick={() => setSelectedContact(c)}
                 className={cn(
-                  "group p-5 rounded-[24px] border flex flex-col transition-all duration-300 relative overflow-hidden cursor-pointer shadow-[0_4px_20px_rgba(46,50,48,0.02)]",
+                  // overflow-hidden removed: the left-border accent is an absolutely-positioned
+                  // inner <div> that does not rely on the clip. Removing overflow-hidden allows
+                  // the snooze panel to render fully without being clipped at the card boundary.
+                  "group p-5 rounded-[24px] border flex flex-col transition-all duration-300 relative cursor-pointer shadow-[0_4px_20px_rgba(46,50,48,0.02)]",
                   isSelected
                     ? "bg-[#eae6de] border-[#705c30]/40 shadow-[0_6px_24px_rgba(46,50,48,0.05)]"
                     : "bg-[#f5f1ea] border-[#e4e0d8]/30 hover:bg-[#e4e0d8]/60 hover:border-[#e4e0d8]/70"
                 )}
               >
                 {isSelected && (
-                  <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-[#705c30]" />
+                  <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-[#705c30] rounded-l-[24px]" />
                 )}
 
                 <div className="flex items-center justify-between">
@@ -216,22 +219,26 @@ export default function FocusList() {
                       <Clock className="h-5 w-5" />
                     </button>
 
+                    {/* Remove button: h-9/px-2 matches the height of adjacent icon-only buttons.
+                        flex-col + justify-center keeps icon and label vertically centred.
+                        title stays for a11y. */}
                     <button
                       onClick={async () => {
                         const res = await unpinContact(c.id)
                         if (res.error) triggerError(res.error)
                         else if (res.logId) showToast({ actionLabel: `${c.first_name} removed from Focus`, logId: res.logId, undoWindowSeconds })
                       }}
-                      className="p-2 bg-[#eae6de] text-[#74796e] hover:text-[#b83230] hover:bg-[#ffdad8]/50 rounded-xl active:scale-95 duration-100 transition-transform"
+                      className="h-9 px-2 bg-[#eae6de] text-[#74796e] hover:text-[#b83230] hover:bg-[#ffdad8]/50 rounded-xl active:scale-95 duration-100 transition-transform flex flex-col items-center justify-center gap-0.5"
                       title="Remove from Focus"
                     >
                       <Trash2 className="h-5 w-5" />
+                      <span className="text-[9px] font-sans font-semibold leading-none">Remove</span>
                     </button>
                   </div>
                 </div>
 
                 {activeSnoozeId === c.id && (
-                  <div className="mt-4 p-4 bg-[#faf6f0] rounded-2xl border border-[#e4e0d8] space-y-3 animate-in slide-in-from-top-2 duration-150 relative z-20 self-end w-full max-w-sm" onClick={(e) => e.stopPropagation()}>
+                  <div className="mt-4 p-4 bg-[#faf6f0] rounded-2xl border border-[#e4e0d8] space-y-3 animate-in slide-in-from-top-2 duration-150 self-end w-full max-w-sm" onClick={(e) => e.stopPropagation()}>
                     <p className="text-[10px] font-bold uppercase tracking-wider text-[#74796e] font-sans">Snooze until...</p>
                     <div className="grid grid-cols-3 gap-2">
                       {[{ label: '1 Day', days: 1 }, { label: '3 Days', days: 3 }, { label: '1 Week', days: 7 }].map(
