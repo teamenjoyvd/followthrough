@@ -54,7 +54,7 @@ function formatDate(iso: string | null) {
 
 export default function ContactsMobile({ contacts, selectedIds, onToggleSelect, onSelectAll, labels }: Props) {
   const labelsMap = new Map(labels.map(l => [l.id, l]))
-  const isAllSelected = contacts.length > 0 && selectedIds.size === contacts.length
+  const isAllSelected = contacts.length > 0 && contacts.every(c => selectedIds.has(c.id))
 
   return (
     <div className="md:hidden font-body">

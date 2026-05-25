@@ -29,6 +29,7 @@ interface Props {
   currentHasEmail: string
   currentHasPhone: string
   currentSource: string
+  currentLabels: string
   activeFilterCount: number
 }
 
@@ -46,13 +47,13 @@ export function MobileFilterBar({
   currentHasEmail,
   currentHasPhone,
   currentSource,
+  currentLabels,
   activeFilterCount,
 }: Props) {
   const router = useRouter()
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [showAdvanced, setShowAdvanced] = useState(false)
   const [isPending, startTransition] = useTransition()
-  const [company, setCompany] = useState(currentCompany)
 
   const buildHref = useCallback(
     (overrides: Record<string, string>) => {
@@ -71,6 +72,7 @@ export function MobileFilterBar({
         has_email: currentHasEmail,
         has_phone: currentHasPhone,
         source: currentSource,
+        labels: currentLabels,
         ...overrides,
       }
       Object.entries(merged).forEach(([k, v]) => {
@@ -83,6 +85,7 @@ export function MobileFilterBar({
       currentQuery, currentStatus, currentLastContacted, currentCompany,
       currentSort, currentDir, currentFirstName, currentLastName,
       currentPhone, currentEmail, currentHasEmail, currentHasPhone, currentSource,
+      currentLabels,
     ]
   )
 
@@ -101,6 +104,7 @@ export function MobileFilterBar({
             <path d="M11 11l3 3" strokeLinecap="round" />
           </svg>
           <input
+            key={currentQuery}
             type="search"
             defaultValue={currentQuery}
             placeholder="Search contacts..."
@@ -185,6 +189,7 @@ export function MobileFilterBar({
               ))}
             </select>
             <input
+              key={currentCompany}
               type="search"
               placeholder="Company..."
               defaultValue={currentCompany}
@@ -227,6 +232,7 @@ export function MobileFilterBar({
                 <div key={key}>
                   <p className="text-[10px] font-bold text-[#74796e] uppercase tracking-wider mb-1 font-body">{label}</p>
                   <input
+                    key={value}
                     type="text"
                     placeholder={`Filter by ${label.toLowerCase()}...`}
                     defaultValue={value}

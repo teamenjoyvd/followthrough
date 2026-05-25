@@ -300,6 +300,7 @@ export default async function ContactsPage({
           currentHasEmail={hasEmailFilter}
           currentHasPhone={hasPhoneFilter}
           currentSource={sourceFilter}
+          currentLabels={params.labels ?? ''}
           activeFilterCount={activeFilterCount}
         />
       </div>
