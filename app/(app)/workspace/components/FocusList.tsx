@@ -77,16 +77,6 @@ export default function FocusList() {
 
   return (
     <div className="space-y-6">
-      
-      {/* ── Header Area ───────────────────────────────────────────────── */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="font-headline text-2xl font-bold text-[#2e3230]">Focus List</h2>
-          <p className="text-xs text-[#74796e] font-sans mt-0.5">
-            You have <span className="font-bold text-[#4a7c59]">{workingList.length}</span> high-priority focus task{workingList.length !== 1 ? 's' : ''} active
-          </p>
-        </div>
-      </div>
 
       {errorMsg && (
         <div className="bg-[#fbf0f0] border border-[#f2d8d7] text-[#a14b49] px-4 py-3 rounded-2xl text-xs font-sans animate-in slide-in-from-top-1">
@@ -164,9 +154,6 @@ export default function FocusList() {
                 key={c.id}
                 onClick={() => setSelectedContact(c)}
                 className={cn(
-                  // overflow-hidden removed: the left-border accent is an absolutely-positioned
-                  // inner <div> that does not rely on the clip. Removing overflow-hidden allows
-                  // the snooze panel to render fully without being clipped at the card boundary.
                   "group p-5 rounded-[24px] border flex flex-col transition-all duration-300 relative cursor-pointer shadow-[0_4px_20px_rgba(46,50,48,0.02)]",
                   isSelected
                     ? "bg-[#eae6de] border-[#705c30]/40 shadow-[0_6px_24px_rgba(46,50,48,0.05)]"
@@ -219,9 +206,6 @@ export default function FocusList() {
                       <Clock className="h-5 w-5" />
                     </button>
 
-                    {/* Remove button: h-9/px-2 matches the height of adjacent icon-only buttons.
-                        flex-col + justify-center keeps icon and label vertically centred.
-                        title stays for a11y. */}
                     <button
                       onClick={async () => {
                         const res = await unpinContact(c.id)

@@ -33,7 +33,6 @@ export function AppNavMobile({ inboxUnreadCount, displayName }: Props) {
   const pathname = usePathname()
   const { signOut } = useClerk()
 
-  // Close sheet on route change
   React.useEffect(() => {
     setOpen(false)
   }, [pathname])
@@ -42,8 +41,11 @@ export function AppNavMobile({ inboxUnreadCount, displayName }: Props) {
     <>
       <header className="sticky top-0 z-40 w-full border-b border-terra-outline-variant bg-terra-surface-container-low/95 backdrop-blur-sm">
         <div className="px-4 h-14 flex items-center justify-between">
+          {/* icon-only logo in the sticky header — saves ~56px vertical height on mobile.
+              The full wordmark is retained inside the Sheet drawer where it serves as
+              a navigation landmark. */}
           <Link href="/workspace" aria-label="Go to workspace">
-            <Logo />
+            <Logo iconOnly />
           </Link>
           <button
             aria-label="Open navigation menu"
@@ -93,7 +95,6 @@ export function AppNavMobile({ inboxUnreadCount, displayName }: Props) {
             })}
           </nav>
 
-          {/* User block at bottom */}
           <div className="absolute bottom-0 left-0 right-0 px-3 py-4 border-t border-terra-outline-variant">
             <div className="px-3 py-2 mb-1">
               <p className="text-xs text-muted-foreground font-medium truncate">{displayName}</p>
