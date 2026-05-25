@@ -4,14 +4,13 @@ import * as React from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useClerk } from '@clerk/nextjs'
-import { Menu, LogOut, X, LayoutDashboard, Users, GitBranch, Inbox, History, Settings } from 'lucide-react'
+import { Menu, LogOut, LayoutDashboard, Users, GitBranch, Inbox, History, Settings } from 'lucide-react'
 import { Logo } from '@/components/Logo'
 import {
   Sheet,
   SheetContent,
   SheetHeader,
   SheetTitle,
-  SheetClose,
 } from '@/components/ui/sheet'
 import { cn } from '@/lib/utils'
 
@@ -59,19 +58,9 @@ export function AppNavMobile({ inboxUnreadCount, displayName }: Props) {
       <Sheet open={open} onOpenChange={setOpen}>
         <SheetContent side="left" className="w-72 p-0 bg-terra-surface-container-low border-r border-terra-outline-variant">
           <SheetHeader className="px-5 pt-5 pb-4 border-b border-terra-outline-variant">
-            <div className="flex items-center justify-between">
-              <SheetTitle asChild>
-                <Logo />
-              </SheetTitle>
-              <SheetClose asChild>
-                <button
-                  aria-label="Close navigation menu"
-                  className="p-1.5 rounded-lg hover:bg-muted transition-colors text-muted-foreground"
-                >
-                  <X className="h-4 w-4" />
-                </button>
-              </SheetClose>
-            </div>
+            <SheetTitle asChild>
+              <Logo />
+            </SheetTitle>
           </SheetHeader>
 
           <nav className="flex flex-col px-3 py-4 gap-1">
