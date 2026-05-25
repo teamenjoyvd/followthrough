@@ -111,6 +111,11 @@ export default function ContextPanel({ profileId, allLabels }: Props) {
   // Snapshot contactId and text at effect-setup time so the timeout callback
   // always saves the correct contact even if selectedContact changes before
   // the 800ms fires.
+  // setSaveStatus('saving') is intentionally inside the setTimeout callback —
+  // the spinner must not appear until the debounce actually fires and a write
+  // is about to occur. Setting it before the timeout causes a spurious
+  // "Saving..." indicator on every keystroke and a stuck spinner whenever
+  // the effect cleanup cancels the timer.
   React.useEffect(() => {
     if (!selectedContact) return
     if (noteText === (selectedContact.custom_description || '')) return
@@ -118,8 +123,8 @@ export default function ContextPanel({ profileId, allLabels }: Props) {
     const contactId = selectedContact.id
     const textToSave = noteText
 
-    setSaveStatus('saving')
     const timer = setTimeout(async () => {
+      setSaveStatus('saving')
       const res = await updateContactDescription(contactId, textToSave)
       if (res.success) {
         setSaveStatus('saved')
