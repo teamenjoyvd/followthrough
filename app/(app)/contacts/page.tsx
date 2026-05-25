@@ -333,7 +333,7 @@ export default async function ContactsPage({
         sortKey={sortKey}
         sortDir={sortDir}
         currentQuery={query}
-        currentStatus={currentStatus}
+        currentStatus={statusFilter}
         currentLastContacted={lastContactedFilter}
         currentCompany={companyFilter}
       />
