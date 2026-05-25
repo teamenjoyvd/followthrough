@@ -71,7 +71,7 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
       completedTodayCount,
       streakDays,
       undoWindowSeconds: undoWindowSeconds ?? get().undoWindowSeconds,
-      selectedContact: get().selectedContact || workingList[0] || null
+      selectedContact: null
     })
   },
 
