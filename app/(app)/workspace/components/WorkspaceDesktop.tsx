@@ -50,7 +50,7 @@ export default function WorkspaceDesktop({
   streakDays,
   undoWindowSeconds,
 }: Props) {
-  const { setInitialData } = useWorkspaceStore()
+  const { setInitialData, workingList: storeWorkingList } = useWorkspaceStore()
 
   React.useEffect(() => {
     setInitialData(workingList, allContacts, stats, completedTodayCount, streakDays, undoWindowSeconds)
@@ -69,6 +69,16 @@ export default function WorkspaceDesktop({
           </div>
 
           <div className="col-span-5 bg-[#eae6de]/30 rounded-[28px] p-6 border border-[#e4e0d8]/30 min-h-[500px]">
+            {/* Panel header — owns the Focus List label on desktop now that FocusList.tsx
+                no longer renders its own <h2>. Reads from store so count stays reactive. */}
+            <div className="mb-6">
+              <h2 className="font-headline text-2xl font-bold text-[#2e3230]">Focus List</h2>
+              <p className="text-xs text-[#74796e] font-sans mt-0.5">
+                You have{' '}
+                <span className="font-bold text-[#4a7c59]">{storeWorkingList.length}</span>{' '}
+                high-priority focus task{storeWorkingList.length !== 1 ? 's' : ''} active
+              </p>
+            </div>
             <FocusList />
           </div>
 

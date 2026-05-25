@@ -52,15 +52,21 @@ export default function WorkspaceMobile({
   streakDays,
   undoWindowSeconds,
 }: Props) {
-  const { setInitialData, selectedContact, setSelectedContact, activeTab, setActiveTab } = useWorkspaceStore()
+  const {
+    setInitialData,
+    selectedContact,
+    setSelectedContact,
+    activeTab,
+    setActiveTab,
+    // Reactive list from the store — stays in sync after client-side mutations
+    // (unpin, done, snooze). The `workingList` prop is only the server snapshot.
+    workingList: storeWorkingList,
+  } = useWorkspaceStore()
 
   React.useEffect(() => {
     setInitialData(workingList, allContacts, stats, completedTodayCount, streakDays, undoWindowSeconds)
   }, [workingList, allContacts, stats, completedTodayCount, streakDays, undoWindowSeconds, setInitialData])
 
-  // Reset selection and view state on unmount or context change so the store
-  // does not carry state across navigation. The Zustand store is a singleton
-  // — without this, navigating away and back preserves stale UI state.
   React.useEffect(() => {
     return () => {
       setSelectedContact(null)
@@ -76,13 +82,18 @@ export default function WorkspaceMobile({
           <button
             onClick={() => setActiveTab('focus')}
             className={cn(
-              "flex-1 py-2 text-xs font-bold font-sans rounded-xl transition-all duration-200",
+              "flex-1 py-2 text-xs font-bold font-sans rounded-xl transition-all duration-200 flex items-center justify-center gap-1.5",
               activeTab === 'focus'
                 ? "bg-[#faf6f0] text-[#4a7c59] shadow-sm"
                 : "text-[#74796e] hover:text-[#2e3230]"
             )}
           >
-            Focus List ({workingList.length})
+            {/* Status dot: reads storeWorkingList so it stays in sync after
+                client-side mutations (unpin, done, snooze). */}
+            {storeWorkingList.length > 0 && (
+              <span className="h-1.5 w-1.5 rounded-full bg-[#4a7c59] shrink-0" aria-hidden="true" />
+            )}
+            Focus List ({storeWorkingList.length})
           </button>
           <button
             onClick={() => setActiveTab('stats')}
