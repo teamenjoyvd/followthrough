@@ -57,9 +57,11 @@ export function AppNavMobile({ inboxUnreadCount, displayName }: Props) {
 
       <Sheet open={open} onOpenChange={setOpen}>
         <SheetContent side="left" className="w-72 p-0 bg-terra-surface-container-low border-r border-terra-outline-variant">
-          <SheetHeader className="px-5 pt-5 pb-4 border-b border-terra-outline-variant">
+          <SheetHeader className="px-6 pt-5 pb-4 border-b border-terra-outline-variant text-left">
             <SheetTitle asChild>
-              <Logo />
+              <Link href="/workspace" className="flex items-center" aria-label="Go to workspace">
+                <Logo />
+              </Link>
             </SheetTitle>
           </SheetHeader>
 
