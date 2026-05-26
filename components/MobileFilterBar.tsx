@@ -91,6 +91,54 @@ export function MobileFilterBar({
     return () => clearTimeout(timer)
   }, [searchValue, currentQuery, searchParams, pathname, router])
 
+  // Controlled drawer text inputs with debounce
+  const [company, setCompany] = useState(currentCompany)
+  const [firstName, setFirstName] = useState(currentFirstName)
+  const [lastName, setLastName] = useState(currentLastName)
+  const [email, setEmail] = useState(currentEmail)
+  const [phone, setPhone] = useState(currentPhone)
+
+  useEffect(() => { setCompany(currentCompany) }, [currentCompany])
+  useEffect(() => { setFirstName(currentFirstName) }, [currentFirstName])
+  useEffect(() => { setLastName(currentLastName) }, [currentLastName])
+  useEffect(() => { setEmail(currentEmail) }, [currentEmail])
+  useEffect(() => { setPhone(currentPhone) }, [currentPhone])
+
+  useEffect(() => {
+    if (company === currentCompany) return
+    const t = setTimeout(() => startTransition(() => router.replace(buildHref({ company }))), 300)
+    return () => clearTimeout(t)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [company])
+
+  useEffect(() => {
+    if (firstName === currentFirstName) return
+    const t = setTimeout(() => startTransition(() => router.replace(buildHref({ first_name: firstName }))), 300)
+    return () => clearTimeout(t)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [firstName])
+
+  useEffect(() => {
+    if (lastName === currentLastName) return
+    const t = setTimeout(() => startTransition(() => router.replace(buildHref({ last_name: lastName }))), 300)
+    return () => clearTimeout(t)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [lastName])
+
+  useEffect(() => {
+    if (email === currentEmail) return
+    const t = setTimeout(() => startTransition(() => router.replace(buildHref({ email }))), 300)
+    return () => clearTimeout(t)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [email])
+
+  useEffect(() => {
+    if (phone === currentPhone) return
+    const t = setTimeout(() => startTransition(() => router.replace(buildHref({ phone }))), 300)
+    return () => clearTimeout(t)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [phone])
+
   const buildHref = useCallback(
     (overrides: Record<string, string>) => {
       const params = new URLSearchParams()
@@ -290,19 +338,8 @@ export function MobileFilterBar({
               <input
                 type="text"
                 placeholder="contains..."
-                defaultValue={currentCompany}
-                key={currentCompany}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    const val = (e.target as HTMLInputElement).value.trim()
-                    startTransition(() => router.replace(buildHref({ company: val })))
-                  }
-                }}
-                onChange={(e) => {
-                  if (e.target.value === '' && currentCompany !== '') {
-                    startTransition(() => router.replace(buildHref({ company: '' })))
-                  }
-                }}
+                value={company}
+                onChange={(e) => setCompany(e.target.value)}
                 className="text-xs border border-[#e4e0d8] rounded-xl px-2.5 py-1.5 bg-[#f5f1ea] text-[#2e3230] placeholder-[#9fa49a] focus:outline-none focus:ring-2 focus:ring-[#4a7c59] font-body"
               />
             </div>
@@ -312,19 +349,8 @@ export function MobileFilterBar({
               <input
                 type="text"
                 placeholder="contains..."
-                defaultValue={currentEmail}
-                key={currentEmail}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    const val = (e.target as HTMLInputElement).value.trim()
-                    startTransition(() => router.replace(buildHref({ email: val })))
-                  }
-                }}
-                onChange={(e) => {
-                  if (e.target.value === '' && currentEmail !== '') {
-                    startTransition(() => router.replace(buildHref({ email: '' })))
-                  }
-                }}
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
                 className="text-xs border border-[#e4e0d8] rounded-xl px-2.5 py-1.5 bg-[#f5f1ea] text-[#2e3230] placeholder-[#9fa49a] focus:outline-none focus:ring-2 focus:ring-[#4a7c59] font-body"
               />
             </div>
@@ -334,19 +360,8 @@ export function MobileFilterBar({
               <input
                 type="text"
                 placeholder="contains..."
-                defaultValue={currentFirstName}
-                key={currentFirstName}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    const val = (e.target as HTMLInputElement).value.trim()
-                    startTransition(() => router.replace(buildHref({ first_name: val })))
-                  }
-                }}
-                onChange={(e) => {
-                  if (e.target.value === '' && currentFirstName !== '') {
-                    startTransition(() => router.replace(buildHref({ first_name: '' })))
-                  }
-                }}
+                value={firstName}
+                onChange={(e) => setFirstName(e.target.value)}
                 className="text-xs border border-[#e4e0d8] rounded-xl px-2.5 py-1.5 bg-[#f5f1ea] text-[#2e3230] placeholder-[#9fa49a] focus:outline-none focus:ring-2 focus:ring-[#4a7c59] font-body"
               />
             </div>
@@ -356,19 +371,8 @@ export function MobileFilterBar({
               <input
                 type="text"
                 placeholder="contains..."
-                defaultValue={currentLastName}
-                key={currentLastName}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    const val = (e.target as HTMLInputElement).value.trim()
-                    startTransition(() => router.replace(buildHref({ last_name: val })))
-                  }
-                }}
-                onChange={(e) => {
-                  if (e.target.value === '' && currentLastName !== '') {
-                    startTransition(() => router.replace(buildHref({ last_name: '' })))
-                  }
-                }}
+                value={lastName}
+                onChange={(e) => setLastName(e.target.value)}
                 className="text-xs border border-[#e4e0d8] rounded-xl px-2.5 py-1.5 bg-[#f5f1ea] text-[#2e3230] placeholder-[#9fa49a] focus:outline-none focus:ring-2 focus:ring-[#4a7c59] font-body"
               />
             </div>
@@ -378,19 +382,8 @@ export function MobileFilterBar({
               <input
                 type="text"
                 placeholder="digits..."
-                defaultValue={currentPhone}
-                key={currentPhone}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    const val = (e.target as HTMLInputElement).value.trim()
-                    startTransition(() => router.replace(buildHref({ phone: val })))
-                  }
-                }}
-                onChange={(e) => {
-                  if (e.target.value === '' && currentPhone !== '') {
-                    startTransition(() => router.replace(buildHref({ phone: '' })))
-                  }
-                }}
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
                 className="text-xs border border-[#e4e0d8] rounded-xl px-2.5 py-1.5 bg-[#f5f1ea] text-[#2e3230] placeholder-[#9fa49a] focus:outline-none focus:ring-2 focus:ring-[#4a7c59] font-body"
               />
             </div>

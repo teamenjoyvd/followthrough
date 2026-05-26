@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { Plus, Upload, Download, Tag, Loader2, Trash2, MoreHorizontal } from 'lucide-react'
+import { Upload, Download, Tag, Loader2, Trash2 } from 'lucide-react'
 import ContactsDesktop from './ContactsDesktop'
 import ContactsMobile from './ContactsMobile'
 import CSVImportModal from '@/components/CSVImportModal'
@@ -13,12 +13,6 @@ import { ConfirmDialog } from '@/components/ConfirmDialog'
 import type { Label } from '@/components/LabelManager'
 import type { Database } from '@/types/supabase'
 import { bulkUpdateContacts, bulkDeleteContacts, bulkManageContactLabels } from '@/lib/actions/contacts'
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
 
 type ContactRow = Database['public']['Tables']['contacts']['Row'] & {
   phone_numbers?: { number: string }[]
@@ -194,45 +188,6 @@ export default function ContactsClient({
 
   return (
     <div className="flex-1 flex flex-col h-full overflow-hidden bg-[#faf6f0]">
-
-      {/* ── Mobile header: title + overflow menu + new contact ── */}
-      <div className="flex md:hidden items-center justify-between px-4 py-3 border-b border-[#e4e0d8] bg-[#faf6f0] shrink-0">
-        <h1 className="font-headline text-2xl font-bold text-[#2e3230]">Contacts</h1>
-        <div className="flex items-center gap-2">
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <button
-                className="flex items-center justify-center w-9 h-9 rounded-xl border border-[#e4e0d8] bg-[#f5f1ea] text-[#74796e] hover:bg-[#eae6de] transition-all shadow-sm active:scale-95"
-                aria-label="More actions"
-              >
-                <MoreHorizontal className="h-4 w-4" />
-              </button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-44">
-              <DropdownMenuItem onClick={handleExportCSV} className="gap-2 cursor-pointer">
-                <Download className="h-3.5 w-3.5" />
-                Export CSV
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setIsImportOpen(true)} className="gap-2 cursor-pointer">
-                <Upload className="h-3.5 w-3.5" />
-                Import CSV
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setIsLabelManagerOpen(true)} className="gap-2 cursor-pointer">
-                <Tag className="h-3.5 w-3.5" />
-                Manage Labels
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-
-          <Link
-            href="/contacts/new"
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-[#4a7c59] text-white text-xs font-semibold hover:bg-[#3d6b4a] transition-all duration-200 shadow-sm active:scale-95"
-          >
-            <Plus className="h-3.5 w-3.5" />
-            New contact
-          </Link>
-        </div>
-      </div>
 
       {/* ── Desktop header: original layout unchanged ── */}
       <div className="hidden md:flex flex-row md:items-center justify-between px-4 md:px-6 py-4 border-b border-[#e4e0d8] bg-[#faf6f0] shrink-0 gap-3">
