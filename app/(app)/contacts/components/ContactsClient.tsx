@@ -33,6 +33,7 @@ interface ContactsClientProps {
   currentStatus: string
   currentLastContacted: string
   currentCompany: string
+  currentFocused?: string
 }
 
 export default function ContactsClient({
@@ -45,6 +46,7 @@ export default function ContactsClient({
   currentStatus,
   currentLastContacted,
   currentCompany,
+  currentFocused = '',
 }: ContactsClientProps) {
   const router = useRouter()
   const [, startPinTransition] = useTransition()
@@ -60,7 +62,6 @@ export default function ContactsClient({
       setOptimisticPin({ id, value: !currentValue })
       const result = await toggleFocus(id, currentValue)
       if ('error' in result) {
-        // Revert by refreshing — optimistic state will be overridden by server data
         router.refresh()
       }
     })
@@ -209,7 +210,7 @@ export default function ContactsClient({
   return (
     <div className="flex-1 flex flex-col h-full overflow-hidden bg-[#faf6f0]">
 
-      {/* ── Desktop header: original layout unchanged ── */}
+      {/* ── Desktop header ── */}
       <div className="hidden md:flex flex-row md:items-center justify-between px-4 md:px-6 py-4 border-b border-[#e4e0d8] bg-[#faf6f0] shrink-0 gap-3">
         <h1 className="font-headline text-2xl font-bold text-[#2e3230]">Contacts</h1>
         <div className="flex flex-wrap items-center gap-2.5">
@@ -281,6 +282,7 @@ export default function ContactsClient({
           currentStatus={currentStatus}
           currentLastContacted={currentLastContacted}
           currentCompany={currentCompany}
+          currentFocused={currentFocused}
         />
         <ContactsMobile
           contacts={optimisticContacts}

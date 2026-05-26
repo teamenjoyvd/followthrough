@@ -28,6 +28,7 @@ interface Props {
   currentStatus: string
   currentLastContacted: string
   currentCompany: string
+  currentFocused?: string
 }
 
 function SortIcon({ column, sortKey, sortDir }: { column: SortKey; sortKey: SortKey; sortDir: SortDir }) {
@@ -98,14 +99,10 @@ export default function ContactsDesktop({
   currentStatus,
   currentLastContacted,
   currentCompany,
+  currentFocused = '',
 }: Props) {
   const labelsMap = new Map(labels.map(l => [l.id, l]))
 
-  // NOTE: currentFocused is intentionally not passed to this component — sortHref uses URL
-  // but we can't read searchParams in a server component here. We rely on the parent page
-  // to always pass focused through ContactFilterBar, not through the sort link.
-  // To preserve focused during sort, ContactFilterBar's buildHref already includes it.
-  // sortHref below only needs to preserve the fields ContactsDesktop receives as props.
   function sortHref(col: SortKey) {
     const nextDir = col === sortKey && sortDir === 'asc' ? 'desc' : 'asc'
     const params = new URLSearchParams()
@@ -113,6 +110,7 @@ export default function ContactsDesktop({
     if (currentStatus) params.set('status', currentStatus)
     if (currentLastContacted) params.set('last_contacted', currentLastContacted)
     if (currentCompany) params.set('company', currentCompany)
+    if (currentFocused) params.set('focused', currentFocused)
     params.set('sort', col)
     params.set('dir', nextDir)
     return `/contacts?${params.toString()}`
@@ -122,7 +120,7 @@ export default function ContactsDesktop({
 
   return (
     <div role="table" aria-label="Contacts list" className="hidden md:block px-6 py-4 space-y-2">
-      {/* Column headers — grid updated: [40px_36px_2fr_2fr_1.5fr_1.5fr_80px] */}
+      {/* Column headers — grid: [40px_36px_2fr_2fr_1.5fr_1.5fr_80px] */}
       <div role="row" className="grid grid-cols-[40px_36px_2fr_2fr_1.5fr_1.5fr_80px] gap-4 px-4 mb-1 items-center">
         {/* Bulk select checkbox */}
         <div className="flex items-center justify-center">
@@ -135,7 +133,7 @@ export default function ContactsDesktop({
           />
         </div>
 
-        {/* Pin column header — sr-only label */}
+        {/* Pin column header — sr-only */}
         <span role="columnheader" className="sr-only">Focused</span>
 
         {COLUMNS.map(({ key, label }) => (
@@ -187,7 +185,7 @@ export default function ContactsDesktop({
                 />
               </div>
 
-              {/* Pin / Bookmark button — always visible, min 36×36px touch target */}
+              {/* Pin / Bookmark button — always visible, 36×36px touch target */}
               <div className="flex items-center justify-center">
                 <button
                   type="button"
@@ -218,7 +216,6 @@ export default function ContactsDesktop({
                   {sourceBadge(c.created_by_source || 'manual', c.source_detail ?? null)}
                 </div>
 
-                {/* Display assigned many-to-many labels */}
                 {c.contact_labels && c.contact_labels.length > 0 && (
                   <div className="flex flex-wrap gap-1 mt-1">
                     {c.contact_labels.map((cl: any) => {

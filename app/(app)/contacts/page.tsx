@@ -156,7 +156,6 @@ function applyActiveFilters(query: any, filters: {
     }
   }
 
-  // Focused filter: on_working_list = true
   if (focusedFilter === '1') {
     query = query.eq('on_working_list', true)
   }
@@ -267,7 +266,6 @@ export default async function ContactsPage({
 
   const allFilteredIds = (matchedIdsData as { id: string }[] || []).map(item => item.id)
 
-  // Compute active filter count for mobile badge
   const activeFilterCount = [
     statusFilter,
     lastContactedFilter,
@@ -285,7 +283,7 @@ export default async function ContactsPage({
 
   return (
     <div className="flex flex-col h-full bg-[#faf6f0]">
-      {/* ── Mobile heading: Contacts title + new contact button ── */}
+      {/* ── Mobile heading ── */}
       <div className="flex md:hidden items-center justify-between px-4 py-3 border-b border-[#e4e0d8] bg-[#faf6f0] shrink-0">
         <h1 className="font-headline text-2xl font-bold text-[#2e3230]">Contacts</h1>
         <Link
@@ -297,7 +295,7 @@ export default async function ContactsPage({
         </Link>
       </div>
 
-      {/* ── Mobile filter bar (collapsed by default) ── */}
+      {/* ── Mobile filter bar ── */}
       <div className="md:hidden">
         <MobileFilterBar
           currentQuery={query}
@@ -355,6 +353,7 @@ export default async function ContactsPage({
         currentStatus={statusFilter}
         currentLastContacted={lastContactedFilter}
         currentCompany={companyFilter}
+        currentFocused={focused}
       />
 
       {totalPages > 1 && (
