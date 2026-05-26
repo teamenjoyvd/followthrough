@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { ChevronRight } from 'lucide-react'
+import { ChevronRight, Bookmark } from 'lucide-react'
 import { PIPELINE_STATUSES } from './constants'
 import type { Database } from '@/types/supabase'
 import { getLabelColorClass, type Label } from '@/components/LabelManager'
@@ -17,6 +17,7 @@ interface Props {
   selectedIds: Set<string>
   onToggleSelect: (id: string) => void
   onSelectAll: () => void
+  onTogglePin: (id: string, currentValue: boolean) => void
   labels: Label[]
 }
 
@@ -52,7 +53,7 @@ function formatDate(iso: string | null) {
   return new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })
 }
 
-export default function ContactsMobile({ contacts, selectedIds, onToggleSelect, onSelectAll, labels }: Props) {
+export default function ContactsMobile({ contacts, selectedIds, onToggleSelect, onSelectAll, onTogglePin, labels }: Props) {
   const labelsMap = new Map(labels.map(l => [l.id, l]))
   const isAllSelected = contacts.length > 0 && contacts.every(c => selectedIds.has(c.id))
 
@@ -85,6 +86,7 @@ export default function ContactsMobile({ contacts, selectedIds, onToggleSelect, 
           <div className="divide-y divide-[#e4e0d8]">
             {contacts.map((c) => {
               const isRowChecked = selectedIds.has(c.id)
+              const isPinned = !!c.on_working_list
               return (
                 <div
                   key={c.id}
@@ -151,6 +153,24 @@ export default function ContactsMobile({ contacts, selectedIds, onToggleSelect, 
                       </div>
                     )}
                   </div>
+
+                  {/* Pin button — min 36×36px touch target */}
+                  <button
+                    type="button"
+                    onClick={() => onTogglePin(c.id, isPinned)}
+                    aria-label={isPinned ? 'Remove from focus' : 'Pin to focus'}
+                    aria-pressed={isPinned}
+                    className="shrink-0 flex items-center justify-center w-9 h-9 rounded-xl transition-colors hover:bg-[#eae6de] active:scale-90"
+                  >
+                    <Bookmark
+                      className="h-4 w-4 transition-colors"
+                      style={{
+                        fill: isPinned ? '#4a7c59' : 'none',
+                        color: isPinned ? '#4a7c59' : '#74796e',
+                        strokeWidth: 1.75,
+                      }}
+                    />
+                  </button>
 
                   {/* Chevron */}
                   <Link href={`/contacts/${c.id}`} className="shrink-0 p-1.5 hover:bg-[#eae6de] rounded-lg transition-colors">

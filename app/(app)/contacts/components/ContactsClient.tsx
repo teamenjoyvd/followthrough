@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useOptimistic, useTransition } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { Plus, Upload, Download, Tag, Loader2, Trash2 } from 'lucide-react'
@@ -13,6 +13,7 @@ import { ConfirmDialog } from '@/components/ConfirmDialog'
 import type { Label } from '@/components/LabelManager'
 import type { Database } from '@/types/supabase'
 import { bulkUpdateContacts, bulkDeleteContacts, bulkManageContactLabels } from '@/lib/actions/contacts'
+import { toggleFocus } from '../actions/toggleFocus'
 
 type ContactRow = Database['public']['Tables']['contacts']['Row'] & {
   phone_numbers?: { number: string }[]
@@ -32,6 +33,7 @@ interface ContactsClientProps {
   currentStatus: string
   currentLastContacted: string
   currentCompany: string
+  currentFocused?: string
 }
 
 export default function ContactsClient({
@@ -44,8 +46,27 @@ export default function ContactsClient({
   currentStatus,
   currentLastContacted,
   currentCompany,
+  currentFocused = '',
 }: ContactsClientProps) {
   const router = useRouter()
+  const [, startPinTransition] = useTransition()
+
+  const [optimisticContacts, setOptimisticPin] = useOptimistic(
+    contacts,
+    (prev: ContactRow[], { id, value }: { id: string; value: boolean }) =>
+      prev.map((c) => (c.id === id ? { ...c, on_working_list: value } : c)),
+  )
+
+  const handleTogglePin = (id: string, currentValue: boolean) => {
+    startPinTransition(async () => {
+      setOptimisticPin({ id, value: !currentValue })
+      const result = await toggleFocus(id, currentValue)
+      if ('error' in result) {
+        router.refresh()
+      }
+    })
+  }
+
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [isImportOpen, setIsImportOpen] = useState(false)
   const [isLabelManagerOpen, setIsLabelManagerOpen] = useState(false)
@@ -189,7 +210,7 @@ export default function ContactsClient({
   return (
     <div className="flex-1 flex flex-col h-full overflow-hidden bg-[#faf6f0]">
 
-      {/* ── Desktop header: original layout unchanged ── */}
+      {/* ── Desktop header ── */}
       <div className="hidden md:flex flex-row md:items-center justify-between px-4 md:px-6 py-4 border-b border-[#e4e0d8] bg-[#faf6f0] shrink-0 gap-3">
         <h1 className="font-headline text-2xl font-bold text-[#2e3230]">Contacts</h1>
         <div className="flex flex-wrap items-center gap-2.5">
@@ -249,10 +270,11 @@ export default function ContactsClient({
 
       <div className="flex-1 overflow-y-auto bg-[#faf6f0] pb-24">
         <ContactsDesktop
-          contacts={contacts}
+          contacts={optimisticContacts}
           selectedIds={selectedIds}
           onToggleSelect={handleToggleSelect}
           onSelectAll={handleSelectAll}
+          onTogglePin={handleTogglePin}
           labels={labels}
           sortKey={sortKey}
           sortDir={sortDir}
@@ -260,12 +282,14 @@ export default function ContactsClient({
           currentStatus={currentStatus}
           currentLastContacted={currentLastContacted}
           currentCompany={currentCompany}
+          currentFocused={currentFocused}
         />
         <ContactsMobile
-          contacts={contacts}
+          contacts={optimisticContacts}
           selectedIds={selectedIds}
           onToggleSelect={handleToggleSelect}
           onSelectAll={handleSelectAll}
+          onTogglePin={handleTogglePin}
           labels={labels}
         />
       </div>

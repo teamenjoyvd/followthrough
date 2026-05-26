@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { ChevronUp, ChevronDown, ChevronsUpDown } from 'lucide-react'
+import { ChevronUp, ChevronDown, ChevronsUpDown, Bookmark } from 'lucide-react'
 import { PIPELINE_STATUSES } from './constants'
 import type { Database } from '@/types/supabase'
 import { getLabelColorClass, type Label } from '@/components/LabelManager'
@@ -20,6 +20,7 @@ interface Props {
   selectedIds: Set<string>
   onToggleSelect: (id: string) => void
   onSelectAll: () => void
+  onTogglePin: (id: string, currentValue: boolean) => void
   labels: Label[]
   sortKey: SortKey
   sortDir: SortDir
@@ -27,6 +28,7 @@ interface Props {
   currentStatus: string
   currentLastContacted: string
   currentCompany: string
+  currentFocused?: string
 }
 
 function SortIcon({ column, sortKey, sortDir }: { column: SortKey; sortKey: SortKey; sortDir: SortDir }) {
@@ -89,6 +91,7 @@ export default function ContactsDesktop({
   selectedIds,
   onToggleSelect,
   onSelectAll,
+  onTogglePin,
   labels,
   sortKey,
   sortDir,
@@ -96,6 +99,7 @@ export default function ContactsDesktop({
   currentStatus,
   currentLastContacted,
   currentCompany,
+  currentFocused = '',
 }: Props) {
   const labelsMap = new Map(labels.map(l => [l.id, l]))
 
@@ -106,6 +110,7 @@ export default function ContactsDesktop({
     if (currentStatus) params.set('status', currentStatus)
     if (currentLastContacted) params.set('last_contacted', currentLastContacted)
     if (currentCompany) params.set('company', currentCompany)
+    if (currentFocused) params.set('focused', currentFocused)
     params.set('sort', col)
     params.set('dir', nextDir)
     return `/contacts?${params.toString()}`
@@ -115,8 +120,8 @@ export default function ContactsDesktop({
 
   return (
     <div role="table" aria-label="Contacts list" className="hidden md:block px-6 py-4 space-y-2">
-      {/* Column headers */}
-      <div role="row" className="grid grid-cols-[40px_2fr_2fr_1.5fr_1.5fr_80px] gap-4 px-4 mb-1 items-center">
+      {/* Column headers — grid: [40px_36px_2fr_2fr_1.5fr_1.5fr_80px] */}
+      <div role="row" className="grid grid-cols-[40px_36px_2fr_2fr_1.5fr_1.5fr_80px] gap-4 px-4 mb-1 items-center">
         {/* Bulk select checkbox */}
         <div className="flex items-center justify-center">
           <input
@@ -127,6 +132,9 @@ export default function ContactsDesktop({
             aria-label="Select all contacts on current page"
           />
         </div>
+
+        {/* Pin column header — sr-only */}
+        <span role="columnheader" className="sr-only">Focused</span>
 
         {COLUMNS.map(({ key, label }) => (
           <Link
@@ -154,12 +162,13 @@ export default function ContactsDesktop({
         contacts.map((c) => {
           const primaryPhone = c.phone_numbers?.[0]?.number
           const isRowChecked = selectedIds.has(c.id)
-          
+          const isPinned = !!c.on_working_list
+
           return (
             <div
               key={c.id}
               role="row"
-              className={`grid grid-cols-[40px_2fr_2fr_1.5fr_1.5fr_80px] gap-4 items-center px-4 py-3.5 rounded-[20px] transition-all duration-200 shadow-[0_4px_20px_rgba(46,50,48,0.04)] group ${
+              className={`grid grid-cols-[40px_36px_2fr_2fr_1.5fr_1.5fr_80px] gap-4 items-center px-4 py-3.5 rounded-[20px] transition-all duration-200 shadow-[0_4px_20px_rgba(46,50,48,0.04)] group ${
                 isRowChecked
                   ? 'bg-[#eae6de] border-2 border-[#4a7c59]/40 scale-[1.002]'
                   : 'bg-[#f5f1ea] hover:bg-[#eae6de] hover:scale-[1.005]'
@@ -176,6 +185,26 @@ export default function ContactsDesktop({
                 />
               </div>
 
+              {/* Pin / Bookmark button — always visible, 36×36px touch target */}
+              <div className="flex items-center justify-center">
+                <button
+                  type="button"
+                  onClick={() => onTogglePin(c.id, isPinned)}
+                  aria-label={isPinned ? 'Remove from focus' : 'Pin to focus'}
+                  aria-pressed={isPinned}
+                  className="flex items-center justify-center w-9 h-9 rounded-xl transition-colors hover:bg-[#eae6de] active:scale-90"
+                >
+                  <Bookmark
+                    className="h-4 w-4 transition-colors"
+                    style={{
+                      fill: isPinned ? '#4a7c59' : 'none',
+                      color: isPinned ? '#4a7c59' : '#74796e',
+                      strokeWidth: 1.75,
+                    }}
+                  />
+                </button>
+              </div>
+
               <div role="cell" className="space-y-1">
                 <div className="flex flex-wrap items-center gap-1.5">
                   <Link
@@ -187,7 +216,6 @@ export default function ContactsDesktop({
                   {sourceBadge(c.created_by_source || 'manual', c.source_detail ?? null)}
                 </div>
 
-                {/* Display assigned many-to-many labels */}
                 {c.contact_labels && c.contact_labels.length > 0 && (
                   <div className="flex flex-wrap gap-1 mt-1">
                     {c.contact_labels.map((cl: any) => {
@@ -210,20 +238,20 @@ export default function ContactsDesktop({
                   {primaryPhone && <span className="text-[#595e55] font-medium">{primaryPhone}</span>}
                 </div>
               </div>
-              
+
               <div role="cell" className="text-sm text-[#4a4e4a] font-body">
                 {c.company || <span className="text-[#74796e]">—</span>}
                 {c.job_title && <div className="text-xs text-[#74796e] mt-0.5 font-body">{c.job_title}</div>}
               </div>
-              
+
               <div role="cell">
                 {statusBadge(c.pipeline_status)}
               </div>
-              
+
               <div role="cell" className="text-sm text-[#4a4e4a] font-body">
                 {formatDate(c.last_contacted_at)}
               </div>
-              
+
               <div role="cell" className="text-right">
                 <Link
                   href={`/contacts/${c.id}/edit`}

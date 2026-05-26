@@ -87,6 +87,7 @@ function applyActiveFilters(query: any, filters: {
   emailFilter: string
   phoneFilter: string
   query: string
+  focusedFilter: string
 }) {
   const {
     statusFilter,
@@ -100,7 +101,8 @@ function applyActiveFilters(query: any, filters: {
     lastNameFilter,
     emailFilter,
     phoneFilter,
-    query: broadQuery
+    query: broadQuery,
+    focusedFilter,
   } = filters
 
   if (statusFilter) query = query.eq('pipeline_status', statusFilter)
@@ -154,6 +156,10 @@ function applyActiveFilters(query: any, filters: {
     }
   }
 
+  if (focusedFilter === '1') {
+    query = query.eq('on_working_list', true)
+  }
+
   return query
 }
 
@@ -170,18 +176,19 @@ export default async function ContactsPage({
   const statusFilter = (PIPELINE_STATUSES.some(s => s.value === params.status) ? params.status : '') as PipelineStatus | ''
   const lastContactedFilter = params.last_contacted ?? ''
   const companyFilter = (params.company ?? '').trim()
-  
+  const focused = params.focused ?? ''
+
   const firstNameFilter = (params.first_name ?? '').trim()
   const lastNameFilter = (params.last_name ?? '').trim()
   const phoneFilter = (params.phone ?? '').trim()
   const emailFilter = (params.email ?? '').trim()
-  
+
   const hasEmailFilter = params.has_email ?? ''
   const hasPhoneFilter = params.has_phone ?? ''
   const sourceFilter = params.source ?? ''
-  
+
   const labelsFilter = params.labels ? params.labels.split(',').filter(Boolean) : []
-  
+
   const sortKey: SortKey = VALID_SORT_KEYS.includes(params.sort as SortKey)
     ? (params.sort as SortKey)
     : 'first_name'
@@ -208,12 +215,7 @@ export default async function ContactsPage({
   const pageParam = Number(params.page || 1)
   let activePage = isNaN(pageParam) || pageParam < 1 ? 1 : pageParam
 
-  let dbQuery = supabase
-    .from('contacts_search_view')
-    .select('*', { count: 'exact' })
-    .eq('profile_id', profile.id)
-
-  dbQuery = applyActiveFilters(dbQuery, {
+  const filterArgs = {
     statusFilter,
     companyFilter,
     lastContactedFilter,
@@ -225,8 +227,16 @@ export default async function ContactsPage({
     lastNameFilter,
     emailFilter,
     phoneFilter,
-    query
-  })
+    query,
+    focusedFilter: focused,
+  }
+
+  let dbQuery = supabase
+    .from('contacts_search_view')
+    .select('*', { count: 'exact' })
+    .eq('profile_id', profile.id)
+
+  dbQuery = applyActiveFilters(dbQuery, filterArgs)
 
   if (sortKey === 'pipeline_status') {
     dbQuery = dbQuery.order('pipeline_status', { ascending: sortDir === 'asc' })
@@ -249,27 +259,13 @@ export default async function ContactsPage({
     .select('id')
     .eq('profile_id', profile.id)
 
-  idsQuery = applyActiveFilters(idsQuery, {
-    statusFilter,
-    companyFilter,
-    lastContactedFilter,
-    sourceFilter,
-    hasEmailFilter,
-    hasPhoneFilter,
-    labelsFilter,
-    firstNameFilter,
-    lastNameFilter,
-    emailFilter,
-    phoneFilter,
-    query
-  })
+  idsQuery = applyActiveFilters(idsQuery, filterArgs)
 
   const { data: matchedIdsData, error: idsError } = await idsQuery
   if (idsError) throw idsError
 
   const allFilteredIds = (matchedIdsData as { id: string }[] || []).map(item => item.id)
 
-  // Compute active filter count for mobile badge
   const activeFilterCount = [
     statusFilter,
     lastContactedFilter,
@@ -282,11 +278,12 @@ export default async function ContactsPage({
     hasPhoneFilter,
     sourceFilter,
     labelsFilter.length > 0 ? 'labels' : '',
+    focused === '1' ? 'focused' : '',
   ].filter(Boolean).length
 
   return (
     <div className="flex flex-col h-full bg-[#faf6f0]">
-      {/* ── Mobile heading: Contacts title + new contact button ── */}
+      {/* ── Mobile heading ── */}
       <div className="flex md:hidden items-center justify-between px-4 py-3 border-b border-[#e4e0d8] bg-[#faf6f0] shrink-0">
         <h1 className="font-headline text-2xl font-bold text-[#2e3230]">Contacts</h1>
         <Link
@@ -298,7 +295,7 @@ export default async function ContactsPage({
         </Link>
       </div>
 
-      {/* ── Mobile filter bar (collapsed by default) ── */}
+      {/* ── Mobile filter bar ── */}
       <div className="md:hidden">
         <MobileFilterBar
           currentQuery={query}
@@ -315,7 +312,7 @@ export default async function ContactsPage({
           currentHasPhone={hasPhoneFilter}
           currentSource={sourceFilter}
           currentLabels={params.labels ?? ''}
-          currentFocused={params.focused ?? ''}
+          currentFocused={focused}
           activeFilterCount={activeFilterCount}
           labels={userLabels}
         />
@@ -341,7 +338,7 @@ export default async function ContactsPage({
           currentSource={sourceFilter}
           availableLabels={userLabels}
           currentLabels={params.labels ?? ''}
-          currentFocused={params.focused ?? ''}
+          currentFocused={focused}
         />
         <FilterShortcuts />
       </div>
@@ -356,6 +353,7 @@ export default async function ContactsPage({
         currentStatus={statusFilter}
         currentLastContacted={lastContactedFilter}
         currentCompany={companyFilter}
+        currentFocused={focused}
       />
 
       {totalPages > 1 && (
@@ -406,6 +404,7 @@ export default async function ContactsPage({
           {hasPhoneFilter ? ` · phone: ${hasPhoneFilter === 'yes' ? 'has phone' : 'no phone'}` : ''}
           {sourceFilter ? ` · source: ${sourceFilter === 'google' ? 'Google sync' : sourceFilter === 'csv' ? 'CSV Import' : 'manual'}` : ''}
           {labelsFilter.length > 0 ? ` · matching labels: ${labelsFilter.length} active` : ''}
+          {focused === '1' ? ' · focused' : ''}
           {query ? ` · matching "${query}"` : ''}
         </p>
       </div>

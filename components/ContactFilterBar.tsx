@@ -38,8 +38,8 @@ interface Props {
   currentHasPhone: string
   currentSource: string
   availableLabels?: Label[]
-  currentLabels?: string // comma-separated active label IDs
-  currentFocused?: string // '1' when focused filter active — forward-compat for #93
+  currentLabels?: string
+  currentFocused?: string
 }
 
 export function ContactFilterBar({
@@ -185,25 +185,39 @@ export function ContactFilterBar({
   }, [currentFirstName, currentLastName, currentPhone, currentEmail, currentHasEmail, currentHasPhone, currentSource, currentLabels])
 
   const isNonDefaultSort = currentSort && currentSort !== 'first_name'
+  const isFocused = currentFocused === '1'
 
   return (
     <div className="flex flex-col gap-3.5 bg-transparent font-body">
-      {/* Status chips */}
+      {/* Status chips row — includes Focused chip after All Stages */}
       <div className="flex flex-wrap gap-1.5" role="group" aria-label="Filter by pipeline status">
         <Link
           href={buildHref({ status: '' })}
           className={`px-3 py-1 rounded-full text-xs font-semibold border transition-colors ${
-            !currentStatus
+            !currentStatus && !isFocused
               ? 'bg-[#4a7c59] text-white border-[#4a7c59]'
               : 'bg-[#f5f1ea] text-[#74796e] border-[#e4e0d8] hover:bg-[#eae6de] hover:text-[#2e3230]'
           }`}
         >
           All Stages
         </Link>
+
+        {/* Focused chip */}
+        <Link
+          href={buildHref({ focused: isFocused ? '' : '1', status: '' })}
+          className={`px-3 py-1 rounded-full text-xs font-semibold border transition-colors ${
+            isFocused
+              ? 'bg-[#4a7c59] text-white border-[#4a7c59]'
+              : 'bg-[#f5f1ea] text-[#74796e] border-[#e4e0d8] hover:bg-[#eae6de] hover:text-[#2e3230]'
+          }`}
+        >
+          Focused
+        </Link>
+
         {PIPELINE_STATUSES.map(({ value, label, color }) => (
           <Link
             key={value}
-            href={buildHref({ status: value })}
+            href={buildHref({ status: value, focused: '' })}
             className={`px-3 py-1 rounded-full text-xs font-semibold border transition-colors ${
               currentStatus === value
                 ? color

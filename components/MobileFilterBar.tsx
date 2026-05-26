@@ -41,7 +41,7 @@ interface Props {
   currentHasPhone: string
   currentSource: string
   currentLabels: string
-  currentFocused?: string // '1' when focused filter active — forward-compat for #93
+  currentFocused?: string
   activeFilterCount: number
   labels?: Label[]
 }
@@ -199,6 +199,7 @@ export function MobileFilterBar({
   const hasActiveFilters = drawerFilterCount > 0
 
   const activeLabelIds = currentLabels ? currentLabels.split(',').filter(Boolean) : []
+  const isFocused = currentFocused === '1'
 
   return (
     <div className="bg-[#f5f1ea] border-b border-[#e4e0d8]">
@@ -280,7 +281,7 @@ export function MobileFilterBar({
         </button>
       </div>
 
-      {/* Row 2: stages + labels carousel */}
+      {/* Row 2: stages + Focused chip + labels carousel */}
       <div
         className="flex gap-1.5 px-3 pb-2.5 overflow-x-auto scrollbar-none"
         style={{ scrollbarWidth: 'none' }}
@@ -288,17 +289,18 @@ export function MobileFilterBar({
         <Link
           href={buildHref({ status: '' })}
           className={`shrink-0 px-3 py-1 rounded-full text-[11px] font-semibold border transition-colors ${
-            !currentStatus
+            !currentStatus && !isFocused
               ? 'bg-[#4a7c59] text-white border-[#4a7c59]'
               : 'bg-[#faf6f0] text-[#74796e] border-[#e4e0d8]'
           }`}
         >
           All
         </Link>
+
         {PIPELINE_STATUSES.map(({ value, label, color }) => (
           <Link
             key={value}
-            href={buildHref({ status: value })}
+            href={buildHref({ status: value, focused: '' })}
             className={`shrink-0 px-3 py-1 rounded-full text-[11px] font-semibold border transition-colors ${
               currentStatus === value
                 ? color
@@ -308,6 +310,18 @@ export function MobileFilterBar({
             {label}
           </Link>
         ))}
+
+        {/* Focused chip — after pipeline statuses, before labels */}
+        <Link
+          href={buildHref({ focused: isFocused ? '' : '1', status: '' })}
+          className={`shrink-0 px-3 py-1 rounded-full text-[11px] font-semibold border transition-colors ${
+            isFocused
+              ? 'bg-[#4a7c59] text-white border-[#4a7c59]'
+              : 'bg-[#faf6f0] text-[#74796e] border-[#e4e0d8]'
+          }`}
+        >
+          Focused
+        </Link>
 
         {labels.length > 0 && (
           <div className="shrink-0 w-px bg-[#e4e0d8] mx-0.5 my-1 rounded-full" />
