@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useOptimistic, useTransition } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { Plus, Upload, Download, Tag, Loader2, Trash2 } from 'lucide-react'
@@ -13,6 +13,7 @@ import { ConfirmDialog } from '@/components/ConfirmDialog'
 import type { Label } from '@/components/LabelManager'
 import type { Database } from '@/types/supabase'
 import { bulkUpdateContacts, bulkDeleteContacts, bulkManageContactLabels } from '@/lib/actions/contacts'
+import { toggleFocus } from '../actions/toggleFocus'
 
 type ContactRow = Database['public']['Tables']['contacts']['Row'] & {
   phone_numbers?: { number: string }[]
@@ -46,6 +47,25 @@ export default function ContactsClient({
   currentCompany,
 }: ContactsClientProps) {
   const router = useRouter()
+  const [, startPinTransition] = useTransition()
+
+  const [optimisticContacts, setOptimisticPin] = useOptimistic(
+    contacts,
+    (prev: ContactRow[], { id, value }: { id: string; value: boolean }) =>
+      prev.map((c) => (c.id === id ? { ...c, on_working_list: value } : c)),
+  )
+
+  const handleTogglePin = (id: string, currentValue: boolean) => {
+    startPinTransition(async () => {
+      setOptimisticPin({ id, value: !currentValue })
+      const result = await toggleFocus(id, currentValue)
+      if ('error' in result) {
+        // Revert by refreshing — optimistic state will be overridden by server data
+        router.refresh()
+      }
+    })
+  }
+
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [isImportOpen, setIsImportOpen] = useState(false)
   const [isLabelManagerOpen, setIsLabelManagerOpen] = useState(false)
@@ -249,10 +269,11 @@ export default function ContactsClient({
 
       <div className="flex-1 overflow-y-auto bg-[#faf6f0] pb-24">
         <ContactsDesktop
-          contacts={contacts}
+          contacts={optimisticContacts}
           selectedIds={selectedIds}
           onToggleSelect={handleToggleSelect}
           onSelectAll={handleSelectAll}
+          onTogglePin={handleTogglePin}
           labels={labels}
           sortKey={sortKey}
           sortDir={sortDir}
@@ -262,10 +283,11 @@ export default function ContactsClient({
           currentCompany={currentCompany}
         />
         <ContactsMobile
-          contacts={contacts}
+          contacts={optimisticContacts}
           selectedIds={selectedIds}
           onToggleSelect={handleToggleSelect}
           onSelectAll={handleSelectAll}
+          onTogglePin={handleTogglePin}
           labels={labels}
         />
       </div>

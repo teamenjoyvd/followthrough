@@ -47,6 +47,7 @@ interface SearchParams {
   has_phone?: string
   source?: string
   labels?: string
+  focused?: string
   page?: string
 }
 
@@ -86,6 +87,7 @@ function applyActiveFilters(query: any, filters: {
   emailFilter: string
   phoneFilter: string
   query: string
+  focusedFilter: string
 }) {
   const {
     statusFilter,
@@ -99,7 +101,8 @@ function applyActiveFilters(query: any, filters: {
     lastNameFilter,
     emailFilter,
     phoneFilter,
-    query: broadQuery
+    query: broadQuery,
+    focusedFilter,
   } = filters
 
   if (statusFilter) query = query.eq('pipeline_status', statusFilter)
@@ -153,6 +156,11 @@ function applyActiveFilters(query: any, filters: {
     }
   }
 
+  // Focused filter: on_working_list = true
+  if (focusedFilter === '1') {
+    query = query.eq('on_working_list', true)
+  }
+
   return query
 }
 
@@ -169,18 +177,19 @@ export default async function ContactsPage({
   const statusFilter = (PIPELINE_STATUSES.some(s => s.value === params.status) ? params.status : '') as PipelineStatus | ''
   const lastContactedFilter = params.last_contacted ?? ''
   const companyFilter = (params.company ?? '').trim()
-  
+  const focused = params.focused ?? ''
+
   const firstNameFilter = (params.first_name ?? '').trim()
   const lastNameFilter = (params.last_name ?? '').trim()
   const phoneFilter = (params.phone ?? '').trim()
   const emailFilter = (params.email ?? '').trim()
-  
+
   const hasEmailFilter = params.has_email ?? ''
   const hasPhoneFilter = params.has_phone ?? ''
   const sourceFilter = params.source ?? ''
-  
+
   const labelsFilter = params.labels ? params.labels.split(',').filter(Boolean) : []
-  
+
   const sortKey: SortKey = VALID_SORT_KEYS.includes(params.sort as SortKey)
     ? (params.sort as SortKey)
     : 'first_name'
@@ -207,12 +216,7 @@ export default async function ContactsPage({
   const pageParam = Number(params.page || 1)
   let activePage = isNaN(pageParam) || pageParam < 1 ? 1 : pageParam
 
-  let dbQuery = supabase
-    .from('contacts_search_view')
-    .select('*', { count: 'exact' })
-    .eq('profile_id', profile.id)
-
-  dbQuery = applyActiveFilters(dbQuery, {
+  const filterArgs = {
     statusFilter,
     companyFilter,
     lastContactedFilter,
@@ -224,8 +228,16 @@ export default async function ContactsPage({
     lastNameFilter,
     emailFilter,
     phoneFilter,
-    query
-  })
+    query,
+    focusedFilter: focused,
+  }
+
+  let dbQuery = supabase
+    .from('contacts_search_view')
+    .select('*', { count: 'exact' })
+    .eq('profile_id', profile.id)
+
+  dbQuery = applyActiveFilters(dbQuery, filterArgs)
 
   if (sortKey === 'pipeline_status') {
     dbQuery = dbQuery.order('pipeline_status', { ascending: sortDir === 'asc' })
@@ -248,20 +260,7 @@ export default async function ContactsPage({
     .select('id')
     .eq('profile_id', profile.id)
 
-  idsQuery = applyActiveFilters(idsQuery, {
-    statusFilter,
-    companyFilter,
-    lastContactedFilter,
-    sourceFilter,
-    hasEmailFilter,
-    hasPhoneFilter,
-    labelsFilter,
-    firstNameFilter,
-    lastNameFilter,
-    emailFilter,
-    phoneFilter,
-    query
-  })
+  idsQuery = applyActiveFilters(idsQuery, filterArgs)
 
   const { data: matchedIdsData, error: idsError } = await idsQuery
   if (idsError) throw idsError
@@ -281,6 +280,7 @@ export default async function ContactsPage({
     hasPhoneFilter,
     sourceFilter,
     labelsFilter.length > 0 ? 'labels' : '',
+    focused === '1' ? 'focused' : '',
   ].filter(Boolean).length
 
   return (
@@ -314,12 +314,13 @@ export default async function ContactsPage({
           currentHasPhone={hasPhoneFilter}
           currentSource={sourceFilter}
           currentLabels={params.labels ?? ''}
+          currentFocused={focused}
           activeFilterCount={activeFilterCount}
           labels={userLabels}
         />
       </div>
 
-      {/* ── Desktop filter bar (unchanged) ── */}
+      {/* ── Desktop filter bar ── */}
       <div className="hidden md:block px-4 md:px-6 py-4 bg-[#faf6f0] border-b border-[#e4e0d8] space-y-4 shrink-0">
         <SearchInput defaultValue={query} />
         <ContactFilterBar
@@ -337,6 +338,9 @@ export default async function ContactsPage({
           currentHasEmail={hasEmailFilter}
           currentHasPhone={hasPhoneFilter}
           currentSource={sourceFilter}
+          availableLabels={userLabels}
+          currentLabels={params.labels ?? ''}
+          currentFocused={focused}
         />
         <FilterShortcuts />
       </div>
@@ -401,6 +405,7 @@ export default async function ContactsPage({
           {hasPhoneFilter ? ` · phone: ${hasPhoneFilter === 'yes' ? 'has phone' : 'no phone'}` : ''}
           {sourceFilter ? ` · source: ${sourceFilter === 'google' ? 'Google sync' : sourceFilter === 'csv' ? 'CSV Import' : 'manual'}` : ''}
           {labelsFilter.length > 0 ? ` · matching labels: ${labelsFilter.length} active` : ''}
+          {focused === '1' ? ' · focused' : ''}
           {query ? ` · matching "${query}"` : ''}
         </p>
       </div>
