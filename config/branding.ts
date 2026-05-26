@@ -11,7 +11,7 @@ export interface BrandingConfig {
 export const branding: BrandingConfig = {
   appName: 'Followthrough',
   appDescription: 'Contact follow-up, done right. Stay connected with the people who matter most.',
-  primaryColor: '#4a7c59',    // Forest Green (Terra primary)
+  primaryColor: '#38761d',    // Forest Green (brand mark colour)
   secondaryColor: '#6b6358',  // Warm neutral (Terra secondary)
   logoPath: '/logo.svg',
   supportUrl: 'https://github.com/teamenjoyvd/followthrough',
