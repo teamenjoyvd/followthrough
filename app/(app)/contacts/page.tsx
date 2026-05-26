@@ -315,6 +315,7 @@ export default async function ContactsPage({
           currentHasPhone={hasPhoneFilter}
           currentSource={sourceFilter}
           currentLabels={params.labels ?? ''}
+          currentFocused={params.focused ?? ''}
           activeFilterCount={activeFilterCount}
           labels={userLabels}
         />
