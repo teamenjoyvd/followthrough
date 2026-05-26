@@ -47,6 +47,7 @@ interface SearchParams {
   has_phone?: string
   source?: string
   labels?: string
+  focused?: string
   page?: string
 }
 
@@ -319,7 +320,7 @@ export default async function ContactsPage({
         />
       </div>
 
-      {/* ── Desktop filter bar (unchanged) ── */}
+      {/* ── Desktop filter bar ── */}
       <div className="hidden md:block px-4 md:px-6 py-4 bg-[#faf6f0] border-b border-[#e4e0d8] space-y-4 shrink-0">
         <SearchInput defaultValue={query} />
         <ContactFilterBar
@@ -337,6 +338,9 @@ export default async function ContactsPage({
           currentHasEmail={hasEmailFilter}
           currentHasPhone={hasPhoneFilter}
           currentSource={sourceFilter}
+          availableLabels={userLabels}
+          currentLabels={params.labels ?? ''}
+          currentFocused={params.focused ?? ''}
         />
         <FilterShortcuts />
       </div>
