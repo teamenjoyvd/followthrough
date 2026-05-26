@@ -1,6 +1,7 @@
 'use server'
 
 import { auth } from '@clerk/nextjs/server'
+import { revalidatePath } from 'next/cache'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import type { Database } from '@/types/supabase'
 
@@ -38,5 +39,7 @@ export async function toggleFocus(
     .eq('profile_id', profileId)
 
   if (error) return { error: error.message }
+
+  revalidatePath('/contacts')
   return { success: true }
 }
