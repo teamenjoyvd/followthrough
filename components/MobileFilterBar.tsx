@@ -1,19 +1,30 @@
 'use client'
 
-import { useRouter } from 'next/navigation'
-import { useCallback, useState, useTransition } from 'react'
+import { useRouter, useSearchParams, usePathname } from 'next/navigation'
+import { useCallback, useState, useEffect, useTransition } from 'react'
 import Link from 'next/link'
-import { SlidersHorizontal, X, ChevronDown, ChevronUp } from 'lucide-react'
+import { SlidersHorizontal, X, ChevronDown } from 'lucide-react'
 import { PIPELINE_STATUSES } from '@/app/(app)/contacts/components/constants'
-import { FilterShortcuts } from '@/components/FilterShortcuts'
 
 const LAST_CONTACTED_OPTIONS = [
   { value: '', label: 'Any time' },
-  { value: '7d', label: 'Last 7 days' },
-  { value: '14d', label: 'Last 14 days' },
-  { value: '30d', label: 'Last 30 days' },
-  { value: '90d', label: 'Last 90 days' },
+  { value: '7d', label: '7 days' },
+  { value: '14d', label: '14 days' },
+  { value: '30d', label: '30 days' },
+  { value: '90d', label: '90 days' },
 ]
+
+const SORT_OPTIONS = [
+  { value: 'first_name', label: 'Name' },
+  { value: 'company', label: 'Company' },
+  { value: 'pipeline_status', label: 'Stage' },
+  { value: 'last_contacted_at', label: 'Last contacted' },
+]
+
+interface Label {
+  id: string
+  name: string
+}
 
 interface Props {
   currentQuery: string
@@ -31,6 +42,7 @@ interface Props {
   currentSource: string
   currentLabels: string
   activeFilterCount: number
+  labels?: Label[]
 }
 
 export function MobileFilterBar({
@@ -49,11 +61,83 @@ export function MobileFilterBar({
   currentSource,
   currentLabels,
   activeFilterCount,
+  labels = [],
 }: Props) {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const pathname = usePathname()
   const [drawerOpen, setDrawerOpen] = useState(false)
-  const [showAdvanced, setShowAdvanced] = useState(false)
   const [isPending, startTransition] = useTransition()
+
+  // Controlled search input with debounce — matches SearchInput.tsx behaviour
+  const [searchValue, setSearchValue] = useState(currentQuery)
+  useEffect(() => {
+    setSearchValue(currentQuery)
+  }, [currentQuery])
+
+  useEffect(() => {
+    if (searchValue === currentQuery) return
+    const timer = setTimeout(() => {
+      startTransition(() => {
+        const params = new URLSearchParams(searchParams.toString())
+        const trimmed = searchValue.trim()
+        if (trimmed) params.set('q', trimmed)
+        else params.delete('q')
+        params.delete('page')
+        const qs = params.toString()
+        router.replace(qs ? `${pathname}?${qs}` : pathname)
+      })
+    }, 300)
+    return () => clearTimeout(timer)
+  }, [searchValue, currentQuery, searchParams, pathname, router])
+
+  // Controlled drawer text inputs with debounce
+  const [company, setCompany] = useState(currentCompany)
+  const [firstName, setFirstName] = useState(currentFirstName)
+  const [lastName, setLastName] = useState(currentLastName)
+  const [email, setEmail] = useState(currentEmail)
+  const [phone, setPhone] = useState(currentPhone)
+
+  useEffect(() => { setCompany(currentCompany) }, [currentCompany])
+  useEffect(() => { setFirstName(currentFirstName) }, [currentFirstName])
+  useEffect(() => { setLastName(currentLastName) }, [currentLastName])
+  useEffect(() => { setEmail(currentEmail) }, [currentEmail])
+  useEffect(() => { setPhone(currentPhone) }, [currentPhone])
+
+  useEffect(() => {
+    if (company === currentCompany) return
+    const t = setTimeout(() => startTransition(() => router.replace(buildHref({ company }))), 300)
+    return () => clearTimeout(t)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [company])
+
+  useEffect(() => {
+    if (firstName === currentFirstName) return
+    const t = setTimeout(() => startTransition(() => router.replace(buildHref({ first_name: firstName }))), 300)
+    return () => clearTimeout(t)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [firstName])
+
+  useEffect(() => {
+    if (lastName === currentLastName) return
+    const t = setTimeout(() => startTransition(() => router.replace(buildHref({ last_name: lastName }))), 300)
+    return () => clearTimeout(t)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [lastName])
+
+  useEffect(() => {
+    if (email === currentEmail) return
+    const t = setTimeout(() => startTransition(() => router.replace(buildHref({ email }))), 300)
+    return () => clearTimeout(t)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [email])
+
+  useEffect(() => {
+    if (phone === currentPhone) return
+    const t = setTimeout(() => startTransition(() => router.replace(buildHref({ phone }))), 300)
+    return () => clearTimeout(t)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [phone])
 
   const buildHref = useCallback(
     (overrides: Record<string, string>) => {
@@ -84,16 +168,39 @@ export function MobileFilterBar({
     [
       currentQuery, currentStatus, currentLastContacted, currentCompany,
       currentSort, currentDir, currentFirstName, currentLastName,
-      currentPhone, currentEmail, currentHasEmail, currentHasPhone, currentSource,
-      currentLabels,
+      currentPhone, currentEmail, currentHasEmail, currentHasPhone,
+      currentSource, currentLabels,
     ]
   )
 
-  const hasActiveFilters = activeFilterCount > 0
+  const handleLabelToggle = (labelId: string) => {
+    const active = currentLabels ? currentLabels.split(',').filter(Boolean) : []
+    const next = active.includes(labelId)
+      ? active.filter((id) => id !== labelId)
+      : [...active, labelId]
+    startTransition(() => router.replace(buildHref({ labels: next.join(',') })))
+  }
+
+  // Drawer filter count — only fields that live in the drawer
+  const drawerFilterCount = [
+    currentCompany,
+    currentFirstName,
+    currentLastName,
+    currentEmail,
+    currentPhone,
+    currentHasEmail,
+    currentHasPhone,
+    currentSource,
+  ].filter(Boolean).length
+
+  const hasActiveFilters = drawerFilterCount > 0
+
+  const activeLabelIds = currentLabels ? currentLabels.split(',').filter(Boolean) : []
 
   return (
     <div className="bg-[#f5f1ea] border-b border-[#e4e0d8]">
-      {/* Row 1: search input + Filters button */}
+
+      {/* Row 1: search + last contacted + sort + filters button */}
       <div className="flex items-center gap-2 px-3 pt-2.5 pb-2">
         <div className="relative flex-1">
           <svg
@@ -104,25 +211,55 @@ export function MobileFilterBar({
             <path d="M11 11l3 3" strokeLinecap="round" />
           </svg>
           <input
-            key={currentQuery}
             type="search"
-            defaultValue={currentQuery}
+            value={searchValue}
+            onChange={(e) => setSearchValue(e.target.value)}
             placeholder="Search contacts..."
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') {
-                const val = (e.target as HTMLInputElement).value.trim()
-                startTransition(() => router.replace(buildHref({ q: val })))
-              }
-            }}
-            onChange={(e) => {
-              const val = e.target.value.trim()
-              if (val === '' && currentQuery !== '') {
-                startTransition(() => router.replace(buildHref({ q: '' })))
-              }
-            }}
             className="w-full pl-8 pr-3 py-2 rounded-xl border border-[#e4e0d8] bg-[#faf6f0] text-xs text-[#2e3230] placeholder-[#74796e] outline-none focus:ring-2 focus:ring-[#4a7c59] focus:border-transparent font-body"
           />
         </div>
+
+        {/* Last contacted chip */}
+        <div className="relative shrink-0">
+          <select
+            value={currentLastContacted}
+            onChange={(e) => {
+              startTransition(() => router.replace(buildHref({ last_contacted: e.target.value })))
+            }}
+            className={`appearance-none pl-2.5 pr-6 py-2 rounded-xl border text-xs font-semibold font-body outline-none focus:ring-2 focus:ring-[#4a7c59] cursor-pointer ${
+              currentLastContacted
+                ? 'bg-[#eaf4ec] border-[#4a7c59] text-[#335c3d]'
+                : 'bg-[#faf6f0] border-[#e4e0d8] text-[#4a4e4a]'
+            }`}
+          >
+            {LAST_CONTACTED_OPTIONS.map((opt) => (
+              <option key={opt.value} value={opt.value}>{opt.label}</option>
+            ))}
+          </select>
+          <ChevronDown className="absolute right-1.5 top-1/2 -translate-y-1/2 h-3 w-3 text-[#74796e] pointer-events-none" />
+        </div>
+
+        {/* Sort chip */}
+        <div className="relative shrink-0">
+          <select
+            value={currentSort}
+            onChange={(e) => {
+              startTransition(() => router.replace(buildHref({ sort: e.target.value })))
+            }}
+            className={`appearance-none pl-2.5 pr-6 py-2 rounded-xl border text-xs font-semibold font-body outline-none focus:ring-2 focus:ring-[#4a7c59] cursor-pointer ${
+              currentSort && currentSort !== 'first_name'
+                ? 'bg-[#eaf4ec] border-[#4a7c59] text-[#335c3d]'
+                : 'bg-[#faf6f0] border-[#e4e0d8] text-[#4a4e4a]'
+            }`}
+          >
+            {SORT_OPTIONS.map((opt) => (
+              <option key={opt.value} value={opt.value}>{opt.label}</option>
+            ))}
+          </select>
+          <ChevronDown className="absolute right-1.5 top-1/2 -translate-y-1/2 h-3 w-3 text-[#74796e] pointer-events-none" />
+        </div>
+
+        {/* Filters button */}
         <button
           onClick={() => setDrawerOpen(!drawerOpen)}
           className={`flex items-center gap-1.5 px-3 py-2 rounded-xl border text-xs font-semibold transition-all shrink-0 font-body ${
@@ -132,16 +269,15 @@ export function MobileFilterBar({
           }`}
         >
           <SlidersHorizontal className="h-3.5 w-3.5" />
-          Filters
-          {activeFilterCount > 0 && (
+          {drawerFilterCount > 0 && (
             <span className="inline-flex items-center justify-center w-4 h-4 rounded-full bg-[#4a7c59] text-white text-[9px] font-bold leading-none">
-              {activeFilterCount}
+              {drawerFilterCount}
             </span>
           )}
         </button>
       </div>
 
-      {/* Row 2: stage pills — horizontal scroll */}
+      {/* Row 2: stages + labels carousel */}
       <div
         className="flex gap-1.5 px-3 pb-2.5 overflow-x-auto scrollbar-none"
         style={{ scrollbarWidth: 'none' }}
@@ -154,7 +290,7 @@ export function MobileFilterBar({
               : 'bg-[#faf6f0] text-[#74796e] border-[#e4e0d8]'
           }`}
         >
-          All Stages
+          All
         </Link>
         {PIPELINE_STATUSES.map(({ value, label, color }) => (
           <Link
@@ -169,116 +305,151 @@ export function MobileFilterBar({
             {label}
           </Link>
         ))}
+
+        {labels.length > 0 && (
+          <div className="shrink-0 w-px bg-[#e4e0d8] mx-0.5 my-1 rounded-full" />
+        )}
+
+        {labels.map((label) => {
+          const isActive = activeLabelIds.includes(label.id)
+          return (
+            <button
+              key={label.id}
+              onClick={() => handleLabelToggle(label.id)}
+              className={`shrink-0 px-3 py-1 rounded-full text-[11px] font-semibold border transition-colors ${
+                isActive
+                  ? 'bg-[#7c5c4a] text-white border-[#7c5c4a]'
+                  : 'bg-[#faf6f0] text-[#74796e] border-[#e4e0d8]'
+              }`}
+            >
+              {label.name}
+            </button>
+          )
+        })}
       </div>
 
-      {/* Collapsible drawer */}
+      {/* Collapsible drawer — flat labelled grid */}
       {drawerOpen && (
-        <div className="px-3 pb-3 pt-1 border-t border-[#e4e0d8] space-y-3 bg-[#faf6f0] animate-in slide-in-from-top-1 duration-150">
+        <div className="px-3 pb-3 pt-2 border-t border-[#e4e0d8] bg-[#faf6f0] animate-in slide-in-from-top-1 duration-150">
+          <div className="grid grid-cols-2 gap-x-3 gap-y-3">
 
-          {/* Last contacted + company */}
-          <div className="flex gap-2">
-            <select
-              value={currentLastContacted}
-              onChange={(e) => {
-                startTransition(() => router.replace(buildHref({ last_contacted: e.target.value })))
-              }}
-              className="flex-1 text-xs border border-[#e4e0d8] rounded-xl px-2.5 py-2 bg-[#f5f1ea] text-[#2e3230] focus:outline-none focus:ring-2 focus:ring-[#4a7c59] font-body"
-            >
-              {LAST_CONTACTED_OPTIONS.map((opt) => (
-                <option key={opt.value} value={opt.value}>{opt.label}</option>
-              ))}
-            </select>
-            <input
-              key={currentCompany}
-              type="search"
-              placeholder="Company..."
-              defaultValue={currentCompany}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  const val = (e.target as HTMLInputElement).value.trim()
-                  startTransition(() => router.replace(buildHref({ company: val })))
-                }
-              }}
-              onChange={(e) => {
-                if (e.target.value === '' && currentCompany !== '') {
-                  startTransition(() => router.replace(buildHref({ company: '' })))
-                }
-              }}
-              className="flex-1 text-xs border border-[#e4e0d8] rounded-xl px-2.5 py-2 bg-[#f5f1ea] text-[#2e3230] placeholder-[#74796e] focus:outline-none focus:ring-2 focus:ring-[#4a7c59] font-body"
-            />
+            <div className="flex flex-col gap-1">
+              <p className="text-[10px] font-bold text-[#74796e] uppercase tracking-wider font-body">Company</p>
+              <input
+                type="text"
+                placeholder="contains..."
+                value={company}
+                onChange={(e) => setCompany(e.target.value)}
+                className="text-xs border border-[#e4e0d8] rounded-xl px-2.5 py-1.5 bg-[#f5f1ea] text-[#2e3230] placeholder-[#9fa49a] focus:outline-none focus:ring-2 focus:ring-[#4a7c59] font-body"
+              />
+            </div>
+
+            <div className="flex flex-col gap-1">
+              <p className="text-[10px] font-bold text-[#74796e] uppercase tracking-wider font-body">Email</p>
+              <input
+                type="text"
+                placeholder="contains..."
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="text-xs border border-[#e4e0d8] rounded-xl px-2.5 py-1.5 bg-[#f5f1ea] text-[#2e3230] placeholder-[#9fa49a] focus:outline-none focus:ring-2 focus:ring-[#4a7c59] font-body"
+              />
+            </div>
+
+            <div className="flex flex-col gap-1">
+              <p className="text-[10px] font-bold text-[#74796e] uppercase tracking-wider font-body">First name</p>
+              <input
+                type="text"
+                placeholder="contains..."
+                value={firstName}
+                onChange={(e) => setFirstName(e.target.value)}
+                className="text-xs border border-[#e4e0d8] rounded-xl px-2.5 py-1.5 bg-[#f5f1ea] text-[#2e3230] placeholder-[#9fa49a] focus:outline-none focus:ring-2 focus:ring-[#4a7c59] font-body"
+              />
+            </div>
+
+            <div className="flex flex-col gap-1">
+              <p className="text-[10px] font-bold text-[#74796e] uppercase tracking-wider font-body">Last name</p>
+              <input
+                type="text"
+                placeholder="contains..."
+                value={lastName}
+                onChange={(e) => setLastName(e.target.value)}
+                className="text-xs border border-[#e4e0d8] rounded-xl px-2.5 py-1.5 bg-[#f5f1ea] text-[#2e3230] placeholder-[#9fa49a] focus:outline-none focus:ring-2 focus:ring-[#4a7c59] font-body"
+              />
+            </div>
+
+            <div className="flex flex-col gap-1">
+              <p className="text-[10px] font-bold text-[#74796e] uppercase tracking-wider font-body">Phone</p>
+              <input
+                type="text"
+                placeholder="digits..."
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                className="text-xs border border-[#e4e0d8] rounded-xl px-2.5 py-1.5 bg-[#f5f1ea] text-[#2e3230] placeholder-[#9fa49a] focus:outline-none focus:ring-2 focus:ring-[#4a7c59] font-body"
+              />
+            </div>
+
+            <div className="flex flex-col gap-1">
+              <p className="text-[10px] font-bold text-[#74796e] uppercase tracking-wider font-body">Source</p>
+              <select
+                value={currentSource}
+                onChange={(e) => {
+                  startTransition(() => router.replace(buildHref({ source: e.target.value })))
+                }}
+                className="text-xs border border-[#e4e0d8] rounded-xl px-2.5 py-1.5 bg-[#f5f1ea] text-[#2e3230] focus:outline-none focus:ring-2 focus:ring-[#4a7c59] font-body"
+              >
+                <option value="">Any source</option>
+                <option value="google">Google sync</option>
+                <option value="csv">CSV import</option>
+                <option value="manual">Manual</option>
+              </select>
+            </div>
+
+            <div className="flex flex-col gap-1">
+              <p className="text-[10px] font-bold text-[#74796e] uppercase tracking-wider font-body">Has email</p>
+              <select
+                value={currentHasEmail}
+                onChange={(e) => {
+                  startTransition(() => router.replace(buildHref({ has_email: e.target.value })))
+                }}
+                className="text-xs border border-[#e4e0d8] rounded-xl px-2.5 py-1.5 bg-[#f5f1ea] text-[#2e3230] focus:outline-none focus:ring-2 focus:ring-[#4a7c59] font-body"
+              >
+                <option value="">Any</option>
+                <option value="yes">Yes</option>
+                <option value="no">No</option>
+              </select>
+            </div>
+
+            <div className="flex flex-col gap-1">
+              <p className="text-[10px] font-bold text-[#74796e] uppercase tracking-wider font-body">Has phone</p>
+              <select
+                value={currentHasPhone}
+                onChange={(e) => {
+                  startTransition(() => router.replace(buildHref({ has_phone: e.target.value })))
+                }}
+                className="text-xs border border-[#e4e0d8] rounded-xl px-2.5 py-1.5 bg-[#f5f1ea] text-[#2e3230] focus:outline-none focus:ring-2 focus:ring-[#4a7c59] font-body"
+              >
+                <option value="">Any</option>
+                <option value="yes">Yes</option>
+                <option value="no">No</option>
+              </select>
+            </div>
+
           </div>
 
-          {/* Shortcuts */}
-          <FilterShortcuts />
-
-          {/* Advanced toggle */}
-          <button
-            type="button"
-            onClick={() => setShowAdvanced(!showAdvanced)}
-            className="flex items-center gap-1 text-xs font-semibold text-[#4a7c59] font-body"
-          >
-            {showAdvanced ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
-            Advanced filters
-          </button>
-
-          {showAdvanced && (
-            <div className="space-y-2 animate-in slide-in-from-top-1 duration-150">
-              {[
-                { label: 'First name', key: 'first_name', value: currentFirstName },
-                { label: 'Last name', key: 'last_name', value: currentLastName },
-                { label: 'Email', key: 'email', value: currentEmail },
-                { label: 'Phone', key: 'phone', value: currentPhone },
-              ].map(({ label, key, value }) => (
-                <div key={key}>
-                  <p className="text-[10px] font-bold text-[#74796e] uppercase tracking-wider mb-1 font-body">{label}</p>
-                  <input
-                    key={value}
-                    type="text"
-                    placeholder={`Filter by ${label.toLowerCase()}...`}
-                    defaultValue={value}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') {
-                        const val = (e.target as HTMLInputElement).value.trim()
-                        startTransition(() => router.replace(buildHref({ [key]: val })))
-                      }
-                    }}
-                    onChange={(e) => {
-                      if (e.target.value === '' && value !== '') {
-                        startTransition(() => router.replace(buildHref({ [key]: '' })))
-                      }
-                    }}
-                    className="w-full text-xs border border-[#e4e0d8] rounded-xl px-2.5 py-1.5 bg-[#f5f1ea] text-[#2e3230] placeholder-[#74796e] focus:outline-none focus:ring-2 focus:ring-[#4a7c59] font-body"
-                  />
-                </div>
-              ))}
-              <div>
-                <p className="text-[10px] font-bold text-[#74796e] uppercase tracking-wider mb-1 font-body">Source</p>
-                <select
-                  value={currentSource}
-                  onChange={(e) => {
-                    startTransition(() => router.replace(buildHref({ source: e.target.value })))
-                  }}
-                  className="w-full text-xs border border-[#e4e0d8] rounded-xl px-2.5 py-2 bg-[#f5f1ea] text-[#2e3230] focus:outline-none focus:ring-2 focus:ring-[#4a7c59] font-body"
-                >
-                  <option value="">Any source</option>
-                  <option value="google">Synced from Google</option>
-                  <option value="csv">Imported from CSV</option>
-                  <option value="manual">Created Manually</option>
-                </select>
-              </div>
-            </div>
-          )}
-
-          {/* Clear all */}
           {hasActiveFilters && (
-            <Link
-              replace
-              href="/contacts"
-              className="flex items-center gap-1 text-xs font-semibold text-[#b83230] font-body"
-            >
-              <X className="h-3.5 w-3.5" />
-              Clear all filters
-            </Link>
+            <div className="mt-3 flex justify-end">
+              <Link
+                replace
+                href={buildHref({
+                  company: '', first_name: '', last_name: '', email: '',
+                  phone: '', has_email: '', has_phone: '', source: '',
+                })}
+                className="flex items-center gap-1 text-xs font-semibold text-[#b83230] font-body"
+              >
+                <X className="h-3.5 w-3.5" />
+                Clear filters
+              </Link>
+            </div>
           )}
         </div>
       )}

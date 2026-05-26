@@ -1,6 +1,7 @@
 import { auth } from '@clerk/nextjs/server'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
+import { Plus } from 'lucide-react'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import ContactsClient from './components/ContactsClient'
 import { PIPELINE_STATUSES } from './components/constants'
@@ -284,6 +285,18 @@ export default async function ContactsPage({
 
   return (
     <div className="flex flex-col h-full bg-[#faf6f0]">
+      {/* ── Mobile heading: Contacts title + new contact button ── */}
+      <div className="flex md:hidden items-center justify-between px-4 py-3 border-b border-[#e4e0d8] bg-[#faf6f0] shrink-0">
+        <h1 className="font-headline text-2xl font-bold text-[#2e3230]">Contacts</h1>
+        <Link
+          href="/contacts/new"
+          className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-[#4a7c59] text-white text-xs font-semibold hover:bg-[#3d6b4a] transition-all duration-200 shadow-sm active:scale-95"
+        >
+          <Plus className="h-3.5 w-3.5" />
+          New contact
+        </Link>
+      </div>
+
       {/* ── Mobile filter bar (collapsed by default) ── */}
       <div className="md:hidden">
         <MobileFilterBar
@@ -302,6 +315,7 @@ export default async function ContactsPage({
           currentSource={sourceFilter}
           currentLabels={params.labels ?? ''}
           activeFilterCount={activeFilterCount}
+          labels={userLabels}
         />
       </div>
 
