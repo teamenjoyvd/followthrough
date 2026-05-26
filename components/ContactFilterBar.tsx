@@ -15,6 +15,13 @@ const LAST_CONTACTED_OPTIONS = [
   { value: '90d', label: 'Last 90 days' },
 ]
 
+const SORT_OPTIONS = [
+  { value: 'first_name', label: 'Name' },
+  { value: 'company', label: 'Company' },
+  { value: 'pipeline_status', label: 'Stage' },
+  { value: 'last_contacted_at', label: 'Last contacted' },
+]
+
 interface Props {
   currentStatus: string
   currentLastContacted: string
@@ -32,6 +39,7 @@ interface Props {
   currentSource: string
   availableLabels?: Label[]
   currentLabels?: string // comma-separated active label IDs
+  currentFocused?: string // '1' when focused filter active — forward-compat for #93
 }
 
 export function ContactFilterBar({
@@ -51,6 +59,7 @@ export function ContactFilterBar({
   currentSource,
   availableLabels = [],
   currentLabels = '',
+  currentFocused = '',
 }: Props) {
   const router = useRouter()
   const [showAdvanced, setShowAdvanced] = useState(false)
@@ -91,6 +100,7 @@ export function ContactFilterBar({
         has_phone: currentHasPhone,
         source: currentSource,
         labels: currentLabels,
+        focused: currentFocused,
         ...overrides,
       }
       Object.entries(merged).forEach(([k, v]) => {
@@ -101,7 +111,8 @@ export function ContactFilterBar({
     },
     [
       currentQuery, currentStatus, currentLastContacted, currentCompany, currentSort, currentDir, basePath,
-      currentFirstName, currentLastName, currentPhone, currentEmail, currentHasEmail, currentHasPhone, currentSource, currentLabels
+      currentFirstName, currentLastName, currentPhone, currentEmail, currentHasEmail, currentHasPhone,
+      currentSource, currentLabels, currentFocused,
     ],
   )
 
@@ -148,7 +159,7 @@ export function ContactFilterBar({
   }, [
     company, firstName, lastName, phone, email,
     currentCompany, currentFirstName, currentLastName, currentPhone, currentEmail,
-    buildHref, router
+    buildHref, router,
   ])
 
   const hasActiveFilters = !!(
@@ -162,7 +173,8 @@ export function ContactFilterBar({
     currentHasEmail ||
     currentHasPhone ||
     currentSource ||
-    currentLabels
+    currentLabels ||
+    currentFocused
   )
 
   // If any of the advanced filters are currently active, auto-expand the panel on mount
@@ -171,6 +183,8 @@ export function ContactFilterBar({
       setShowAdvanced(true)
     }
   }, [currentFirstName, currentLastName, currentPhone, currentEmail, currentHasEmail, currentHasPhone, currentSource, currentLabels])
+
+  const isNonDefaultSort = currentSort && currentSort !== 'first_name'
 
   return (
     <div className="flex flex-col gap-3.5 bg-transparent font-body">
@@ -228,7 +242,7 @@ export function ContactFilterBar({
         </div>
       )}
 
-      {/* Second row: last contacted + company search + advanced toggle + clear */}
+      {/* Second row: last contacted + sort + company search + advanced toggle + clear */}
       <div className="flex flex-wrap items-center gap-2">
         {/* Last contacted dropdown */}
         <select
@@ -242,6 +256,28 @@ export function ContactFilterBar({
           aria-label="Filter by last contacted"
         >
           {LAST_CONTACTED_OPTIONS.map((opt) => (
+            <option key={opt.value} value={opt.value}>
+              {opt.label}
+            </option>
+          ))}
+        </select>
+
+        {/* Sort dropdown */}
+        <select
+          value={currentSort || 'first_name'}
+          onChange={(e) => {
+            startTransition(() => {
+              router.replace(buildHref({ sort: e.target.value }))
+            })
+          }}
+          className={`text-xs border rounded-xl px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-[#4a7c59] focus:border-transparent transition-all cursor-pointer shadow-sm font-semibold ${
+            isNonDefaultSort
+              ? 'bg-[#eaf4ec] border-[#4a7c59] text-[#335c3d]'
+              : 'bg-[#f5f1ea] border-[#e4e0d8] text-[#2e3230]'
+          }`}
+          aria-label="Sort contacts"
+        >
+          {SORT_OPTIONS.map((opt) => (
             <option key={opt.value} value={opt.value}>
               {opt.label}
             </option>
@@ -288,7 +324,8 @@ export function ContactFilterBar({
               has_email: '',
               has_phone: '',
               source: '',
-              labels: ''
+              labels: '',
+              focused: '',
             })}
             className="inline-flex items-center gap-1 text-xs text-[#74796e] hover:text-[#2e3230] font-semibold transition-colors ml-1"
           >
@@ -387,7 +424,7 @@ export function ContactFilterBar({
             </div>
           </div>
 
-          {/* Column 4: CRM labels and sync source */}
+          {/* Column 4: Sync source */}
           <div className="space-y-2.5">
             <div>
               <label htmlFor="filter-source" className="block text-[10px] font-bold text-[#74796e] uppercase tracking-wider mb-1">Sync Source</label>
@@ -404,11 +441,6 @@ export function ContactFilterBar({
                 <option value="csv">Imported from CSV</option>
                 <option value="manual">Created Manually</option>
               </select>
-            </div>
-            <div className="pt-5 text-center">
-              <span className="text-[11px] text-[#74796e] font-body italic block">
-                {hasActiveFilters ? "Filters are active" : "Adjust grid to filter"}
-              </span>
             </div>
           </div>
         </div>

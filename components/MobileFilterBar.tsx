@@ -41,6 +41,7 @@ interface Props {
   currentHasPhone: string
   currentSource: string
   currentLabels: string
+  currentFocused?: string // '1' when focused filter active — forward-compat for #93
   activeFilterCount: number
   labels?: Label[]
 }
@@ -60,6 +61,7 @@ export function MobileFilterBar({
   currentHasPhone,
   currentSource,
   currentLabels,
+  currentFocused = '',
   activeFilterCount,
   labels = [],
 }: Props) {
@@ -157,6 +159,7 @@ export function MobileFilterBar({
         has_phone: currentHasPhone,
         source: currentSource,
         labels: currentLabels,
+        focused: currentFocused,
         ...overrides,
       }
       Object.entries(merged).forEach(([k, v]) => {
@@ -169,7 +172,7 @@ export function MobileFilterBar({
       currentQuery, currentStatus, currentLastContacted, currentCompany,
       currentSort, currentDir, currentFirstName, currentLastName,
       currentPhone, currentEmail, currentHasEmail, currentHasPhone,
-      currentSource, currentLabels,
+      currentSource, currentLabels, currentFocused,
     ]
   )
 
