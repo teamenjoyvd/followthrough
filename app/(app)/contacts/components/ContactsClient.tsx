@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { Upload, Download, Tag, Loader2, Trash2 } from 'lucide-react'
+import { Plus, Upload, Download, Tag, Loader2, Trash2 } from 'lucide-react'
 import ContactsDesktop from './ContactsDesktop'
 import ContactsMobile from './ContactsMobile'
 import CSVImportModal from '@/components/CSVImportModal'
