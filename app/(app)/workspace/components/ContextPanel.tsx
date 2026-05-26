@@ -3,13 +3,14 @@
 import * as React from 'react'
 import { useWorkspaceStore } from '../store/useWorkspaceStore'
 import { createSupabaseBrowserClient } from '@/lib/supabase/client'
-import { Mail, Phone, Calendar, Loader2, Save, Plus, Trash2, CheckCircle2, History } from 'lucide-react'
+import { Mail, Phone, Loader2, Save, Trash2, History } from 'lucide-react'
 import type { Database } from '@/types/supabase'
 import { getInitials, getAvatarUrl, getContactDescription } from '@/lib/utils/dashboard'
-import { logCall, logEmail, logNote, deleteInteraction } from '@/lib/actions/interactions'
+import { deleteInteraction } from '@/lib/actions/interactions'
 import { cn } from '@/lib/utils'
 import { useActionToast } from '@/components/ActionToast'
 import { ConfirmDialog } from '@/components/ConfirmDialog'
+import LogInteractionSheet from '@/components/LogInteractionSheet'
 
 type Contact = Database['public']['Tables']['contacts']['Row']
 type Label = Database['public']['Tables']['labels']['Row']
@@ -19,8 +20,6 @@ interface Props {
   allLabels: Label[]
 }
 
-// Matches the narrowed select:
-// id, type, created_at, note_details(body), call_details(outcome, summary), email_details(subject, body)
 interface NoteDetail {
   body: string
 }
@@ -35,6 +34,10 @@ interface EmailDetail {
   body: string | null
 }
 
+interface MeetingDetail {
+  body: string
+}
+
 interface PopulatedInteraction {
   id: string
   type: 'call' | 'email' | 'meeting' | 'note'
@@ -42,6 +45,7 @@ interface PopulatedInteraction {
   note_details: NoteDetail[]
   call_details: CallDetail[]
   email_details: EmailDetail[]
+  meeting_details: MeetingDetail[]
 }
 
 export default function ContextPanel({ profileId, allLabels }: Props) {
@@ -55,13 +59,6 @@ export default function ContextPanel({ profileId, allLabels }: Props) {
   const [activeLabelIds, setActiveLabelIds] = React.useState<string[]>([])
   const [interactions, setInteractions] = React.useState<PopulatedInteraction[]>([])
   const [loadingTimeline, setLoadingTimeline] = React.useState(false)
-
-  // Log Form State
-  const [showLogForm, setShowLogForm] = React.useState<'none' | 'call' | 'email' | 'meeting'>('none')
-  const [logSummary, setLogSummary] = React.useState('')
-  const [callOutcome, setCallOutcome] = React.useState<'connected' | 'no_answer' | 'voicemail'>('connected')
-  const [emailSubject, setEmailSubject] = React.useState('')
-  const [isLogging, setIsLogging] = React.useState(false)
 
   // Load Details Reusable Callback
   const loadDetails = React.useCallback(async () => {
@@ -82,11 +79,10 @@ export default function ContextPanel({ profileId, allLabels }: Props) {
       // 2. Fetch timeline — select only fields required for display
       const { data: interData } = await supabase
         .from('interactions')
-        .select('id, type, created_at, note_details(body), call_details(outcome, summary), email_details(subject, body)')
+        .select('id, type, created_at, note_details(body), call_details(outcome, summary), email_details(subject, body), meeting_details(body)')
         .eq('contact_id', selectedContact.id)
         .order('created_at', { ascending: false })
 
-      // Single cast: PopulatedInteraction mirrors the narrowed select shape exactly
       setInteractions((interData || []) as PopulatedInteraction[])
     } catch (err) {
       console.error('Error loading details:', err)
@@ -101,24 +97,11 @@ export default function ContextPanel({ profileId, allLabels }: Props) {
 
     setNoteText(selectedContact.custom_description || '')
     setSaveStatus('idle')
-    setShowLogForm('none')
-    setLogSummary('')
 
     loadDetails()
   }, [selectedContact, loadDetails])
 
   // Debounced auto-save for working notes scratchpad.
-  // Snapshot contactId and text at effect-setup time so the timeout callback
-  // always saves the correct contact even if selectedContact changes before
-  // the 800ms fires.
-  // setSaveStatus('saving') is intentionally inside the setTimeout callback —
-  // the spinner must not appear until the debounce actually fires and a write
-  // is about to occur. Setting it before the timeout causes a spurious
-  // "Saving..." indicator on every keystroke and a stuck spinner whenever
-  // the effect cleanup cancels the timer.
-  // The `active` flag ensures all state updates after the async write are
-  // discarded if the effect has been cleaned up (contact switched, component
-  // unmounted) before the await resolves.
   React.useEffect(() => {
     if (!selectedContact) return
     if (noteText === (selectedContact.custom_description || '')) return
@@ -195,43 +178,6 @@ export default function ContextPanel({ profileId, allLabels }: Props) {
       setActiveLabelIds(prev =>
         isAssigned ? [...prev, labelId] : prev.filter(id => id !== labelId)
       )
-    }
-  }
-
-  // Handle logging new interaction
-  const handleLogInteraction = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (isLogging) return
-    setIsLogging(true)
-
-    try {
-      if (showLogForm === 'call') {
-        await logCall({
-          contactId: selectedContact.id,
-          outcome: callOutcome,
-          summary: logSummary
-        })
-      } else if (showLogForm === 'email') {
-        await logEmail({
-          contactId: selectedContact.id,
-          subject: emailSubject,
-          body: logSummary
-        })
-      } else if (showLogForm === 'meeting') {
-        await logNote({
-          contactId: selectedContact.id,
-          body: `[Meeting/Log]: ${logSummary}`
-        })
-      }
-
-      await loadDetails()
-      setShowLogForm('none')
-      setLogSummary('')
-      setEmailSubject('')
-    } catch (err) {
-      console.error(err)
-    } finally {
-      setIsLogging(false)
     }
   }
 
@@ -326,93 +272,15 @@ export default function ContextPanel({ profileId, allLabels }: Props) {
         </div>
       </div>
 
-      {/* ── Quick Touchpoint Logging Feed ───────────────────── */}
+      {/* ── Quick Touchpoint Logging ─────────────────────────── */}
       <div className="space-y-4 pt-2 border-t border-[#dbd7cf]/60">
-
-        {showLogForm === 'none' ? (
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => setShowLogForm('call')}
-              className="flex-1 bg-[#eae6de] text-[#2e3230] text-2xs hover:bg-[#dbd7cf] py-2 px-2.5 rounded-xl flex items-center justify-center gap-1.5 font-bold font-sans active:scale-95 transition-transform"
-            >
-              <Phone className="h-3.5 w-3.5" /> Log Call
-            </button>
-            <button
-              onClick={() => setShowLogForm('email')}
-              className="flex-1 bg-[#eae6de] text-[#2e3230] text-2xs hover:bg-[#dbd7cf] py-2 px-2.5 rounded-xl flex items-center justify-center gap-1.5 font-bold font-sans active:scale-95 transition-transform"
-            >
-              <Mail className="h-3.5 w-3.5" /> Log Email
-            </button>
-            <button
-              onClick={() => setShowLogForm('meeting')}
-              className="flex-1 bg-[#eae6de] text-[#2e3230] text-2xs hover:bg-[#dbd7cf] py-2 px-2.5 rounded-xl flex items-center justify-center gap-1.5 font-bold font-sans active:scale-95 transition-transform"
-            >
-              <Calendar className="h-3.5 w-3.5" /> Log Note
-            </button>
-          </div>
-        ) : (
-          <form onSubmit={handleLogInteraction} className="bg-[#faf6f0] border border-[#e4e0d8] rounded-2xl p-4 space-y-3 animate-in slide-in-from-top-2 duration-150">
-            <div className="flex items-center justify-between">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-[#705c30] font-sans">
-                Logging {showLogForm}
-              </span>
-              <button
-                type="button"
-                onClick={() => setShowLogForm('none')}
-                className="text-[10px] text-[#74796e] hover:text-[#2e3230] font-bold font-sans"
-              >
-                Cancel
-              </button>
-            </div>
-
-            {showLogForm === 'call' && (
-              <div className="grid grid-cols-3 gap-1.5 bg-[#eae6de]/30 p-1.5 rounded-xl">
-                {['connected', 'no_answer', 'voicemail'].map(outcome => (
-                  <button
-                    key={outcome}
-                    type="button"
-                    onClick={() => setCallOutcome(outcome as any)}
-                    className={cn(
-                      "py-1 px-1.5 text-[9px] font-sans rounded-lg capitalize border transition-all text-center",
-                      callOutcome === outcome
-                        ? "bg-[#4a7c59] text-white border-transparent"
-                        : "bg-[#faf6f0] border-[#e4e0d8] text-[#74796e]"
-                    )}
-                  >
-                    {outcome.replace('_', ' ')}
-                  </button>
-                ))}
-              </div>
-            )}
-
-            {showLogForm === 'email' && (
-              <input
-                type="text"
-                placeholder="Subject (optional)..."
-                value={emailSubject}
-                onChange={e => setEmailSubject(e.target.value)}
-                className="w-full text-xs font-sans p-2 bg-[#faf6f0] border border-[#e4e0d8] focus:border-[#4a7c59] rounded-xl outline-none"
-              />
-            )}
-
-            <textarea
-              rows={2}
-              required
-              placeholder="What did you touch base about? Summary details..."
-              value={logSummary}
-              onChange={e => setLogSummary(e.target.value)}
-              className="w-full text-xs font-sans p-3 bg-[#faf6f0] border border-[#e4e0d8] focus:border-[#4a7c59] rounded-xl outline-none resize-none"
-            />
-
-            <button
-              type="submit"
-              disabled={isLogging}
-              className="w-full bg-[#4a7c59] hover:bg-[#3d6649] text-white font-sans text-xs py-2 rounded-xl flex items-center justify-center gap-1.5 font-bold transition-colors active:scale-95 duration-100 disabled:opacity-50"
-            >
-              {isLogging ? <Loader2 className="h-3 w-3 animate-spin" /> : 'Log Touchpoint'}
-            </button>
-          </form>
-        )}
+        <LogInteractionSheet
+          contactId={selectedContact.id}
+          profileId={profileId}
+          triggerLabel="Log interaction"
+          triggerClassName="w-full bg-[#eae6de] text-[#2e3230] hover:bg-[#dbd7cf] text-xs font-bold font-sans rounded-xl"
+          onSuccess={loadDetails}
+        />
 
         {/* ── Touchpoint History Timeline ──────────────────────── */}
         <div className="space-y-3">
@@ -441,6 +309,9 @@ export default function ContextPanel({ profileId, allLabels }: Props) {
                   const sub = item.email_details?.[0]?.subject || 'No Subject'
                   const body = item.email_details?.[0]?.body ? `— "${item.email_details[0].body}"` : ''
                   detail = `${sub} ${body}`
+                } else if (item.type === 'meeting') {
+                  title = 'Meeting'
+                  detail = item.meeting_details?.[0]?.body || ''
                 } else if (item.type === 'note') {
                   title = 'Note Complete'
                   detail = item.note_details?.[0]?.body || 'Completed Focus Task'
