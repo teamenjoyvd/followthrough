@@ -208,7 +208,10 @@ export async function logMeeting(input: LogMeetingInput): Promise<{ error?: stri
     interaction_id: interaction.id,
     body: input.body,
   })
-  if (detailError) return { error: detailError.message }
+  if (detailError) {
+    await supabase.from('interactions').delete().eq('id', interaction.id)
+    return { error: detailError.message }
+  }
 
   await supabase
     .from('contacts')
