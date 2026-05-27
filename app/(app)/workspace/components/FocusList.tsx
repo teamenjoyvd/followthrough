@@ -176,9 +176,17 @@ export default function FocusList({ profileId }: Props) {
             return (
               <div
                 key={c.id}
+                role="button"
+                tabIndex={0}
                 onClick={() => setSelectedContact(c)}
+                onKeyDown={(e) => {
+                  if (e.target === e.currentTarget && (e.key === 'Enter' || e.key === ' ')) {
+                    e.preventDefault()
+                    setSelectedContact(c)
+                  }
+                }}
                 className={cn(
-                  "group p-5 rounded-[24px] border-2 flex flex-col transition-all duration-300 relative cursor-pointer shadow-[0_4px_20px_rgba(46,50,48,0.02)]",
+                  "group p-5 rounded-[24px] border-2 flex flex-col transition-all duration-300 relative cursor-pointer shadow-[0_4px_20px_rgba(46,50,48,0.02)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#705c30]",
                   isSelected
                     ? "bg-[#eae6de] border-[#705c30] shadow-[0_6px_24px_rgba(46,50,48,0.05)]"
                     : "bg-[#f5f1ea] border-[#e4e0d8] hover:bg-[#e4e0d8]/60",
