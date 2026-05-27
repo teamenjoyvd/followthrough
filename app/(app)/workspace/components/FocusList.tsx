@@ -75,6 +75,8 @@ export default function FocusList({ profileId }: Props) {
   }, [])
 
   React.useEffect(() => {
+    if (activeSnoozeId === null) return
+
     function handleSnoozeClickOutside(event: MouseEvent) {
       if (snoozeRef.current && !snoozeRef.current.contains(event.target as Node)) {
         setActiveSnoozeId(null)
@@ -82,7 +84,7 @@ export default function FocusList({ profileId }: Props) {
     }
     document.addEventListener('mousedown', handleSnoozeClickOutside)
     return () => document.removeEventListener('mousedown', handleSnoozeClickOutside)
-  }, [])
+  }, [activeSnoozeId])
 
   const handlePin = async (contactId: string) => {
     setSearchQuery('')
