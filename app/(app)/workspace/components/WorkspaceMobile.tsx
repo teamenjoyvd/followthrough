@@ -110,7 +110,7 @@ export default function WorkspaceMobile({
 
         {activeTab === 'focus' ? (
           <div className="bg-[#eae6de]/20 rounded-[28px] p-5 border border-[#e4e0d8]/30">
-            <FocusList />
+            <FocusList profileId={profileId} />
           </div>
         ) : (
           <WorkspaceStats

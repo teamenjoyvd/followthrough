@@ -3,7 +3,7 @@
 import * as React from 'react'
 import { useWorkspaceStore } from '../store/useWorkspaceStore'
 import { createSupabaseBrowserClient } from '@/lib/supabase/client'
-import { Mail, Phone, Loader2, Save, Trash2, History } from 'lucide-react'
+import { Mail, Phone, Loader2, Save, Trash2, History, PlusCircle } from 'lucide-react'
 import type { Database } from '@/types/supabase'
 import { getInitials, getAvatarUrl, getContactDescription } from '@/lib/utils/dashboard'
 import { deleteInteraction } from '@/lib/actions/interactions'
@@ -278,7 +278,7 @@ export default function ContextPanel({ profileId, allLabels }: Props) {
           contactId={selectedContact.id}
           profileId={profileId}
           triggerLabel="Log interaction"
-          triggerClassName="w-full bg-[#eae6de] text-[#2e3230] hover:bg-[#dbd7cf] text-xs font-bold font-sans rounded-xl"
+          triggerClassName="w-full bg-[#4a7c59] text-white hover:bg-[#3d6649] text-sm font-bold font-sans rounded-xl gap-2"
           onSuccess={loadDetails}
         />
 
