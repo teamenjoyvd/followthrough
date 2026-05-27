@@ -2,12 +2,19 @@
 
 import * as React from 'react'
 import { useWorkspaceStore } from '../store/useWorkspaceStore'
-import { Search, UserPlus, CheckCircle2, Clock, Trash2, PlusCircle } from 'lucide-react'
+import { Search, UserPlus, PlusCircle, MoreHorizontal, CheckCircle2, Clock, Trash2 } from 'lucide-react'
 import type { Database } from '@/types/supabase'
 import { getContactDescription } from '@/lib/utils/dashboard'
 import { cn } from '@/lib/utils'
 import { useActionToast } from '@/components/ActionToast'
 import LogInteractionSheet from '@/components/LogInteractionSheet'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 
 type Contact = Database['public']['Tables']['contacts']['Row']
 
@@ -115,6 +122,7 @@ export default function FocusList({ profileId }: Props) {
                 return (
                   <button
                     key={c.id}
+                    type="button"
                     onClick={() => handlePin(c.id)}
                     className="w-full flex items-center justify-between p-3 rounded-xl hover:bg-[#eae6de] text-left transition-colors active:scale-[0.99] duration-100"
                   >
@@ -177,56 +185,68 @@ export default function FocusList({ profileId }: Props) {
                     </div>
                   </div>
 
+                  {/* Action cluster — stopPropagation prevents card selection on button click */}
                   <div className="flex items-center gap-2 shrink-0 ml-4" onClick={(e) => e.stopPropagation()}>
-                    <button
-                      onClick={async () => {
-                        const res = await markContactDone(c.id)
-                        if (res.error) triggerError(res.error)
-                        else if (res.logId) showToast({ actionLabel: `${c.first_name} marked done`, logId: res.logId, undoWindowSeconds })
-                      }}
-                      className="p-2 bg-[#4a7c59] text-white hover:bg-[#3d6649] rounded-xl active:scale-95 duration-100 transition-transform"
-                      title="Log Contact & Mark Done"
-                    >
-                      <CheckCircle2 className="h-5 w-5" />
-                    </button>
 
-                    {/* Log interaction — opens LogInteractionSheet for this card without selecting the contact */}
+                    {/* PRIMARY: Log interaction */}
                     <button
+                      type="button"
                       onClick={() => setLogSheetContactId(c.id)}
-                      className="p-2 bg-[#eae6de] text-[#705c30] hover:bg-[#f0dfcc] rounded-xl active:scale-95 duration-100 transition-all"
-                      title="Log interaction"
+                      className="flex items-center gap-1.5 px-3.5 py-2 bg-[#4a7c59] text-white text-xs font-semibold rounded-xl hover:bg-[#3d6649] active:scale-95 transition-all duration-100 font-sans"
                     >
-                      <PlusCircle className="h-5 w-5" />
+                      <PlusCircle className="h-4 w-4 shrink-0" />
+                      <span>Log</span>
                     </button>
 
-                    <button
-                      onClick={() => setActiveSnoozeId(activeSnoozeId === c.id ? null : c.id)}
-                      className={cn(
-                        "p-2 rounded-xl transition-all duration-200 active:scale-95",
-                        activeSnoozeId === c.id
-                          ? "bg-[#c4a66a] text-[#554020]"
-                          : "bg-[#eae6de] text-[#705c30] hover:bg-[#eae6de]/80"
-                      )}
-                      title="Snooze"
-                    >
-                      <Clock className="h-5 w-5" />
-                    </button>
-
-                    <button
-                      onClick={async () => {
-                        const res = await unpinContact(c.id)
-                        if (res.error) triggerError(res.error)
-                        else if (res.logId) showToast({ actionLabel: `${c.first_name} removed from Focus`, logId: res.logId, undoWindowSeconds })
-                      }}
-                      className="h-9 px-2 bg-[#eae6de] text-[#74796e] hover:text-[#b83230] hover:bg-[#ffdad8]/50 rounded-xl active:scale-95 duration-100 transition-transform flex flex-col items-center justify-center gap-0.5"
-                      title="Remove from Focus"
-                    >
-                      <Trash2 className="h-5 w-5" />
-                      <span className="text-[9px] font-sans font-semibold leading-none">Remove</span>
-                    </button>
+                    {/* OVERFLOW: Mark done, Snooze, Remove */}
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <button
+                          type="button"
+                          className="flex items-center justify-center w-9 h-9 rounded-xl bg-[#eae6de] text-[#74796e] hover:bg-[#dedad2] hover:text-[#2e3230] active:scale-95 transition-all duration-100"
+                          aria-label="More actions"
+                          title="More actions"
+                        >
+                          <MoreHorizontal className="h-4 w-4" />
+                        </button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" className="w-44">
+                        <DropdownMenuItem
+                          onSelect={async () => {
+                            const res = await markContactDone(c.id)
+                            if (res.error) triggerError(res.error)
+                            else if (res.logId) showToast({ actionLabel: `${c.first_name} marked done`, logId: res.logId, undoWindowSeconds })
+                          }}
+                          className="gap-2 cursor-pointer"
+                        >
+                          <CheckCircle2 className="h-4 w-4 text-[#4a7c59]" />
+                          Mark done
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onSelect={() => setActiveSnoozeId(activeSnoozeId === c.id ? null : c.id)}
+                          className="gap-2 cursor-pointer"
+                        >
+                          <Clock className="h-4 w-4 text-[#705c30]" />
+                          Snooze
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem
+                          onSelect={async () => {
+                            const res = await unpinContact(c.id)
+                            if (res.error) triggerError(res.error)
+                            else if (res.logId) showToast({ actionLabel: `${c.first_name} removed from Focus`, logId: res.logId, undoWindowSeconds })
+                          }}
+                          className="gap-2 cursor-pointer text-red-600 focus:text-red-600 focus:bg-red-50"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                          Remove
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </div>
                 </div>
 
+                {/* Snooze picker — unchanged, toggled by activeSnoozeId */}
                 {activeSnoozeId === c.id && (
                   <div className="mt-4 p-4 bg-[#faf6f0] rounded-2xl border border-[#e4e0d8] space-y-3 animate-in slide-in-from-top-2 duration-150 self-end w-full max-w-sm" onClick={(e) => e.stopPropagation()}>
                     <p className="text-[10px] font-bold uppercase tracking-wider text-[#74796e] font-sans">Snooze until...</p>
@@ -235,6 +255,7 @@ export default function FocusList({ profileId }: Props) {
                         ({ label, days }) => (
                           <button
                             key={days}
+                            type="button"
                             onClick={async () => {
                               setActiveSnoozeId(null)
                               const res = await snoozeContact(c.id, days)
