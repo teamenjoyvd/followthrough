@@ -387,6 +387,14 @@ export default function LogInteractionSheet({
             />
           </TabsContent>
         </Tabs>
+
+        <Button
+          variant="outline"
+          className="w-full mt-4"
+          onClick={() => setOpen(false)}
+        >
+          Cancel
+        </Button>
       </SheetContent>
     </Sheet>
   )
