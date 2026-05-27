@@ -49,6 +49,7 @@ export default function FocusList({ profileId }: Props) {
   }
   
   const suggestionsRef = React.useRef<HTMLDivElement>(null)
+  const snoozeRef = React.useRef<HTMLDivElement | null>(null)
 
   const filteredSuggestions = React.useMemo(() => {
     if (!searchQuery.trim()) return []
@@ -71,6 +72,16 @@ export default function FocusList({ profileId }: Props) {
     }
     document.addEventListener('mousedown', handleClickOutside)
     return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
+
+  React.useEffect(() => {
+    function handleSnoozeClickOutside(event: MouseEvent) {
+      if (snoozeRef.current && !snoozeRef.current.contains(event.target as Node)) {
+        setActiveSnoozeId(null)
+      }
+    }
+    document.addEventListener('mousedown', handleSnoozeClickOutside)
+    return () => document.removeEventListener('mousedown', handleSnoozeClickOutside)
   }, [])
 
   const handlePin = async (contactId: string) => {
@@ -157,6 +168,8 @@ export default function FocusList({ profileId }: Props) {
           {workingList.map((c) => {
             const desc = getContactDescription(c)
             const isSelected = selectedContact?.id === c.id
+            const isSnoozeOpen = activeSnoozeId === c.id
+            const isDimmed = activeSnoozeId !== null && !isSnoozeOpen
 
             return (
               <div
@@ -166,7 +179,8 @@ export default function FocusList({ profileId }: Props) {
                   "group p-5 rounded-[24px] border flex flex-col transition-all duration-300 relative cursor-pointer shadow-[0_4px_20px_rgba(46,50,48,0.02)]",
                   isSelected
                     ? "bg-[#eae6de] border-[#705c30]/40 shadow-[0_6px_24px_rgba(46,50,48,0.05)]"
-                    : "bg-[#f5f1ea] border-[#e4e0d8]/30 hover:bg-[#e4e0d8]/60 hover:border-[#e4e0d8]/70"
+                    : "bg-[#f5f1ea] border-[#e4e0d8] hover:bg-[#e4e0d8]/60 hover:border-[#e4e0d8]/70",
+                  isDimmed && "opacity-50 pointer-events-none"
                 )}
               >
                 {isSelected && (
@@ -246,9 +260,13 @@ export default function FocusList({ profileId }: Props) {
                   </div>
                 </div>
 
-                {/* Snooze picker — unchanged, toggled by activeSnoozeId */}
-                {activeSnoozeId === c.id && (
-                  <div className="mt-4 p-4 bg-[#faf6f0] rounded-2xl border border-[#e4e0d8] space-y-3 animate-in slide-in-from-top-2 duration-150 self-end w-full max-w-sm" onClick={(e) => e.stopPropagation()}>
+                {/* Snooze picker — toggled by activeSnoozeId, closed by click-outside */}
+                {isSnoozeOpen && (
+                  <div
+                    ref={snoozeRef}
+                    className="mt-4 p-4 bg-[#faf6f0] rounded-2xl border border-[#e4e0d8] space-y-3 animate-in slide-in-from-top-2 duration-150 self-end w-full max-w-sm"
+                    onClick={(e) => e.stopPropagation()}
+                  >
                     <p className="text-[10px] font-bold uppercase tracking-wider text-[#74796e] font-sans">Snooze until...</p>
                     <div className="grid grid-cols-3 gap-2">
                       {[{ label: '1 Day', days: 1 }, { label: '3 Days', days: 3 }, { label: '1 Week', days: 7 }].map(
