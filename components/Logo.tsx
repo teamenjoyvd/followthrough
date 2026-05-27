@@ -1,4 +1,4 @@
-import Image from 'next/image'
+import { GitBranch } from 'lucide-react'
 import { branding } from '@/config/branding'
 
 interface LogoProps {
@@ -9,16 +9,16 @@ interface LogoProps {
 export function Logo({ className = '', iconOnly = false }: LogoProps) {
   return (
     <div className={`flex items-center gap-3 font-semibold select-none group ${className}`}>
-      {/* Logo container — exact brand mark aspect ratio */}
-      <div className="relative flex items-center justify-center h-7 aspect-[2140/1168] transition-all duration-300 group-hover:scale-105">
-        <Image
-          src={branding.logoPath}
-          alt={branding.appName}
-          width={2140}
-          height={1168}
-          className="h-full w-full object-contain transition-all duration-300"
-          priority
-        />
+      <div
+        className="flex items-center justify-center rounded-lg transition-all duration-300 group-hover:scale-105"
+        style={{
+          width: 28,
+          height: 28,
+          background: branding.primaryColor,
+          flexShrink: 0,
+        }}
+      >
+        <GitBranch size={16} color="white" strokeWidth={2.5} />
       </div>
 
       {!iconOnly && (
