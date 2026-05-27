@@ -79,7 +79,7 @@ export default function WorkspaceDesktop({
                 high-priority focus task{storeWorkingList.length !== 1 ? 's' : ''} active
               </p>
             </div>
-            <FocusList />
+            <FocusList profileId={profileId} />
           </div>
 
           <div className="col-span-4 bg-[#eae6de]/30 rounded-[28px] p-6 border border-[#e4e0d8]/30 sticky top-6 min-h-[500px]">

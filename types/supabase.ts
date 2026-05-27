@@ -459,6 +459,32 @@ export type Database = {
           },
         ]
       }
+      meeting_details: {
+        Row: {
+          body: string
+          id: string
+          interaction_id: string
+        }
+        Insert: {
+          body: string
+          id?: string
+          interaction_id: string
+        }
+        Update: {
+          body?: string
+          id?: string
+          interaction_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "meeting_details_interaction_id_fkey"
+            columns: ["interaction_id"]
+            isOneToOne: true
+            referencedRelation: "interactions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       note_details: {
         Row: {
           body: string
@@ -841,7 +867,7 @@ export type Database = {
       call_outcome: "connected" | "no_answer" | "voicemail"
       contact_source: "manual" | "google_sync" | "csv_import" | "api"
       inbox_item_type: "resurfaced" | "working_list_changed" | "sync_conflict"
-      interaction_type: "call" | "email" | "note"
+      interaction_type: "call" | "email" | "note" | "meeting"
       phone_type: "mobile" | "work" | "home"
       pipeline_status:
         | "lead"
@@ -980,7 +1006,7 @@ export const Constants = {
       call_outcome: ["connected", "no_answer", "voicemail"],
       contact_source: ["manual", "google_sync", "csv_import", "api"],
       inbox_item_type: ["resurfaced", "working_list_changed", "sync_conflict"],
-      interaction_type: ["call", "email", "note"],
+      interaction_type: ["call", "email", "note", "meeting"],
       phone_type: ["mobile", "work", "home"],
       pipeline_status: [
         "lead",

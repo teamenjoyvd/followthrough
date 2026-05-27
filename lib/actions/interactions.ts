@@ -27,6 +27,11 @@ type LogNoteInput = {
   body: string
 }
 
+type LogMeetingInput = {
+  contactId: string
+  body: string
+}
+
 export async function logCall(input: LogCallInput): Promise<{ error?: string }> {
   const { userId } = await auth()
   if (!userId) return { error: 'Unauthorized' }
@@ -177,6 +182,60 @@ export async function logNote(input: LogNoteInput): Promise<{ error?: string }> 
   return {}
 }
 
+export async function logMeeting(input: LogMeetingInput): Promise<{ error?: string }> {
+  const { userId } = await auth()
+  if (!userId) return { error: 'Unauthorized' }
+
+  const supabase = await createSupabaseServerClient()
+  const profile = await getProfile(supabase, userId)
+  if (!profile) return { error: 'Profile not found' }
+
+  const { data: interaction, error: interactionError } = await supabase
+    .from('interactions')
+    .insert({
+      contact_id: input.contactId,
+      profile_id: profile.id,
+      type: 'meeting',
+    } satisfies InteractionInsert)
+    .select('id')
+    .single()
+
+  if (interactionError || !interaction) {
+    return { error: interactionError?.message ?? 'Failed to log interaction' }
+  }
+
+  const { error: detailError } = await supabase.from('meeting_details').insert({
+    interaction_id: interaction.id,
+    body: input.body,
+  })
+  if (detailError) {
+    await supabase.from('interactions').delete().eq('id', interaction.id)
+    return { error: detailError.message }
+  }
+
+  await supabase
+    .from('contacts')
+    .update({ last_contacted_at: new Date().toISOString() } satisfies Database['public']['Tables']['contacts']['Update'])
+    .eq('id', input.contactId)
+    .eq('profile_id', profile.id)
+
+  try {
+    await appendActionLog({
+      profileId: profile.id,
+      actionType: 'logMeeting',
+      entityType: 'interaction',
+      entityId: interaction.id,
+      payload: {},
+      undoWindowSeconds: profile.undo_window_seconds,
+    })
+  } catch (e) {
+    console.error('[logMeeting] appendActionLog failed:', e)
+  }
+
+  revalidatePath('/contacts/' + input.contactId)
+  return {}
+}
+
 export async function deleteInteraction(
   interactionId: string,
   contactId: string
@@ -191,7 +250,7 @@ export async function deleteInteraction(
   // Pre-read required for audit log — single query via resource embedding
   const { data: interaction } = await supabase
     .from('interactions')
-    .select('type, call_details(*), note_details(*), email_details(*)')
+    .select('type, call_details(*), note_details(*), email_details(*), meeting_details(*)')
     .eq('id', interactionId)
     .eq('profile_id', profile.id)
     .maybeSingle()
@@ -202,12 +261,15 @@ export async function deleteInteraction(
   const cd = (interaction as any).call_details
   const nd = (interaction as any).note_details
   const ed = (interaction as any).email_details
+  const md = (interaction as any).meeting_details
   if (interaction.type === 'call' && cd?.[0]) {
     detailSnapshot = cd[0] as Record<string, unknown>
   } else if (interaction.type === 'note' && nd?.[0]) {
     detailSnapshot = nd[0] as Record<string, unknown>
   } else if (interaction.type === 'email' && ed?.[0]) {
     detailSnapshot = ed[0] as Record<string, unknown>
+  } else if (interaction.type === 'meeting' && md?.[0]) {
+    detailSnapshot = md[0] as Record<string, unknown>
   }
 
   // RLS enforces ownership; profile_id filter adds defence-in-depth

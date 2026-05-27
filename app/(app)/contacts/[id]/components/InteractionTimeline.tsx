@@ -2,7 +2,7 @@
 
 import { useTransition } from 'react'
 import { formatDistanceToNow } from 'date-fns'
-import { Phone, Mail, FileText, Trash2 } from 'lucide-react'
+import { Phone, Mail, FileText, Calendar, Trash2 } from 'lucide-react'
 import { deleteInteraction } from '@/lib/actions/interactions'
 import { ConfirmDialog } from '@/components/ConfirmDialog'
 import type { InteractionWithDetails } from './types'
@@ -16,6 +16,7 @@ const OUTCOME_LABELS: Record<string, string> = {
 function InteractionIcon({ type }: { type: string }) {
   if (type === 'call') return <Phone className="h-4 w-4 text-[#4a7c59]" />
   if (type === 'email') return <Mail className="h-4 w-4 text-[#3b6080]" />
+  if (type === 'meeting') return <Calendar className="h-4 w-4 text-[#705c30]" />
   return <FileText className="h-4 w-4 text-[#c28434]" />
 }
 
@@ -42,6 +43,14 @@ function InteractionDetail({ interaction }: { interaction: InteractionWithDetail
         {subject && <p className="text-sm font-semibold text-[#2e3230]">{subject}</p>}
         {body && <p className="text-sm text-[#4a4e4a] line-clamp-2">{body}</p>}
       </div>
+    )
+  }
+
+  if (interaction.type === 'meeting' && interaction.meeting_details) {
+    return (
+      <p className="mt-1 text-sm text-[#4a4e4a] line-clamp-3">
+        {interaction.meeting_details.body}
+      </p>
     )
   }
 

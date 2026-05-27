@@ -2,15 +2,20 @@
 
 import * as React from 'react'
 import { useWorkspaceStore } from '../store/useWorkspaceStore'
-import { Search, UserPlus, CheckCircle2, Clock, Trash2 } from 'lucide-react'
+import { Search, UserPlus, CheckCircle2, Clock, Trash2, PlusCircle } from 'lucide-react'
 import type { Database } from '@/types/supabase'
 import { getContactDescription } from '@/lib/utils/dashboard'
 import { cn } from '@/lib/utils'
 import { useActionToast } from '@/components/ActionToast'
+import LogInteractionSheet from '@/components/LogInteractionSheet'
 
 type Contact = Database['public']['Tables']['contacts']['Row']
 
-export default function FocusList() {
+interface Props {
+  profileId: string
+}
+
+export default function FocusList({ profileId }: Props) {
   const { 
     workingList, 
     allContacts, 
@@ -28,6 +33,7 @@ export default function FocusList() {
   const [searchQuery, setSearchQuery] = React.useState('')
   const [showSuggestions, setShowSuggestions] = React.useState(false)
   const [activeSnoozeId, setActiveSnoozeId] = React.useState<string | null>(null)
+  const [logSheetContactId, setLogSheetContactId] = React.useState<string | null>(null)
   const [errorMsg, setErrorMsg] = React.useState<string | null>(null)
 
   const triggerError = (msg: string) => {
@@ -184,6 +190,15 @@ export default function FocusList() {
                       <CheckCircle2 className="h-5 w-5" />
                     </button>
 
+                    {/* Log interaction — opens LogInteractionSheet for this card without selecting the contact */}
+                    <button
+                      onClick={() => setLogSheetContactId(c.id)}
+                      className="p-2 bg-[#eae6de] text-[#705c30] hover:bg-[#f0dfcc] rounded-xl active:scale-95 duration-100 transition-all"
+                      title="Log interaction"
+                    >
+                      <PlusCircle className="h-5 w-5" />
+                    </button>
+
                     <button
                       onClick={() => setActiveSnoozeId(activeSnoozeId === c.id ? null : c.id)}
                       className={cn(
@@ -256,6 +271,17 @@ export default function FocusList() {
             )
           })}
         </div>
+      )}
+
+      {/* ── Controlled LogInteractionSheet — mounted once, driven by logSheetContactId ── */}
+      {logSheetContactId && (
+        <LogInteractionSheet
+          contactId={logSheetContactId}
+          profileId={profileId}
+          showTrigger={false}
+          open={true}
+          onOpenChange={(open) => { if (!open) setLogSheetContactId(null) }}
+        />
       )}
 
     </div>

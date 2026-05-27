@@ -11,7 +11,7 @@ import {
 } from '@/components/ui/sheet'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { cn } from '@/lib/utils'
-import { logCall, logEmail, logNote } from '@/lib/actions/interactions'
+import { logCall, logEmail, logNote, logMeeting } from '@/lib/actions/interactions'
 import type { Database } from '@/types/supabase'
 
 type CallOutcome = Database['public']['Enums']['call_outcome']
@@ -196,6 +196,61 @@ function EmailForm({
   )
 }
 
+function MeetingForm({
+  contactId,
+  profileId,
+  onSuccess,
+}: {
+  contactId: string
+  profileId: string
+  onSuccess: () => void
+}) {
+  const [body, setBody] = React.useState('')
+  const [error, setError] = React.useState<string | null>(null)
+  const [pending, setPending] = React.useState(false)
+
+  async function handleSubmit() {
+    if (!body.trim()) return
+    setPending(true)
+    setError(null)
+    const result = await logMeeting({ contactId, body })
+    setPending(false)
+    if (result.error) {
+      setError(result.error)
+    } else {
+      onSuccess()
+    }
+  }
+
+  return (
+    <div className="space-y-4 pt-2">
+      <div>
+        <label className="text-sm font-medium" htmlFor="meeting-body">
+          Meeting notes
+        </label>
+        <textarea
+          id="meeting-body"
+          value={body}
+          onChange={(e) => setBody(e.target.value)}
+          rows={6}
+          className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring resize-none"
+          placeholder="What did you cover? Key outcomes, next steps…"
+        />
+      </div>
+
+      {error && <p className="text-sm text-destructive">{error}</p>}
+
+      <Button
+        onClick={handleSubmit}
+        disabled={!body.trim() || pending}
+        className="w-full"
+      >
+        {pending ? 'Logging…' : 'Log meeting'}
+      </Button>
+    </div>
+  )
+}
+
 function NoteForm({
   contactId,
   profileId,
@@ -294,9 +349,10 @@ export default function LogInteractionSheet({
 
         <Tabs defaultValue="call" className="mt-6">
           <TabsList className="w-full">
-            <TabsTrigger value="call" className="flex-1">Call</TabsTrigger>
-            <TabsTrigger value="email" className="flex-1">Email</TabsTrigger>
-            <TabsTrigger value="note" className="flex-1">Note</TabsTrigger>
+            <TabsTrigger value="call" className="flex-1 text-xs">Call</TabsTrigger>
+            <TabsTrigger value="email" className="flex-1 text-xs">Email</TabsTrigger>
+            <TabsTrigger value="meeting" className="flex-1 text-xs">Meeting</TabsTrigger>
+            <TabsTrigger value="note" className="flex-1 text-xs">Note</TabsTrigger>
           </TabsList>
 
           <TabsContent value="call">
@@ -309,6 +365,14 @@ export default function LogInteractionSheet({
 
           <TabsContent value="email">
             <EmailForm
+              contactId={contactId}
+              profileId={profileId}
+              onSuccess={handleSuccess}
+            />
+          </TabsContent>
+
+          <TabsContent value="meeting">
+            <MeetingForm
               contactId={contactId}
               profileId={profileId}
               onSuccess={handleSuccess}
