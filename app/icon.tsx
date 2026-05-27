@@ -1,4 +1,5 @@
 import { ImageResponse } from 'next/og'
+import { branding } from '@/config/branding'
 
 export const size = { width: 32, height: 32 }
 export const contentType = 'image/png'
@@ -10,7 +11,7 @@ export default function Icon() {
         style={{
           width: 32,
           height: 32,
-          background: '#38761d',
+          background: branding.primaryColor,
           borderRadius: 7,
           display: 'flex',
           alignItems: 'center',
@@ -24,9 +25,9 @@ export default function Icon() {
           viewBox="0 0 24 24"
           fill="none"
           stroke="white"
-          stroke-width="2.5"
-          stroke-linecap="round"
-          stroke-linejoin="round"
+          strokeWidth="2.5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
         >
           <line x1="6" y1="3" x2="6" y2="15" />
           <circle cx="18" cy="6" r="3" />

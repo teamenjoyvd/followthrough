@@ -10,13 +10,8 @@ export function Logo({ className = '', iconOnly = false }: LogoProps) {
   return (
     <div className={`flex items-center gap-3 font-semibold select-none group ${className}`}>
       <div
-        className="flex items-center justify-center rounded-lg transition-all duration-300 group-hover:scale-105"
-        style={{
-          width: 28,
-          height: 28,
-          background: branding.primaryColor,
-          flexShrink: 0,
-        }}
+        className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg transition-all duration-300 group-hover:scale-105"
+        style={{ background: branding.primaryColor }}
       >
         <GitBranch size={16} color="white" strokeWidth={2.5} />
       </div>
