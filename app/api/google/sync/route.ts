@@ -119,12 +119,14 @@ export async function POST() {
       }
 
       if (isExpiredSyncToken && !retriedFullSync) {
-        // Clear the stale sync token and retry as a full sync (once only)
+        // Clear the stale sync token in DB and in the closed-over syncState so subsequent
+        // pagination loop iterations don't re-pass the expired token and re-trigger this path.
         await (supabase as any)
           .from('google_sync_state')
           .update({ sync_token: null })
           .eq('profile_id', profileId)
 
+        syncState.sync_token = null
         return fetchConnections(null, undefined, true)
       }
 
