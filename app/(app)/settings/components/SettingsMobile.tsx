@@ -373,12 +373,12 @@ function GoogleSyncSectionMobile({
               </p>
             )}
           </div>
-          <Link
+          <a
             href="/api/google/oauth"
             className="text-sm px-3 py-1.5 rounded-xl bg-terra-primary text-white hover:opacity-90 transition-opacity font-medium"
           >
             {isConnected ? 'Reconnect' : 'Connect'}
-          </Link>
+          </a>
         </div>
         {isConnected && (
           <>
