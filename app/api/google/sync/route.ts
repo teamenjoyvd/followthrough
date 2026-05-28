@@ -96,36 +96,25 @@ export async function POST() {
       // Parse the error body as JSON to extract a meaningful message.
       // Google returns structured errors: { error: { code, message, details, status } }
       let errorMessage = `Google API error: HTTP ${res.status}`
-      let isExpiredSyncToken = false
-
       try {
-        const errorBody = await res.json() as {
-          error?: {
-            message?: string
-            status?: string
-            details?: Array<{ reason?: string }>
-          }
-        }
+        const errorBody = await res.json() as { error?: { message?: string } }
         errorMessage = errorBody.error?.message ?? errorMessage
-
-        // Detect expired sync token — Google returns reason "EXPIRED_SYNC_TOKEN" in error details
-        // or surfaces it in the message. Sync tokens expire 7 days after a full sync.
-        isExpiredSyncToken =
-          errorBody.error?.details?.some(d => d.reason === 'EXPIRED_SYNC_TOKEN') ??
-          errorBody.error?.message?.includes('EXPIRED_SYNC_TOKEN') ??
-          false
       } catch {
         // JSON parse failed — fall through with the default HTTP status message
       }
 
-      if (isExpiredSyncToken && !retriedFullSync) {
-        // Clear the stale sync token in DB and in the closed-over syncState so subsequent
-        // pagination loop iterations don't re-pass the expired token and re-trigger this path.
+      // Any 400 when a syncToken was passed means the token is bad (expired, malformed, or
+      // invalidated by a reconnect). Google may return a structured EXPIRED_SYNC_TOKEN reason
+      // or a plain "Bad Request" with no structured detail — both are unrecoverable with
+      // the current token. Clear it and retry once as a full sync.
+      if (res.status === 400 && syncToken !== null && !retriedFullSync) {
         await (supabase as any)
           .from('google_sync_state')
           .update({ sync_token: null })
           .eq('profile_id', profileId)
 
+        // Also null the closed-over syncState so subsequent pagination loop iterations
+        // don't re-pass the bad token and re-trigger this path.
         syncState.sync_token = null
         return fetchConnections(null, undefined, true)
       }
