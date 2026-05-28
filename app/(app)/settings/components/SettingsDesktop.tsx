@@ -9,6 +9,7 @@ import type { FollowupRules } from '@/lib/actions/settings'
 import type { useGoogleSync } from '../hooks/useGoogleSync'
 import type { useSettingsForm } from '../hooks/useSettingsForm'
 import { ConfirmDialog } from '@/components/ConfirmDialog'
+import { SyncStepLog } from '@/components/SyncStepLog'
 import { cn } from '@/lib/utils'
 
 interface Props {
@@ -335,6 +336,7 @@ function GoogleSyncSection({
   const {
     isSyncing,
     syncResult,
+    syncSteps,
     isDisconnecting,
     disconnectError,
     handleSync,
@@ -377,6 +379,7 @@ function GoogleSyncSection({
             {syncResult}
           </div>
         )}
+        <SyncStepLog steps={syncSteps} />
         <div className="flex items-center justify-between">
           <div>
             <p className="text-sm font-medium text-terra-on-surface">{isConnected ? 'Connected' : 'Not connected'}</p>

@@ -1,6 +1,7 @@
 import { useState, useTransition, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { disconnectGoogle } from '@/lib/actions/settings'
+import type { SyncStep } from '@/types/google-sync'
 
 interface UseGoogleSyncOptions {
   syncSuccessPrefix?: string
@@ -12,17 +13,23 @@ export function useGoogleSync(options: UseGoogleSyncOptions = {}) {
   
   const [isSyncing, startSyncTransition] = useTransition()
   const [syncResult, setSyncResult] = useState<string | null>(null)
+  const [syncSteps, setSyncSteps] = useState<SyncStep[]>([])
   
   const [isDisconnecting, startDisconnectTransition] = useTransition()
   const [disconnectError, setDisconnectError] = useState<string | null>(null)
 
   const handleSync = useCallback(() => {
     setSyncResult(null)
+    setSyncSteps([])
     startSyncTransition(async () => {
       try {
         const res = await fetch('/api/google/sync', { method: 'POST' })
         const json = await res.json().catch(() => ({}))
         const timeString = new Date().toLocaleTimeString()
+
+        if (Array.isArray(json.steps)) {
+          setSyncSteps(json.steps)
+        }
         
         if (!res.ok) {
           const errMsg = json.error || 'Server error'
@@ -31,7 +38,6 @@ export function useGoogleSync(options: UseGoogleSyncOptions = {}) {
           const imported = json.imported ?? 0
           const conflicts = json.conflicts ?? 0
           
-          // Clean, robust pluralization formatting
           const contactText = imported === 1 ? '1 contact' : `${imported} contacts`
           const conflictText = conflicts === 1 ? '1 conflict' : `${conflicts} conflicts`
           
@@ -60,11 +66,13 @@ export function useGoogleSync(options: UseGoogleSyncOptions = {}) {
   return {
     isSyncing,
     syncResult,
+    setSyncResult,
+    syncSteps,
+    setSyncSteps,
     isDisconnecting,
     disconnectError,
     handleSync,
     handleDisconnect,
-    setSyncResult,
     setDisconnectError,
   }
 }
