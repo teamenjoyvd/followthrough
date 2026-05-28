@@ -2,11 +2,10 @@
 
 import * as React from 'react'
 import { useWorkspaceStore } from '../store/useWorkspaceStore'
-import { createSupabaseBrowserClient } from '@/lib/supabase/client'
 import { Mail, Phone, Loader2, Save, Trash2, History, PlusCircle } from 'lucide-react'
 import type { Database } from '@/types/supabase'
 import { getInitials, getAvatarUrl, getContactDescription } from '@/lib/utils/dashboard'
-import { deleteInteraction } from '@/lib/actions/interactions'
+import { deleteInteraction, getContactTimelineAndLabels } from '@/lib/actions/interactions'
 import { cn } from '@/lib/utils'
 import { useActionToast } from '@/components/ActionToast'
 import { ConfirmDialog } from '@/components/ConfirmDialog'
@@ -50,7 +49,6 @@ interface PopulatedInteraction {
 
 export default function ContextPanel({ profileId, allLabels }: Props) {
   const { selectedContact, updateContactDescription, toggleContactLabel, undoWindowSeconds } = useWorkspaceStore()
-  const supabase = createSupabaseBrowserClient()
   const showToast = useActionToast()
 
   // Local State
@@ -65,31 +63,20 @@ export default function ContextPanel({ profileId, allLabels }: Props) {
     if (!selectedContact) return
     setLoadingTimeline(true)
     try {
-      // 1. Fetch active label assignments
-      const { data: labelData } = await supabase
-        .from('contact_labels')
-        .select('label_id')
-        .eq('contact_id', selectedContact.id)
-
-      interface ContactLabelRow {
-        label_id: string
+      const res = await getContactTimelineAndLabels(selectedContact.id)
+      if (!res.success) {
+        console.error('Error loading timeline and labels from server action:', res.error)
+        return
       }
-      setActiveLabelIds((labelData as ContactLabelRow[])?.map(l => l.label_id) || [])
 
-      // 2. Fetch timeline — select only fields required for display
-      const { data: interData } = await supabase
-        .from('interactions')
-        .select('id, type, created_at, note_details(body), call_details(outcome, summary), email_details(subject, body), meeting_details(body)')
-        .eq('contact_id', selectedContact.id)
-        .order('created_at', { ascending: false })
-
-      setInteractions((interData || []) as PopulatedInteraction[])
+      setActiveLabelIds(res.activeLabelIds || [])
+      setInteractions((res.interactions || []) as PopulatedInteraction[])
     } catch (err) {
       console.error('Error loading details:', err)
     } finally {
       setLoadingTimeline(false)
     }
-  }, [selectedContact, supabase])
+  }, [selectedContact])
 
   // Load Contact Details (Notes, Labels, Timeline)
   React.useEffect(() => {
