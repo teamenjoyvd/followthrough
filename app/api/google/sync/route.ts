@@ -173,7 +173,7 @@ export async function POST() {
     googleFetchDetail = `${allPeople.length} contact(s) fetched`
     if (syncTokenCleared) googleFetchDetail += ' (sync_token expired — fell back to full sync)'
   } catch (error: any) {
-    const errorMessage = error?.message || 'Unknown fetch error'
+    const errorMessage = error instanceof Error ? error.message : (typeof error === 'string' ? error : 'Unknown fetch error')
     steps.push({ label: 'Google API fetch', status: 'error', detail: errorMessage })
     return NextResponse.json({ error: errorMessage, steps }, { status: 502 })
   }
