@@ -1,6 +1,7 @@
 'use client'
 
 import * as React from 'react'
+import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import {
   Sheet,
@@ -316,6 +317,7 @@ export default function LogInteractionSheet({
   showTrigger = true,
   onSuccess: onSuccessProp,
 }: Props) {
+  const router = useRouter()
   const [localOpen, setLocalOpen] = React.useState(false)
   const isControlled = controlledOpen !== undefined
   const open = isControlled ? controlledOpen : localOpen
@@ -332,8 +334,9 @@ export default function LogInteractionSheet({
 
   const handleSuccess = React.useCallback(() => {
     setOpen(false)
+    router.refresh()
     onSuccessProp?.()
-  }, [setOpen, onSuccessProp])
+  }, [setOpen, router, onSuccessProp])
 
   return (
     <Sheet open={open} onOpenChange={setOpen}>
