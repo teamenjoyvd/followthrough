@@ -247,9 +247,13 @@ export async function syncPeople(
   if (newContactsToInsert.length > 0) {
     // Strip temporary phone_numbers fields from the contacts insert payload
     const contactsPayload = newContactsToInsert.map(({ phone_numbers, ...rest }) => rest)
+    // Use upsert with explicit onConflict so reconnect/full-sync is idempotent.
+    // A cleared sync token causes Google to return all contacts; any that already
+    // exist would crash a plain .insert(). ignoreDuplicates: false ensures the
+    // row is updated (not silently skipped) on conflict.
     const { data: insertedContacts, error } = await supabase
       .from('contacts')
-      .insert(contactsPayload)
+      .upsert(contactsPayload, { onConflict: 'google_contact_id,profile_id', ignoreDuplicates: false })
       .select('id, google_contact_id')
     
     if (error) throw error
@@ -305,7 +309,7 @@ export async function syncPeople(
     for (const [_, updatesList] of groupedUpdates.entries()) {
       const { error } = await supabase
         .from('contacts')
-        .upsert(updatesList)
+        .upsert(updatesList, { onConflict: 'id' })
       if (error) throw error
     }
   }
