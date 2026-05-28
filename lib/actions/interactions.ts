@@ -293,7 +293,7 @@ export async function deleteInteraction(
       profileId: profile.id,
       actionType: 'deleteInteraction',
       entityType: 'interaction',
-      entityId: interaction.id,
+      entityId: interactionId,
       payload: { type: interaction.type, detail: detailSnapshot },
       undoWindowSeconds: null, // confirm-popup action — not undoable
     })
