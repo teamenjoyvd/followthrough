@@ -101,7 +101,11 @@ export async function syncPeople(
   }
   const googleContactIds = Array.from(seenGoogleIds)
 
-  // 2. Fetch existing contacts in bulk (batch-fetched in chunks of 100 to bypass both PostgREST URL size limits and Supabase 1000-row limits)
+  // 2. Fetch existing contacts in bulk (batch-fetched in chunks of 100 to bypass PostgREST URL size limits).
+  // NOTE: .limit() is intentionally omitted — the chunk size already caps each batch at 100 IDs,
+  // so there cannot be more than 100 matching rows. Adding .limit(100) would silently truncate
+  // results when a batch returns exactly 100 rows, causing missed contacts to fall through to insert
+  // and blow up on the contacts_google_id_per_profile unique constraint.
   const existingContacts: any[] = []
   const batchSize = 100
   for (let i = 0; i < googleContactIds.length; i += batchSize) {
@@ -111,7 +115,6 @@ export async function syncPeople(
       .select('*')
       .eq('profile_id', profileId)
       .in('google_contact_id', batchIds)
-      .limit(batchSize)
     
     if (error) throw error
     if (batchData) {
