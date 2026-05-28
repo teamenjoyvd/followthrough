@@ -75,9 +75,10 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
       // but resolve from fresh server-side allContacts list to propagate updates (like last_contacted_at).
       // This removes the workingList[0] auto-open that caused the stale sheet bug.
       // Root cause (Zustand store surviving navigation) needs a follow-up issue.
-      selectedContact: get().selectedContact
-        ? (allContacts.find(c => c.id === get().selectedContact?.id) || get().selectedContact)
-        : null
+      selectedContact: (() => {
+        const selected = get().selectedContact
+        return selected ? (allContacts.find(c => c.id === selected.id) || selected) : null
+      })()
     })
   },
 
