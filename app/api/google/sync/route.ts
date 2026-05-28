@@ -4,6 +4,7 @@ import { createSupabaseServerClient, getProfileId } from '@/lib/supabase/server'
 import { syncPeople } from '@/lib/google/sync'
 import { decryptToken, encryptToken } from '@/app/api/google/callback/route'
 import type { GooglePerson } from '@/lib/google/sync'
+import type { SyncStep } from '@/types/google-sync'
 
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID!
 const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET!
@@ -26,15 +27,27 @@ async function refreshAccessToken(refreshToken: string): Promise<string | null> 
 }
 
 export async function POST() {
+  const steps: SyncStep[] = []
+
+  // ── Step 1: Auth check ────────────────────────────────────────────────────────
   const { userId } = await auth()
-  if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  if (!userId) {
+    steps.push({ label: 'Auth check', status: 'error', detail: 'Unauthorized — no Clerk userId' })
+    return NextResponse.json({ error: 'Unauthorized', steps }, { status: 401 })
+  }
+  steps.push({ label: 'Auth check', status: 'ok', detail: `userId: ${userId}` })
 
   const supabase = await createSupabaseServerClient()
 
+  // ── Step 2: Profile lookup ────────────────────────────────────────────────────
   const profileId = await getProfileId(supabase, userId)
-  if (!profileId) return NextResponse.json({ error: 'Profile not found' }, { status: 404 })
+  if (!profileId) {
+    steps.push({ label: 'Profile lookup', status: 'error', detail: 'No profile found for this user' })
+    return NextResponse.json({ error: 'Profile not found', steps }, { status: 404 })
+  }
+  steps.push({ label: 'Profile lookup', status: 'ok', detail: `profileId: ${profileId}` })
 
-  // Load sync state — use (supabase as any) because generated types predate the new columns
+  // ── Step 3: Token load ────────────────────────────────────────────────────────
   const { data: syncState } = await (supabase as any)
     .from('google_sync_state')
     .select('access_token, refresh_token, sync_token')
@@ -48,12 +61,23 @@ export async function POST() {
     }
 
   if (!syncState?.access_token) {
-    return NextResponse.json({ error: 'Google not connected' }, { status: 400 })
+    steps.push({ label: 'Token load', status: 'error', detail: 'Google not connected — no access token in sync state' })
+    return NextResponse.json({ error: 'Google not connected', steps }, { status: 400 })
+  }
+  steps.push({ label: 'Token load', status: 'ok', detail: syncState.sync_token ? 'Incremental sync (sync_token present)' : 'Full sync (no sync_token)' })
+
+  // ── Step 4: Token decrypt ─────────────────────────────────────────────────────
+  let accessToken: string
+  try {
+    accessToken = await decryptToken(syncState.access_token, GOOGLE_TOKEN_SECRET)
+    steps.push({ label: 'Token decrypt', status: 'ok' })
+  } catch (err: any) {
+    steps.push({ label: 'Token decrypt', status: 'error', detail: err?.message ?? 'Decrypt failed' })
+    console.error('Google sync failed:', err)
+    return NextResponse.json({ error: 'Failed to decrypt token', steps }, { status: 500 })
   }
 
-  let accessToken = await decryptToken(syncState.access_token, GOOGLE_TOKEN_SECRET)
-
-  // Fetch contacts from Google People API
+  // ── Step 5: Google API fetch ──────────────────────────────────────────────────
   const buildUrl = (syncToken: string | null, pageToken?: string) => {
     const params = new URLSearchParams({
       personFields: 'names,emailAddresses,organizations,phoneNumbers',
@@ -64,9 +88,8 @@ export async function POST() {
     return `https://people.googleapis.com/v1/people/me/connections?${params}`
   }
 
-  // Declared outside fetchConnections so the retry path can reset it, preventing
-  // duplication when a bad syncToken is detected mid-pagination.
   let allPeople: GooglePerson[] = []
+  let syncTokenCleared = false
 
   const fetchConnections = async (
     syncToken: string | null,
@@ -82,7 +105,6 @@ export async function POST() {
       const decryptedRefresh = await decryptToken(syncState.refresh_token, GOOGLE_TOKEN_SECRET)
       const newAccess = await refreshAccessToken(decryptedRefresh)
       if (newAccess) {
-        // Persist new encrypted access token
         const newEncrypted = await encryptToken(newAccess, GOOGLE_TOKEN_SECRET)
         await (supabase as any)
           .from('google_sync_state')
@@ -97,8 +119,6 @@ export async function POST() {
     }
 
     if (!res.ok) {
-      // Parse the error body as JSON to extract a meaningful message.
-      // Google returns structured errors: { error: { code, message, details, status } }
       let errorMessage = `Google API error: HTTP ${res.status}`
       try {
         const errorBody = await res.json() as { error?: { message?: string } }
@@ -107,22 +127,15 @@ export async function POST() {
         // JSON parse failed — fall through with the default HTTP status message
       }
 
-      // Any 400 when a syncToken was passed means the token is bad (expired, malformed, or
-      // invalidated by a reconnect). Google may return a structured EXPIRED_SYNC_TOKEN reason
-      // or a plain "Bad Request" with no structured detail — both are unrecoverable with
-      // the current token. Clear it and retry once as a full sync.
       if (res.status === 400 && syncToken !== null && !retriedFullSync) {
         await (supabase as any)
           .from('google_sync_state')
           .update({ sync_token: null })
           .eq('profile_id', profileId)
 
-        // Null the closed-over syncState so subsequent pagination loop iterations
-        // don't re-pass the bad token and re-trigger this path.
         syncState.sync_token = null
-        // Reset accumulated contacts so pages fetched before the mid-pagination
-        // failure are not duplicated when the full sync retry re-fetches from page one.
         allPeople = []
+        syncTokenCleared = true
         return fetchConnections(null, undefined, true)
       }
 
@@ -139,6 +152,8 @@ export async function POST() {
   let pageToken: string | undefined = undefined
   let newSyncToken: string | null = null
   let hasMore = true
+  let googleFetchStatus: 'ok' | 'error' = 'ok'
+  let googleFetchDetail = ''
 
   try {
     while (hasMore) {
@@ -155,21 +170,43 @@ export async function POST() {
         hasMore = false
       }
     }
+    googleFetchDetail = `${allPeople.length} contact(s) fetched`
+    if (syncTokenCleared) googleFetchDetail += ' (sync_token expired — fell back to full sync)'
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 502 })
+    steps.push({ label: 'Google API fetch', status: 'error', detail: error.message })
+    return NextResponse.json({ error: error.message, steps }, { status: 502 })
   }
 
+  steps.push({ label: 'Google API fetch', status: 'ok', detail: googleFetchDetail })
+
+  // ── Step 6: sync_token clear (conditional) ────────────────────────────────────
+  if (syncTokenCleared) {
+    steps.push({ label: 'sync_token clear', status: 'warn', detail: 'Stale sync_token detected — cleared and retried as full sync' })
+  }
+
+  // ── Step 7: syncPeople ────────────────────────────────────────────────────────
   try {
     const result = await syncPeople(supabase, profileId, allPeople, newSyncToken)
+    steps.push({
+      label: 'syncPeople',
+      status: 'ok',
+      detail: `upserted: ${result.upserted}, conflicts: ${result.conflictsCreated}`,
+    })
+
+    // ── Step 8: State update ──────────────────────────────────────────────────
+    steps.push({ label: 'State update', status: 'ok', detail: `sync_token ${result.newSyncToken ? 'updated' : 'unchanged (null)'}` })
+
     return NextResponse.json({
       imported: result.upserted,
       conflicts: result.conflictsCreated,
       newSyncToken: result.newSyncToken,
+      steps,
     })
   } catch (error: any) {
+    steps.push({ label: 'syncPeople', status: 'error', detail: error.message || 'Failed to persist synced contacts' })
     console.error('Google sync failed:', error)
     return NextResponse.json(
-      { error: error.message || 'Failed to persist synced contacts' },
+      { error: error.message || 'Failed to persist synced contacts', steps },
       { status: 500 }
     )
   }
