@@ -63,6 +63,9 @@ export interface SyncResult {
  *   in the inbox UI.
  * - Existing contacts with null google_contact_id are never overwritten by
  *   this path — only contacts with a matching google_contact_id are updated.
+ * - All .in() queries are chunked to BATCH_SIZE (100) to stay within
+ *   PostgREST's URL size limit. Never use an unbounded .in() on a list
+ *   that scales with the user's contact count.
  */
 export async function syncPeople(
   supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>,
@@ -72,6 +75,7 @@ export async function syncPeople(
 ): Promise<SyncResult> {
   let upserted = 0
   let conflictsCreated = 0
+  const BATCH_SIZE = 100
 
   if (people.length === 0) {
     const syncStateUpdate: any = {
@@ -101,15 +105,14 @@ export async function syncPeople(
   }
   const googleContactIds = Array.from(seenGoogleIds)
 
-  // 2. Fetch existing contacts in bulk (batch-fetched in chunks of 100 to bypass PostgREST URL size limits).
-  // NOTE: .limit() is intentionally omitted — the chunk size already caps each batch at 100 IDs,
-  // so there cannot be more than 100 matching rows. Adding .limit(100) would silently truncate
-  // results when a batch returns exactly 100 rows, causing missed contacts to fall through to insert
+  // 2. Fetch existing contacts in bulk (batch-fetched in chunks of BATCH_SIZE to bypass PostgREST URL size limits).
+  // NOTE: .limit() is intentionally omitted — the chunk size already caps each batch at BATCH_SIZE IDs,
+  // so there cannot be more than BATCH_SIZE matching rows. Adding .limit() would silently truncate
+  // results when a batch returns exactly BATCH_SIZE rows, causing missed contacts to fall through to insert
   // and blow up on the contacts_google_id_per_profile unique constraint.
   const existingContacts: any[] = []
-  const batchSize = 100
-  for (let i = 0; i < googleContactIds.length; i += batchSize) {
-    const batchIds = googleContactIds.slice(i, i + batchSize)
+  for (let i = 0; i < googleContactIds.length; i += BATCH_SIZE) {
+    const batchIds = googleContactIds.slice(i, i + BATCH_SIZE)
     const { data: batchData, error } = await supabase
       .from('contacts')
       .select('*')
@@ -203,21 +206,23 @@ export async function syncPeople(
 
   // 4. Perform database writes in batch
 
-  // Bulk update existing contacts' phone numbers (Address GCR N+1 query issue)
+  // Bulk update existing contacts' phone numbers.
+  // Chunked to BATCH_SIZE to stay within PostgREST URL size limits —
+  // existingPhonesMap can contain O(contacts) entries for large Google accounts.
   if (existingPhonesMap.size > 0) {
     const existingContactIds = Array.from(existingPhonesMap.keys())
     
-    // 1 bulk select instead of N selects!
-    const { data: phoneRecords, error: phoneFetchError } = await supabase
-      .from('phone_numbers')
-      .select('contact_id')
-      .in('contact_id', existingContactIds)
-      
-    if (phoneFetchError) throw phoneFetchError
-
     const contactsWithPhones = new Set<string>()
-    if (phoneRecords) {
-      phoneRecords.forEach((r: any) => contactsWithPhones.add(r.contact_id))
+    for (let i = 0; i < existingContactIds.length; i += BATCH_SIZE) {
+      const batchIds = existingContactIds.slice(i, i + BATCH_SIZE)
+      const { data: phoneRecords, error: phoneFetchError } = await supabase
+        .from('phone_numbers')
+        .select('contact_id')
+        .in('contact_id', batchIds)
+      if (phoneFetchError) throw phoneFetchError
+      if (phoneRecords) {
+        phoneRecords.forEach((r: any) => contactsWithPhones.add(r.contact_id))
+      }
     }
 
     const phoneBulkInserts: any[] = []
@@ -236,7 +241,6 @@ export async function syncPeople(
     })
 
     if (phoneBulkInserts.length > 0) {
-      // 1 bulk insert instead of N inserts!
       const { error: phoneInsertError } = await supabase
         .from('phone_numbers')
         .insert(phoneBulkInserts)
@@ -264,16 +268,18 @@ export async function syncPeople(
     if (insertedContacts && insertedContacts.length > 0) {
       const insertedContactIds = insertedContacts.map((c: any) => c.id)
 
-      const { data: existingPhones, error: phoneFetchError } = await supabase
-        .from('phone_numbers')
-        .select('contact_id')
-        .in('contact_id', insertedContactIds)
-
-      if (phoneFetchError) throw phoneFetchError
-
+      // Chunked for the same PostgREST URL limit reason as above.
       const contactsWithPhones = new Set<string>()
-      if (existingPhones) {
-        existingPhones.forEach((r: any) => contactsWithPhones.add(r.contact_id))
+      for (let i = 0; i < insertedContactIds.length; i += BATCH_SIZE) {
+        const batchIds = insertedContactIds.slice(i, i + BATCH_SIZE)
+        const { data: existingPhones, error: phoneFetchError } = await supabase
+          .from('phone_numbers')
+          .select('contact_id')
+          .in('contact_id', batchIds)
+        if (phoneFetchError) throw phoneFetchError
+        if (existingPhones) {
+          existingPhones.forEach((r: any) => contactsWithPhones.add(r.contact_id))
+        }
       }
 
       const phoneInserts: any[] = []
