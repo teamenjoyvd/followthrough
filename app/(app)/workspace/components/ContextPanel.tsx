@@ -301,13 +301,15 @@ export default function ContextPanel({ profileId, allLabels }: Props) {
 
                 if (item.type === 'call') {
                   title = 'Phone Call'
-                  const outcome = item.call_details?.outcome?.replace('_', ' ') || 'Completed'
-                  const sum = item.call_details?.summary ? `— "${item.call_details.summary}"` : ''
+                  const callDetails = item.call_details
+                  const outcome = callDetails?.outcome?.replace('_', ' ') || 'Completed'
+                  const sum = callDetails?.summary ? `— "${callDetails.summary}"` : ''
                   detail = `Outcome: ${outcome} ${sum}`
                 } else if (item.type === 'email') {
                   title = 'Email Synced'
-                  const sub = item.email_details?.subject || 'No Subject'
-                  const body = item.email_details?.body ? `— "${item.email_details.body}"` : ''
+                  const emailDetails = item.email_details
+                  const sub = emailDetails?.subject || 'No Subject'
+                  const body = emailDetails?.body ? `— "${emailDetails.body}"` : ''
                   detail = `${sub} ${body}`
                 } else if (item.type === 'meeting') {
                   title = 'Meeting'
