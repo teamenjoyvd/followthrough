@@ -6,10 +6,10 @@
 -- text <-> pipeline_status coercion in view context, breaking
 -- all .eq('pipeline_status', ...) filtered queries.
 --
--- Fix: enumerate all contacts columns explicitly, casting
--- pipeline_status::text so PostgREST receives a plain text
--- column. App code already treats pipeline_status as a string,
--- so no app-layer changes are required.
+-- Fix: enumerate all contacts columns explicitly, casting all
+-- enum columns (pipeline_status, created_by_source,
+-- last_updated_by_source) to text so PostgREST .eq() filters
+-- work correctly on all of them.
 -- ============================================================
 
 CREATE OR REPLACE VIEW contacts_search_view WITH (security_barrier) AS
@@ -33,6 +33,9 @@ SELECT
   c.snoozed_until,
   c.last_contacted_at,
 
+  -- snooze restore (from 004_pre_snooze_status; plain text column)
+  c.pre_snooze_status,
+
   -- google sync
   c.google_contact_id,
 
@@ -41,8 +44,10 @@ SELECT
   c.working_list_added_at,
 
   -- audit / source tracking (from 005_corporate_crm_features)
-  c.created_by_source,
-  c.last_updated_by_source,
+  -- cast to text: contact_source is an enum and would trigger the
+  -- same COALESCE mismatch if ever used as a PostgREST filter
+  c.created_by_source::text AS created_by_source,
+  c.last_updated_by_source::text AS last_updated_by_source,
   c.source_detail,
   c.import_log_id,
 
