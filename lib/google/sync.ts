@@ -258,8 +258,24 @@ export async function syncPeople(
     
     if (error) throw error
 
-    // Insert phone records for the newly created contacts
+    // Insert phone records for contacts returned by the upsert.
+    // On a full/reconnect sync, upsert returns both newly created AND updated contacts,
+    // so we must check which already have phone numbers before inserting to avoid duplicates.
     if (insertedContacts && insertedContacts.length > 0) {
+      const insertedContactIds = insertedContacts.map((c: any) => c.id)
+
+      const { data: existingPhones, error: phoneFetchError } = await supabase
+        .from('phone_numbers')
+        .select('contact_id')
+        .in('contact_id', insertedContactIds)
+
+      if (phoneFetchError) throw phoneFetchError
+
+      const contactsWithPhones = new Set<string>()
+      if (existingPhones) {
+        existingPhones.forEach((r: any) => contactsWithPhones.add(r.contact_id))
+      }
+
       const phoneInserts: any[] = []
       const idMap = new Map<string, string>()
       insertedContacts.forEach((c: any) => {
@@ -268,7 +284,7 @@ export async function syncPeople(
 
       newContactsToInsert.forEach((c: any) => {
         const contactId = idMap.get(c.google_contact_id)
-        if (contactId && c.phone_numbers && c.phone_numbers.length > 0) {
+        if (contactId && !contactsWithPhones.has(contactId) && c.phone_numbers && c.phone_numbers.length > 0) {
           c.phone_numbers.forEach((p: any, idx: number) => {
             phoneInserts.push({
               contact_id: contactId,
