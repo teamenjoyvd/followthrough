@@ -1,7 +1,7 @@
 'use client'
 
-import { useRouter, useTransition } from 'next/navigation'
-import { useCallback, useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
+import { useCallback, useState, useEffect, useTransition } from 'react'
 import Link from 'next/link'
 import { X, SlidersHorizontal, Plus, Zap, ChevronDown, ChevronUp, Tag } from 'lucide-react'
 import { PIPELINE_STATUSES } from '@/app/(app)/contacts/components/constants'
@@ -118,7 +118,6 @@ function buildActivePills({
     pills.push({ key: 'source', label: `Source: ${sourceLabel}`, clearOverride: { source: '' } })
   }
 
-  // One pill per active label
   if (currentLabels) {
     const activeIds = currentLabels.split(',').filter(Boolean)
     for (const id of activeIds) {
@@ -159,7 +158,6 @@ export function ContactFilterBar({
   const [popoverOpen, setPopoverOpen] = useState(false)
   const [showAdvanced, setShowAdvanced] = useState(false)
 
-  // Local state for debounced text inputs inside popover
   const [company, setCompany] = useState(currentCompany)
   const [firstName, setFirstName] = useState(currentFirstName)
   const [lastName, setLastName] = useState(currentLastName)
@@ -172,7 +170,6 @@ export function ContactFilterBar({
   useEffect(() => { setPhone(currentPhone) }, [currentPhone])
   useEffect(() => { setEmail(currentEmail) }, [currentEmail])
 
-  // Auto-expand advanced if any advanced filter is active
   useEffect(() => {
     if (currentFirstName || currentLastName || currentPhone || currentEmail ||
         currentHasEmail || currentHasPhone || currentSource) {
@@ -217,7 +214,6 @@ export function ContactFilterBar({
     ],
   )
 
-  // Debounced text input effect
   useEffect(() => {
     const hasChanges = (
       company.trim() !== currentCompany ||
@@ -445,31 +441,26 @@ export function ContactFilterBar({
 
                 {showAdvanced && (
                   <div className="mt-3 grid grid-cols-2 gap-3 animate-in fade-in slide-in-from-top-1 duration-200">
-                    {/* First name */}
                     <div>
                       <label className="block text-[10px] font-bold text-[#74796e] uppercase tracking-wider mb-1">First name</label>
                       <input type="text" placeholder="Search…" value={firstName} onChange={e => setFirstName(e.target.value)}
                         className="w-full text-xs border border-[#e4e0d8] rounded-xl px-2.5 py-1.5 bg-[#f5f1ea] text-[#2e3230] placeholder-[#74796e] focus:outline-none focus:ring-2 focus:ring-[#4a7c59] focus:border-transparent transition-all" />
                     </div>
-                    {/* Last name */}
                     <div>
                       <label className="block text-[10px] font-bold text-[#74796e] uppercase tracking-wider mb-1">Last name</label>
                       <input type="text" placeholder="Search…" value={lastName} onChange={e => setLastName(e.target.value)}
                         className="w-full text-xs border border-[#e4e0d8] rounded-xl px-2.5 py-1.5 bg-[#f5f1ea] text-[#2e3230] placeholder-[#74796e] focus:outline-none focus:ring-2 focus:ring-[#4a7c59] focus:border-transparent transition-all" />
                     </div>
-                    {/* Email */}
                     <div>
                       <label className="block text-[10px] font-bold text-[#74796e] uppercase tracking-wider mb-1">Email</label>
                       <input type="text" placeholder="Search…" value={email} onChange={e => setEmail(e.target.value)}
                         className="w-full text-xs border border-[#e4e0d8] rounded-xl px-2.5 py-1.5 bg-[#f5f1ea] text-[#2e3230] placeholder-[#74796e] focus:outline-none focus:ring-2 focus:ring-[#4a7c59] focus:border-transparent transition-all" />
                     </div>
-                    {/* Phone */}
                     <div>
                       <label className="block text-[10px] font-bold text-[#74796e] uppercase tracking-wider mb-1">Phone</label>
                       <input type="text" placeholder="Search…" value={phone} onChange={e => setPhone(e.target.value)}
                         className="w-full text-xs border border-[#e4e0d8] rounded-xl px-2.5 py-1.5 bg-[#f5f1ea] text-[#2e3230] placeholder-[#74796e] focus:outline-none focus:ring-2 focus:ring-[#4a7c59] focus:border-transparent transition-all" />
                     </div>
-                    {/* Has email */}
                     <div>
                       <label className="block text-[10px] font-bold text-[#74796e] uppercase tracking-wider mb-1">Email status</label>
                       <select value={currentHasEmail} onChange={e => startTransition(() => router.replace(buildHref({ has_email: e.target.value })))}
@@ -479,7 +470,6 @@ export function ContactFilterBar({
                         <option value="no">No email</option>
                       </select>
                     </div>
-                    {/* Has phone */}
                     <div>
                       <label className="block text-[10px] font-bold text-[#74796e] uppercase tracking-wider mb-1">Phone status</label>
                       <select value={currentHasPhone} onChange={e => startTransition(() => router.replace(buildHref({ has_phone: e.target.value })))}
@@ -489,7 +479,6 @@ export function ContactFilterBar({
                         <option value="no">No phone</option>
                       </select>
                     </div>
-                    {/* Source */}
                     <div className="col-span-2">
                       <label className="block text-[10px] font-bold text-[#74796e] uppercase tracking-wider mb-1">Sync source</label>
                       <select value={currentSource} onChange={e => startTransition(() => router.replace(buildHref({ source: e.target.value })))}
