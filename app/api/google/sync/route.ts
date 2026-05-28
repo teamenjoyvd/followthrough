@@ -67,6 +67,7 @@ export async function POST() {
   const fetchConnections = async (
     syncToken: string | null,
     pageToken?: string,
+    retriedFullSync = false,
   ): Promise<{ connections?: GooglePerson[]; nextSyncToken?: string; nextPageToken?: string }> => {
     const url = buildUrl(syncToken, pageToken)
     let res = await fetch(url, {
@@ -92,8 +93,44 @@ export async function POST() {
     }
 
     if (!res.ok) {
-      const body = await res.text()
-      throw new Error(`Google API error: ${body}`)
+      // Parse the error body as JSON to extract a meaningful message.
+      // Google returns structured errors: { error: { code, message, details, status } }
+      let errorMessage = `Google API error: HTTP ${res.status}`
+      let isExpiredSyncToken = false
+
+      try {
+        const errorBody = await res.json() as {
+          error?: {
+            message?: string
+            status?: string
+            details?: Array<{ reason?: string }>
+          }
+        }
+        errorMessage = errorBody.error?.message ?? errorMessage
+
+        // Detect expired sync token — Google returns reason "EXPIRED_SYNC_TOKEN" in error details
+        // or surfaces it in the message. Sync tokens expire 7 days after a full sync.
+        isExpiredSyncToken =
+          errorBody.error?.details?.some(d => d.reason === 'EXPIRED_SYNC_TOKEN') ??
+          errorBody.error?.message?.includes('EXPIRED_SYNC_TOKEN') ??
+          false
+      } catch {
+        // JSON parse failed — fall through with the default HTTP status message
+      }
+
+      if (isExpiredSyncToken && !retriedFullSync) {
+        // Clear the stale sync token in DB and in the closed-over syncState so subsequent
+        // pagination loop iterations don't re-pass the expired token and re-trigger this path.
+        await (supabase as any)
+          .from('google_sync_state')
+          .update({ sync_token: null })
+          .eq('profile_id', profileId)
+
+        syncState.sync_token = null
+        return fetchConnections(null, undefined, true)
+      }
+
+      throw new Error(errorMessage)
     }
 
     return await res.json() as {
