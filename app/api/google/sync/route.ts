@@ -64,6 +64,10 @@ export async function POST() {
     return `https://people.googleapis.com/v1/people/me/connections?${params}`
   }
 
+  // Declared outside fetchConnections so the retry path can reset it, preventing
+  // duplication when a bad syncToken is detected mid-pagination.
+  let allPeople: GooglePerson[] = []
+
   const fetchConnections = async (
     syncToken: string | null,
     pageToken?: string,
@@ -113,9 +117,12 @@ export async function POST() {
           .update({ sync_token: null })
           .eq('profile_id', profileId)
 
-        // Also null the closed-over syncState so subsequent pagination loop iterations
+        // Null the closed-over syncState so subsequent pagination loop iterations
         // don't re-pass the bad token and re-trigger this path.
         syncState.sync_token = null
+        // Reset accumulated contacts so pages fetched before the mid-pagination
+        // failure are not duplicated when the full sync retry re-fetches from page one.
+        allPeople = []
         return fetchConnections(null, undefined, true)
       }
 
@@ -129,7 +136,6 @@ export async function POST() {
     }
   }
 
-  let allPeople: GooglePerson[] = []
   let pageToken: string | undefined = undefined
   let newSyncToken: string | null = null
   let hasMore = true
