@@ -133,6 +133,7 @@ export async function POST() {
           .update({ sync_token: null })
           .eq('profile_id', profileId)
 
+        steps.push({ label: 'sync_token clear', status: 'warn', detail: 'Stale sync_token detected — cleared and retried as full sync' })
         syncState.sync_token = null
         allPeople = []
         syncTokenCleared = true
@@ -152,7 +153,6 @@ export async function POST() {
   let pageToken: string | undefined = undefined
   let newSyncToken: string | null = null
   let hasMore = true
-  let googleFetchStatus: 'ok' | 'error' = 'ok'
   let googleFetchDetail = ''
 
   try {
@@ -173,16 +173,12 @@ export async function POST() {
     googleFetchDetail = `${allPeople.length} contact(s) fetched`
     if (syncTokenCleared) googleFetchDetail += ' (sync_token expired — fell back to full sync)'
   } catch (error: any) {
-    steps.push({ label: 'Google API fetch', status: 'error', detail: error.message })
-    return NextResponse.json({ error: error.message, steps }, { status: 502 })
+    const errorMessage = error?.message || 'Unknown fetch error'
+    steps.push({ label: 'Google API fetch', status: 'error', detail: errorMessage })
+    return NextResponse.json({ error: errorMessage, steps }, { status: 502 })
   }
 
   steps.push({ label: 'Google API fetch', status: 'ok', detail: googleFetchDetail })
-
-  // ── Step 6: sync_token clear (conditional) ────────────────────────────────────
-  if (syncTokenCleared) {
-    steps.push({ label: 'sync_token clear', status: 'warn', detail: 'Stale sync_token detected — cleared and retried as full sync' })
-  }
 
   // ── Step 7: syncPeople ────────────────────────────────────────────────────────
   try {
