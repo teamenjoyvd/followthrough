@@ -1,14 +1,12 @@
 import { auth } from '@clerk/nextjs/server'
 import { redirect } from 'next/navigation'
-import Link from 'next/link'
-import { Plus } from 'lucide-react'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import ContactsClient from './components/ContactsClient'
 import { PIPELINE_STATUSES } from './components/constants'
 import { ContactFilterBar } from '@/components/ContactFilterBar'
-import { FilterShortcuts } from '@/components/FilterShortcuts'
-import { SearchInput } from './components/SearchInput'
 import { MobileFilterBar } from '@/components/MobileFilterBar'
+import Link from 'next/link'
+import { Plus } from 'lucide-react'
 import type { Database } from '@/types/supabase'
 
 type PipelineStatus = Database['public']['Enums']['pipeline_status']
@@ -283,6 +281,7 @@ export default async function ContactsPage({
 
   return (
     <div className="flex flex-col h-full bg-[#faf6f0]">
+
       {/* ── Mobile heading ── */}
       <div className="flex md:hidden items-center justify-between px-4 py-3 border-b border-[#e4e0d8] bg-[#faf6f0] shrink-0">
         <h1 className="font-headline text-2xl font-bold text-[#2e3230]">Contacts</h1>
@@ -318,9 +317,8 @@ export default async function ContactsPage({
         />
       </div>
 
-      {/* ── Desktop filter bar ── */}
-      <div className="hidden md:block px-4 md:px-6 py-4 bg-[#faf6f0] border-b border-[#e4e0d8] space-y-4 shrink-0">
-        <SearchInput defaultValue={query} />
+      {/* ── Desktop filter bar — single toolbar row ── */}
+      <div className="hidden md:block px-4 md:px-6 py-4 bg-[#faf6f0] border-b border-[#e4e0d8] shrink-0">
         <ContactFilterBar
           currentStatus={statusFilter}
           currentLastContacted={lastContactedFilter}
@@ -340,7 +338,6 @@ export default async function ContactsPage({
           currentLabels={params.labels ?? ''}
           currentFocused={focused}
         />
-        <FilterShortcuts />
       </div>
 
       <ContactsClient
