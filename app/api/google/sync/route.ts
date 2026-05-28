@@ -73,7 +73,7 @@ export async function POST() {
     steps.push({ label: 'Token decrypt', status: 'ok' })
   } catch (err: any) {
     steps.push({ label: 'Token decrypt', status: 'error', detail: err?.message ?? 'Decrypt failed' })
-    console.error('Google sync failed:', err)
+    console.error('Google sync failed:', JSON.stringify(err, Object.getOwnPropertyNames(err)))
     return NextResponse.json({ error: 'Failed to decrypt token', steps }, { status: 500 })
   }
 
@@ -200,7 +200,7 @@ export async function POST() {
     })
   } catch (error: any) {
     steps.push({ label: 'syncPeople', status: 'error', detail: error.message || 'Failed to persist synced contacts' })
-    console.error('Google sync failed:', error)
+    console.error('Google sync failed:', JSON.stringify(error, Object.getOwnPropertyNames(error)))
     return NextResponse.json(
       { error: error.message || 'Failed to persist synced contacts', steps },
       { status: 500 }
