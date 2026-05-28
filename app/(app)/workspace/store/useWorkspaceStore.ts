@@ -71,10 +71,14 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
       completedTodayCount,
       streakDays,
       undoWindowSeconds: undoWindowSeconds ?? get().undoWindowSeconds,
-      // Preserve existing selection on re-init (fires on every prop change, not just mount).
+      // Preserve existing selection on re-init (fires on every prop change, not just mount)
+      // but resolve from fresh server-side allContacts list to propagate updates (like last_contacted_at).
       // This removes the workingList[0] auto-open that caused the stale sheet bug.
       // Root cause (Zustand store surviving navigation) needs a follow-up issue.
-      selectedContact: get().selectedContact
+      selectedContact: (() => {
+        const selected = get().selectedContact
+        return selected ? (allContacts.find(c => c.id === selected.id) || selected) : null
+      })()
     })
   },
 
