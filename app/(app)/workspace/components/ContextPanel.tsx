@@ -42,10 +42,10 @@ interface PopulatedInteraction {
   id: string
   type: 'call' | 'email' | 'meeting' | 'note'
   created_at: string
-  note_details: NoteDetail[]
-  call_details: CallDetail[]
-  email_details: EmailDetail[]
-  meeting_details: MeetingDetail[]
+  note_details: NoteDetail | null
+  call_details: CallDetail | null
+  email_details: EmailDetail | null
+  meeting_details: MeetingDetail | null
 }
 
 export default function ContextPanel({ profileId, allLabels }: Props) {
@@ -301,20 +301,22 @@ export default function ContextPanel({ profileId, allLabels }: Props) {
 
                 if (item.type === 'call') {
                   title = 'Phone Call'
-                  const outcome = item.call_details?.[0]?.outcome?.replace('_', ' ') || 'Completed'
-                  const sum = item.call_details?.[0]?.summary ? `— "${item.call_details[0].summary}"` : ''
+                  const callDetails = item.call_details
+                  const outcome = callDetails?.outcome?.replace('_', ' ') || 'Completed'
+                  const sum = callDetails?.summary ? `— "${callDetails.summary}"` : ''
                   detail = `Outcome: ${outcome} ${sum}`
                 } else if (item.type === 'email') {
                   title = 'Email Synced'
-                  const sub = item.email_details?.[0]?.subject || 'No Subject'
-                  const body = item.email_details?.[0]?.body ? `— "${item.email_details[0].body}"` : ''
+                  const emailDetails = item.email_details
+                  const sub = emailDetails?.subject || 'No Subject'
+                  const body = emailDetails?.body ? `— "${emailDetails.body}"` : ''
                   detail = `${sub} ${body}`
                 } else if (item.type === 'meeting') {
                   title = 'Meeting'
-                  detail = item.meeting_details?.[0]?.body || ''
+                  detail = item.meeting_details?.body || ''
                 } else if (item.type === 'note') {
                   title = 'Note Complete'
-                  detail = item.note_details?.[0]?.body || 'Completed Focus Task'
+                  detail = item.note_details?.body || 'Completed Focus Task'
                 }
 
                 const dateStr = new Date(item.created_at).toLocaleDateString(undefined, {
