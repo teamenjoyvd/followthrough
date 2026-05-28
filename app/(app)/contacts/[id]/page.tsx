@@ -53,7 +53,8 @@ export default async function ContactDetailPage({ params }: Props) {
       id, type, occurred_at,
       call_details ( outcome, duration_seconds, summary ),
       email_details ( subject, body ),
-      note_details ( body )
+      note_details ( body ),
+      meeting_details ( body )
     `)
     .eq('contact_id', id)
     .eq('profile_id', profileId)

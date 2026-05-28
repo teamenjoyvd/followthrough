@@ -165,6 +165,13 @@ export async function logNote(input: LogNoteInput): Promise<{ error?: string }> 
   })
   if (detailError) return { error: detailError.message }
 
+  const { error: updateError } = await supabase
+    .from('contacts')
+    .update({ last_contacted_at: new Date().toISOString() } satisfies Database['public']['Tables']['contacts']['Update'])
+    .eq('id', input.contactId)
+    .eq('profile_id', profile.id)
+  if (updateError) return { error: updateError.message }
+
   try {
     await appendActionLog({
       profileId: profile.id,
