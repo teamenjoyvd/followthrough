@@ -5,8 +5,6 @@ import ContactsClient from './components/ContactsClient'
 import { PIPELINE_STATUSES } from './components/constants'
 import { ContactFilterBar } from '@/components/ContactFilterBar'
 import { MobileFilterBar } from '@/components/MobileFilterBar'
-import Link from 'next/link'
-import { Plus } from 'lucide-react'
 import type { Database } from '@/types/supabase'
 
 type PipelineStatus = Database['public']['Enums']['pipeline_status']
@@ -252,18 +250,6 @@ export default async function ContactsPage({
   const totalPages = Math.ceil(totalContacts / PAGE_SIZE) || 1
   activePage = Math.min(totalPages, activePage)
 
-  let idsQuery = supabase
-    .from('contacts_search_view')
-    .select('id')
-    .eq('profile_id', profile.id)
-
-  idsQuery = applyActiveFilters(idsQuery, filterArgs)
-
-  const { data: matchedIdsData, error: idsError } = await idsQuery
-  if (idsError) throw idsError
-
-  const allFilteredIds = (matchedIdsData as { id: string }[] || []).map(item => item.id)
-
   const activeFilterCount = [
     statusFilter,
     lastContactedFilter,
@@ -281,18 +267,6 @@ export default async function ContactsPage({
 
   return (
     <div className="flex flex-col h-full bg-[#faf6f0]">
-
-      {/* ── Mobile heading ── */}
-      <div className="flex md:hidden items-center justify-between px-4 py-3 border-b border-[#e4e0d8] bg-[#faf6f0] shrink-0">
-        <h1 className="font-headline text-2xl font-bold text-[#2e3230]">Contacts</h1>
-        <Link
-          href="/contacts/new"
-          className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-[#4a7c59] text-white text-xs font-semibold hover:bg-[#3d6b4a] transition-all duration-200 shadow-sm active:scale-95"
-        >
-          <Plus className="h-3.5 w-3.5" />
-          New contact
-        </Link>
-      </div>
 
       {/* ── Mobile filter bar ── */}
       <div className="md:hidden">
@@ -342,7 +316,7 @@ export default async function ContactsPage({
 
       <ContactsClient
         contacts={paginatedContacts}
-        allFilteredIds={allFilteredIds}
+        allFilteredIds={[]}
         labels={userLabels}
         sortKey={sortKey}
         sortDir={sortDir}
@@ -357,24 +331,24 @@ export default async function ContactsPage({
         <div className="flex items-center justify-between px-4 md:px-6 py-3.5 border-t border-[#e4e0d8] bg-[#faf6f0] shrink-0">
           <div className="flex items-center gap-2">
             {activePage > 1 ? (
-              <Link
+              <a
                 href={buildPaginationHref(params, activePage - 1)}
                 className="inline-flex items-center justify-center px-3.5 py-1.5 rounded-xl border border-[#e4e0d8] bg-[#f5f1ea] hover:bg-[#eae6de] text-xs font-semibold text-[#4a7c59] transition-all shadow-sm active:scale-95 duration-200"
               >
                 Previous
-              </Link>
+              </a>
             ) : (
               <span className="inline-flex items-center justify-center px-3.5 py-1.5 rounded-xl border border-[#e4e0d8]/50 bg-[#f5f1ea]/50 text-xs font-semibold text-[#74796e]/50 cursor-not-allowed">
                 Previous
               </span>
             )}
             {activePage < totalPages ? (
-              <Link
+              <a
                 href={buildPaginationHref(params, activePage + 1)}
                 className="inline-flex items-center justify-center px-3.5 py-1.5 rounded-xl border border-[#e4e0d8] bg-[#f5f1ea] hover:bg-[#eae6de] text-xs font-semibold text-[#4a7c59] transition-all shadow-sm active:scale-95 duration-200"
               >
                 Next
-              </Link>
+              </a>
             ) : (
               <span className="inline-flex items-center justify-center px-3.5 py-1.5 rounded-xl border border-[#e4e0d8]/50 bg-[#f5f1ea]/50 text-xs font-semibold text-[#74796e]/50 cursor-not-allowed">
                 Next
