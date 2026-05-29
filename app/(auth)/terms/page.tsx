@@ -1,8 +1,20 @@
-import { readFileSync } from 'fs'
-import { join } from 'path'
-import { LegalPage } from '@/components/LegalPage'
-
 export default function TermsPage() {
-  const html = readFileSync(join(process.cwd(), 'lib/legal/terms.html'), 'utf-8')
-  return <LegalPage html={html} />
+  return (
+    <main className="min-h-screen bg-white px-6 py-12">
+      <div className="mx-auto max-w-3xl">
+        <h1 className="mb-8 text-2xl font-semibold text-gray-900">Terms of Service</h1>
+        {/* Termly Terms of Service embed */}
+        <div
+          className="termly-embed"
+          data-id="TERMLY_TERMS_ID"
+          data-type="iframe"
+        />
+        <script
+          type="text/javascript"
+          src="https://app.termly.io/embed-policy.min.js"
+          async
+        />
+      </div>
+    </main>
+  )
 }
