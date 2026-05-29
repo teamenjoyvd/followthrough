@@ -62,6 +62,8 @@ export default function ContextPanel({ profileId, allLabels }: Props) {
   const loadDetails = React.useCallback(async () => {
     if (!selectedContact) return
     setLoadingTimeline(true)
+    setActiveLabelIds([])
+    setInteractions([])
     try {
       const res = await getContactTimelineAndLabels(selectedContact.id)
       if (!res.success) {

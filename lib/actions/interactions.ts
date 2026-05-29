@@ -318,28 +318,30 @@ export async function getContactTimelineAndLabels(contactId: string): Promise<{
   const profile = await getProfile(supabase, userId)
   if (!profile) return { success: false, error: 'Profile not found' }
 
-  // 1. Fetch active label assignments
-  const { data: labelData, error: labelError } = await supabase
-    .from('contact_labels')
-    .select('label_id')
-    .eq('contact_id', contactId)
-    .eq('profile_id', profile.id)
+  // Fetch active labels and timeline in parallel to avoid a query waterfall
+  const [labelRes, interRes] = await Promise.all([
+    supabase
+      .from('contact_labels')
+      .select('label_id')
+      .eq('contact_id', contactId)
+      .eq('profile_id', profile.id),
+    supabase
+      .from('interactions')
+      .select('id, type, created_at, note_details(body), call_details(outcome, summary), email_details(subject, body), meeting_details(body)')
+      .eq('contact_id', contactId)
+      .eq('profile_id', profile.id)
+      .order('created_at', { ascending: false })
+  ])
 
-  if (labelError) {
-    return { success: false, error: labelError.message }
+  if (labelRes.error) {
+    return { success: false, error: labelRes.error.message }
+  }
+  if (interRes.error) {
+    return { success: false, error: interRes.error.message }
   }
 
-  // 2. Fetch timeline
-  const { data: interData, error: interError } = await supabase
-    .from('interactions')
-    .select('id, type, created_at, note_details(body), call_details(outcome, summary), email_details(subject, body), meeting_details(body)')
-    .eq('contact_id', contactId)
-    .eq('profile_id', profile.id)
-    .order('created_at', { ascending: false })
-
-  if (interError) {
-    return { success: false, error: interError.message }
-  }
+  const labelData = labelRes.data
+  const interData = interRes.data
 
   return {
     success: true,
