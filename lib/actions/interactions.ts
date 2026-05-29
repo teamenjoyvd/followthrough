@@ -304,3 +304,48 @@ export async function deleteInteraction(
   revalidatePath('/contacts/' + contactId)
   return {}
 }
+
+export async function getContactTimelineAndLabels(contactId: string): Promise<{
+  success: boolean
+  interactions?: any[]
+  activeLabelIds?: string[]
+  error?: string
+}> {
+  const { userId } = await auth()
+  if (!userId) return { success: false, error: 'Unauthorized' }
+
+  const supabase = await createSupabaseServerClient()
+  const profile = await getProfile(supabase, userId)
+  if (!profile) return { success: false, error: 'Profile not found' }
+
+  // Fetch active labels and timeline in parallel to avoid a query waterfall
+  const [labelRes, interRes] = await Promise.all([
+    supabase
+      .from('contact_labels')
+      .select('label_id')
+      .eq('contact_id', contactId)
+      .eq('profile_id', profile.id),
+    supabase
+      .from('interactions')
+      .select('id, type, created_at, note_details(body), call_details(outcome, summary), email_details(subject, body), meeting_details(body)')
+      .eq('contact_id', contactId)
+      .eq('profile_id', profile.id)
+      .order('created_at', { ascending: false })
+  ])
+
+  if (labelRes.error) {
+    return { success: false, error: labelRes.error.message }
+  }
+  if (interRes.error) {
+    return { success: false, error: interRes.error.message }
+  }
+
+  const labelData = labelRes.data
+  const interData = interRes.data
+
+  return {
+    success: true,
+    interactions: interData || [],
+    activeLabelIds: labelData?.map(l => l.label_id) || [],
+  }
+}
