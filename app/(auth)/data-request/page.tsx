@@ -7,10 +7,10 @@ export default function DataRequestPage() {
           You have the right to request access to, correction of, or deletion of your personal
           data that we hold. To submit a request, email us at{' '}
           <a
-            href="mailto:privacy@teamenjoyvd.com"
+            href="mailto:ft@teamenjoyvd.com"
             className="text-blue-600 underline hover:text-blue-800"
           >
-            privacy@teamenjoyvd.com
+            ft@teamenjoyvd.com
           </a>{' '}
           with the subject line &ldquo;Data Request&rdquo; and include your name and the email
           address associated with your account. We will respond within 30 days.

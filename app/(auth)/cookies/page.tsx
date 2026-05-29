@@ -1,5 +1,3 @@
-// TODO: Replace "Followthrough" below with the legal entity name when confirmed.
-
 export default function CookiesPage() {
   return (
     <main className="min-h-screen bg-white px-6 py-12">
@@ -84,7 +82,7 @@ export default function CookiesPage() {
                   name: "__cf_bm",
                   purpose:
                     "Cloudflare places this cookie on end-user devices that access customer sites protected by Bot Management or Bot Fight Mode.",
-                  provider: ".legal-swine-86.clerk.accounts.dev",
+                  provider: ".ft.teamenjoyvd.com",
                   service: "Cloudflare",
                   serviceUrl: "https://www.cloudflare.com/privacypolicy/",
                   type: "http_cookie",
@@ -105,7 +103,7 @@ export default function CookiesPage() {
                   name: "_cfuvid",
                   purpose:
                     "Set by Cloudflare to enhance security and performance. Helps identify trusted web traffic and ensures a secure browsing experience.",
-                  provider: ".legal-swine-86.clerk.accounts.dev",
+                  provider: ".ft.teamenjoyvd.com",
                   service: "Cloudflare",
                   serviceUrl:
                     "https://developers.cloudflare.com/fundamentals/reference/policies-compliances/cloudflare-cookies/",
@@ -123,10 +121,10 @@ export default function CookiesPage() {
             <CookieTable
               cookies={[
                 {
-                  name: "__client_uat_W_gWTCxp",
+                  name: "__client_uat",
                   provider: ".teamenjoyvd.com",
                   type: "http_cookie",
-                  expires: "11 months 30 days",
+                  expires: "9 years 11 months 28 days",
                 },
                 {
                   name: "__clerk_redirect_count",
@@ -141,21 +139,9 @@ export default function CookiesPage() {
                   expires: "Persistent",
                 },
                 {
-                  name: "__clerk_db_jwt_W_gWTCxp",
-                  provider: "ft.teamenjoyvd.com",
-                  type: "http_cookie",
-                  expires: "11 months 30 days",
-                },
-                {
-                  name: "__client_uat",
-                  provider: ".teamenjoyvd.com",
-                  type: "server_cookie",
-                  expires: "9 years 11 months 28 days",
-                },
-                {
                   name: "__clerk_db_jwt",
                   provider: "ft.teamenjoyvd.com",
-                  type: "server_cookie",
+                  type: "http_cookie",
                   expires: "11 months 30 days",
                 },
               ]}
@@ -247,7 +233,7 @@ export default function CookiesPage() {
           <address className="not-italic leading-6">
             Followthrough
             <br />
-            Banat
+            Banat Str
             <br />
             Sofia, 1407
             <br />

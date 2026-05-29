@@ -5,7 +5,7 @@ export default function PrivacyPage() {
 
         <div>
           <h1 className="text-2xl font-semibold text-gray-900">Privacy Policy</h1>
-          <p className="mt-1 text-gray-500">Last updated June 01, 2026</p>
+          <p className="mt-1 text-gray-500">Last updated May 29, 2026</p>
         </div>
 
         <p>
@@ -156,7 +156,7 @@ export default function PrivacyPage() {
             or contact us by post at:
           </p>
           <address className="mt-2 not-italic text-gray-600">
-            Banat<br />
+            Banat Str<br />
             Sofia, 1407<br />
             Bulgaria
           </address>

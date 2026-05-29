@@ -3,6 +3,7 @@ export default function TermsPage() {
     <main className="min-h-screen bg-white px-6 py-12">
       <div className="mx-auto max-w-3xl prose prose-gray">
         <h1>Terms of Use</h1>
+        <p className="text-sm text-gray-500 -mt-4">Last updated May 29, 2026</p>
 
         <h2>Agreement to Our Legal Terms</h2>
         <p>
@@ -158,10 +159,9 @@ export default function TermsPage() {
 
         <h2>5. User Generated Contributions</h2>
         <p>
-          The Services does not offer users to submit or post content. We may provide you with the
-          opportunity to create, submit, post, display, transmit, perform, publish, distribute, or
-          broadcast content and materials to us or on the Services (&ldquo;Contributions&rdquo;). You are solely
-          responsible for your Contributions to the Services.
+          We may provide you with the opportunity to create, submit, post, display, transmit,
+          perform, publish, distribute, or broadcast content and materials to us or on the Services
+          (&ldquo;Contributions&rdquo;). You are solely responsible for your Contributions to the Services.
         </p>
 
         <h2>6. Contribution License</h2>
@@ -223,8 +223,8 @@ export default function TermsPage() {
 
         <h2>10. Governing Law</h2>
         <p>
-          These Legal Terms shall be governed by and defined following applicable law. The parties
-          irrevocably consent that the courts of the applicable jurisdiction shall have exclusive
+          These Legal Terms shall be governed by and defined following the laws of Bulgaria. The
+          parties irrevocably consent that the courts of Sofia, Bulgaria shall have exclusive
           jurisdiction to resolve any dispute which may arise in connection with these Legal Terms.
         </p>
 
@@ -331,7 +331,11 @@ export default function TermsPage() {
         <h2>19. Contact Us</h2>
         <p>
           In order to resolve a complaint regarding the Services or to receive further information
-          regarding use of the Services, please contact us via the app.
+          regarding use of the Services, please email us at{' '}
+          <a href="mailto:ft@teamenjoyvd.com" className="text-blue-600 underline hover:text-blue-800">
+            ft@teamenjoyvd.com
+          </a>{' '}
+          or contact us via the app.
         </p>
       </div>
     </main>
