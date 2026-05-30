@@ -40,6 +40,7 @@ interface ContactsClientProps {
   currentLastContacted: string
   currentCompany: string
   currentFocused?: string
+  desktopFilterBar?: React.ReactNode
 }
 
 export default function ContactsClient({
@@ -52,6 +53,7 @@ export default function ContactsClient({
   currentLastContacted,
   currentCompany,
   currentFocused = '',
+  desktopFilterBar,
 }: ContactsClientProps) {
   const router = useRouter()
   const [, startPinTransition] = useTransition()
@@ -267,10 +269,13 @@ export default function ContactsClient({
         </div>
       </div>
 
-      {/* ── Desktop header ── */}
-      <div className="hidden md:flex flex-row md:items-center justify-between px-4 md:px-6 py-4 border-b border-[#e4e0d8] bg-[#faf6f0] shrink-0 gap-3">
-        <h1 className="font-headline text-2xl font-bold text-[#2e3230]">Contacts</h1>
-        <div className="flex flex-wrap items-center gap-2.5">
+      {/* ── Desktop header + filter bar (single combined row) ── */}
+      <div className="hidden md:flex items-start justify-between gap-4 px-4 md:px-6 py-3 border-b border-[#e4e0d8] bg-[#faf6f0] shrink-0">
+        <h1 className="font-headline text-2xl font-bold text-[#2e3230] shrink-0 pt-0.5">Contacts</h1>
+        {desktopFilterBar && (
+          <div className="flex-1 min-w-0">{desktopFilterBar}</div>
+        )}
+        <div className="flex items-center gap-2 shrink-0 pt-0.5">
           {renderActionsDropdown()}
           <Link
             href="/contacts/new"

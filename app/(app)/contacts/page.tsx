@@ -292,29 +292,6 @@ export default async function ContactsPage({
         />
       </div>
 
-      {/* ── Desktop filter bar — single toolbar row ── */}
-      <div className="hidden md:block px-4 md:px-6 py-4 bg-[#faf6f0] border-b border-[#e4e0d8] shrink-0">
-        <ContactFilterBar
-          currentStatus={statusFilter}
-          currentLastContacted={lastContactedFilter}
-          currentCompany={companyFilter}
-          currentQuery={query}
-          currentSort={sortKey}
-          currentDir={sortDir}
-          basePath="/contacts"
-          currentFirstName={firstNameFilter}
-          currentLastName={lastNameFilter}
-          currentPhone={phoneFilter}
-          currentEmail={emailFilter}
-          currentHasEmail={hasEmailFilter}
-          currentHasPhone={hasPhoneFilter}
-          currentSource={sourceFilter}
-          availableLabels={userLabels}
-          currentLabels={params.labels ?? ''}
-          currentFocused={focused}
-        />
-      </div>
-
       <ContactsClient
         contacts={paginatedContacts}
         labels={userLabels}
@@ -325,6 +302,27 @@ export default async function ContactsPage({
         currentLastContacted={lastContactedFilter}
         currentCompany={companyFilter}
         currentFocused={focused}
+        desktopFilterBar={
+          <ContactFilterBar
+            currentStatus={statusFilter}
+            currentLastContacted={lastContactedFilter}
+            currentCompany={companyFilter}
+            currentQuery={query}
+            currentSort={sortKey}
+            currentDir={sortDir}
+            basePath="/contacts"
+            currentFirstName={firstNameFilter}
+            currentLastName={lastNameFilter}
+            currentPhone={phoneFilter}
+            currentEmail={emailFilter}
+            currentHasEmail={hasEmailFilter}
+            currentHasPhone={hasPhoneFilter}
+            currentSource={sourceFilter}
+            availableLabels={userLabels}
+            currentLabels={params.labels ?? ''}
+            currentFocused={focused}
+          />
+        }
       />
 
       {totalPages > 1 && (
