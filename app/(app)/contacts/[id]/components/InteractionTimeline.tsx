@@ -70,7 +70,7 @@ interface Props {
 export default async function InteractionTimeline({ contactId, profileId }: Props) {
   const supabase = await createSupabaseServerClient()
 
-  const { data } = await (supabase as any)
+  const { data, error } = await (supabase as any)
     .from('interactions')
     .select(`
       id, type, occurred_at,
@@ -82,6 +82,11 @@ export default async function InteractionTimeline({ contactId, profileId }: Prop
     .eq('contact_id', contactId)
     .eq('profile_id', profileId)
     .order('occurred_at', { ascending: false })
+
+  if (error) {
+    console.error('Failed to fetch interactions:', error)
+    throw new Error('Failed to load interactions')
+  }
 
   const interactions = (data ?? []) as InteractionWithDetails[]
 
