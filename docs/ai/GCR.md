@@ -1,13 +1,9 @@
-# GCR — Address Gemini Code Review
+# GCR — Gemini Code Review
+Invoked via the `GCR` command in a BUILD session given a PR number.
 
-Invoked via the `GCR` command in a BUILD session. Given a PR number:
-
-1. `get_pull_request_reviews` — fetch the Gemini review summary.
-2. `get_pull_request_comments` — fetch all inline comments.
-3. Read each affected file from the PR's head branch (`PR.head.ref`) — not from `main` and not from the commit SHA. This ensures comments are applied on top of the current PR state, not a stale base.
-4. Apply every HIGH-priority comment. Apply MEDIUM-priority comments unless there is a concrete reason not to — state it explicitly.
-5. Push all changes in a single commit to the PR branch. Commit message: `[YYMM]-DEV-[GH#] fix: address Gemini PR<N> review comments`.
-6. Programmatically update the review threads on GitHub:
-   - **Successfully Applied Items**: Resolve the review thread.
-   - **Skipped/Rejected Items**: Add a comment to the thread explaining the rationale.
-7. Report: one line per comment — ✅ Applied (and Thread Resolved) / ⚠️ Skipped (reason, comment added).
+## Steps
+1. **Fetch:** Call `get_pull_request_reviews` and `get_pull_request_comments` to fetch all inline feedback.
+2. **Checkout:** Read affected files from the PR's head branch (`PR.head.ref`) — not from `main` or specific SHAs.
+3. **Address:** Apply all HIGH-priority comments. Apply MEDIUM-priority comments unless there is a clear, stated reason not to.
+4. **Commit:** Push all fixes in a single commit. Message: `[ID] fix: address Gemini PR<N> review comments`.
+5. **Report:** Provide a simple status list: ✅ Applied / ⚠️ Skipped (reason) for each comment.

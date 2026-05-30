@@ -1,56 +1,41 @@
-# BUILD — File execution
+# BUILD — Execution Mode
+Default mode. Executes code changes against a CLAIM-completed issue.
 
-Default mode. Executes against a CLAIM-complete issue.
+## 1. Precondition
+Verify the issue body has a checked `## Design Checklist` and `## Branch`. If missing, STOP.
+(Antigravity Check: Also initialize/verify the `task.md` artifact in the Antigravity brain directory at startup).
 
-## Precondition
+## 2. Stages
 
-Read the issue body. Verify `## Design Checklist` exists with all four items checked AND `## Branch` exists with the branch name. 
-**Verification**: Check that the branch is not already merged. Run `git fetch --all --prune` and ensure the target branch is not merged into `origin/main` (run `git branch -r --merged origin/main`). If either check fails — stop, state exactly what is missing or merged, do not proceed.
+### READ & SHAPE (Read-only)
+- Find in-progress issues (open PRs) or CLAIM-completed issues.
+- Verify the DoD is coherent with the current codebase. Rely on `.cursor/rules/` and `docs/ai/RULES.md` for technical styling, RLS, and auth conventions. No codebase writes allowed.
 
-## READ
+### GATHER
+Read only the specific `docs/ai/REF.md` sections required by the ticket (refer to the Section Map in `REF.md`).
 
-Check open GitHub issues. Resume any in-progress issue (open PR exists). If a CLAIM-complete issue has no open PR, that is the next issue — read `## Branch` from its body and proceed to SHAPE. Otherwise pick the highest `priority:high` open issue without the `blocked` label. If none, pick the next unlabelled issue by creation order.
+### EXECUTE
+- Code only what is required by the DoD. All changes target the feature branch.
+- For large tasks (>100 lines), commit a skeleton with `// TODO:` items before implementing, and update the PR Session State to `IN PROGRESS`.
 
-## SHAPE (read-only)
+### VERIFY
+- Verify DoD point-by-point.
+- Check Vercel Preview is READY and CI is green. Ensure 390px mobile responsiveness.
 
-Verify the DoD is still coherent against current codebase state. Read relevant docs:
+### FINALIZE
+- Add `Closes #<issue_number>` to the PR body. Mark the PR as ready for review.
+- Update the PR description's `## Session State` block.
+- Update `docs/ai/REF.md` if schema, routes, or env vars changed.
 
-- Auth / Clerk sync → `docs/ai/REF.md §Auth`
-- New external dependency → update `docs/architecture/C4.md` first
-- New architectural pattern → write ADR in `docs/architecture/DECISIONS.md` before executing
+---
 
-If DoD is stale or wrong: stop and request user to update the issue body before proceeding.
-
-**No writes (including issue body) in SHAPE.**
-
-## GATHER
-
-Read only the REF.md sections the ticket needs (section map at top of REF.md).
-
-## EXECUTE
-
-Change only lines required by DoD. All writes target the feature branch only. Push to trigger Vercel Preview.
-
-Before any large task (>100 lines): write `IN PROGRESS` to PR `## Session State` first, then commit a skeleton with `// TODO:` items before implementing.
-
-## VERIFY
-
-DoD point-by-point. Vercel Preview READY. CI green. 390px check. No production side-effects. If ticket touched auth or routing: confirm `middleware.ts` does not exist.
-
-## FINALIZE
-
-Verify PR body contains `Closes #<issue_number>` — if missing, add it now. Mark PR ready for review. If this ticket ran a migration or changed a column/table/route/env var: update `docs/ai/REF.md` before marking DONE. User merges manually via GitHub UI. After merge: confirm production Vercel deployment READY.
-
-## PR Session State block
-
-The PR description is the sole handoff document.
-
+## PR Session State Template
+The PR description is the handoff document:
 ```markdown
 ## Session State
+**Agent Type:** Antigravity | Claude
 **Status:** IN PROGRESS | DONE
 **Completed:**
-- [x] done thing
-**Next:** single specific action for incoming instance
+- [x] done task
+**Next:** single specific action for next instance
 ```
-
-Write `IN PROGRESS` before starting a large task. Write `DONE` after verifying. If context runs out mid-task, the skeleton commit is the fallback — it must exist before implementation begins.

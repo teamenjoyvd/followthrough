@@ -130,3 +130,14 @@ AS $$ SELECT id FROM profiles WHERE clerk_id = get_my_clerk_id() $$;
 
 All RLS policies reference these helpers only. Never inline `auth.jwt()` in a policy.
 Detail tables (`call_details`, `email_details`, `note_details`) have no `profile_id` — policies gate via `EXISTS (SELECT 1 FROM interactions WHERE interactions.id = <detail>.interaction_id AND interactions.profile_id = get_my_profile_id())`.
+
+---
+
+## § Migration Log
+
+> **Append after every migration apply.** Never delete entries.
+
+| Date | File | Description | Applied By |
+|:---|:---|:---|:---|
+| — | — | No migrations logged yet | — |
+
