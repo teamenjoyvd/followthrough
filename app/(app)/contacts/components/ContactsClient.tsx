@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useOptimistic, useTransition } from 'react'
+import { useState, useOptimistic, useTransition, useEffect } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { Plus, Download, Upload, Tag, Loader2, Trash2, MoreHorizontal } from 'lucide-react'
@@ -82,6 +82,11 @@ export default function ContactsClient({
   const [processedCount, setProcessedCount] = useState(0)
   const [totalToProcess, setTotalToProcess] = useState(0)
   const [processingMessage, setProcessingMessage] = useState('')
+
+  // Clear selection whenever the contacts list changes (page nav, filter change)
+  useEffect(() => {
+    setSelectedIds(new Set())
+  }, [contacts])
 
   const handleToggleSelect = (id: string) => {
     setSelectedIds((prev) => {
