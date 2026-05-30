@@ -1,10 +1,7 @@
-'use client'
-
-import { useTransition } from 'react'
 import { formatDistanceToNow } from 'date-fns'
-import { Phone, Mail, FileText, Calendar, Trash2 } from 'lucide-react'
-import { deleteInteraction } from '@/lib/actions/interactions'
-import { ConfirmDialog } from '@/components/ConfirmDialog'
+import { Phone, Mail, FileText, Calendar } from 'lucide-react'
+import { createSupabaseServerClient } from '@/lib/supabase/server'
+import { DeleteInteractionButton } from './DeleteInteractionButton'
 import type { InteractionWithDetails } from './types'
 
 const OUTCOME_LABELS: Record<string, string> = {
@@ -65,46 +62,34 @@ function InteractionDetail({ interaction }: { interaction: InteractionWithDetail
   return null
 }
 
-function DeleteButton({
-  interactionId,
-  contactId,
-}: {
-  interactionId: string
+interface Props {
   contactId: string
-}) {
-  const [isPending, startTransition] = useTransition()
+  profileId: string
+}
 
-  const handleDelete = () => {
-    startTransition(async () => {
-      await deleteInteraction(interactionId, contactId)
-    })
+export default async function InteractionTimeline({ contactId, profileId }: Props) {
+  const supabase = await createSupabaseServerClient()
+
+  const { data, error } = await (supabase as any)
+    .from('interactions')
+    .select(`
+      id, type, occurred_at,
+      call_details ( outcome, duration_seconds, summary ),
+      email_details ( subject, body ),
+      note_details ( body ),
+      meeting_details ( body )
+    `)
+    .eq('contact_id', contactId)
+    .eq('profile_id', profileId)
+    .order('occurred_at', { ascending: false })
+
+  if (error) {
+    console.error('Failed to fetch interactions:', error)
+    throw new Error('Failed to load interactions')
   }
 
-  return (
-    <ConfirmDialog
-      title="Delete this entry?"
-      description="This interaction log will be permanently removed."
-      confirmLabel="Delete this entry"
-      destructive
-      onConfirm={handleDelete}
-    >
-      <button
-        disabled={isPending}
-        className="opacity-0 group-hover:opacity-100 transition-all p-1.5 rounded-xl hover:bg-[#ffdad8]/50 text-[#74796e] hover:text-[#b83230] disabled:opacity-50 cursor-pointer"
-        aria-label="Delete interaction"
-      >
-        <Trash2 className="h-3.5 w-3.5" />
-      </button>
-    </ConfirmDialog>
-  )
-}
+  const interactions = (data ?? []) as InteractionWithDetails[]
 
-interface Props {
-  interactions: InteractionWithDetails[]
-  contactId: string
-}
-
-export default function InteractionTimeline({ interactions, contactId }: Props) {
   if (interactions.length === 0) {
     return (
       <div className="py-12 text-center">
@@ -128,7 +113,7 @@ export default function InteractionTimeline({ interactions, contactId }: Props) 
               </p>
               <InteractionDetail interaction={interaction} />
             </div>
-            <DeleteButton interactionId={interaction.id} contactId={contactId} />
+            <DeleteInteractionButton interactionId={interaction.id} contactId={contactId} />
           </div>
         </li>
       ))}

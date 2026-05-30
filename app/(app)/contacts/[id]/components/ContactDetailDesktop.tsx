@@ -14,7 +14,6 @@ import {
   setPrimary,
 } from '@/lib/actions/phone-numbers'
 import { addSocialLink, updateSocialLink, deleteSocialLink } from '@/lib/actions/social-links'
-import InteractionTimeline from './InteractionTimeline'
 import LogInteractionSheet from '@/components/LogInteractionSheet'
 import type { ContactDetailProps } from './types'
 
@@ -445,8 +444,8 @@ function SocialLinksSection({
 // ---------------------------------------------------------------------------
 export default function ContactDetailDesktop({
   contact,
-  interactions,
   profileId,
+  timelineSlot,
 }: ContactDetailProps) {
   const currentStatus = PIPELINE_STATUSES.find((s) => s.value === contact.pipeline_status)
   const displayName = [contact.first_name, contact.last_name].filter(Boolean).join(' ')
@@ -530,7 +529,7 @@ export default function ContactDetailDesktop({
             Interactions Timeline
           </h3>
           <div className="flex-1">
-            <InteractionTimeline interactions={interactions} contactId={contact.id} />
+            {timelineSlot}
           </div>
         </div>
       </div>
