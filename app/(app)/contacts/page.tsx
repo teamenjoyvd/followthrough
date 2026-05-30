@@ -6,7 +6,6 @@ import { PIPELINE_STATUSES } from './components/constants'
 import { ContactFilterBar } from '@/components/ContactFilterBar'
 import { MobileFilterBar } from '@/components/MobileFilterBar'
 import Link from 'next/link'
-import { Plus } from 'lucide-react'
 import type { Database } from '@/types/supabase'
 
 type PipelineStatus = Database['public']['Enums']['pipeline_status']
@@ -252,18 +251,6 @@ export default async function ContactsPage({
   const totalPages = Math.ceil(totalContacts / PAGE_SIZE) || 1
   activePage = Math.min(totalPages, activePage)
 
-  let idsQuery = supabase
-    .from('contacts_search_view')
-    .select('id')
-    .eq('profile_id', profile.id)
-
-  idsQuery = applyActiveFilters(idsQuery, filterArgs)
-
-  const { data: matchedIdsData, error: idsError } = await idsQuery
-  if (idsError) throw idsError
-
-  const allFilteredIds = (matchedIdsData as { id: string }[] || []).map(item => item.id)
-
   const activeFilterCount = [
     statusFilter,
     lastContactedFilter,
@@ -281,18 +268,6 @@ export default async function ContactsPage({
 
   return (
     <div className="flex flex-col h-full bg-[#faf6f0]">
-
-      {/* ── Mobile heading ── */}
-      <div className="flex md:hidden items-center justify-between px-4 py-3 border-b border-[#e4e0d8] bg-[#faf6f0] shrink-0">
-        <h1 className="font-headline text-2xl font-bold text-[#2e3230]">Contacts</h1>
-        <Link
-          href="/contacts/new"
-          className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-[#4a7c59] text-white text-xs font-semibold hover:bg-[#3d6b4a] transition-all duration-200 shadow-sm active:scale-95"
-        >
-          <Plus className="h-3.5 w-3.5" />
-          New contact
-        </Link>
-      </div>
 
       {/* ── Mobile filter bar ── */}
       <div className="md:hidden">
@@ -342,7 +317,6 @@ export default async function ContactsPage({
 
       <ContactsClient
         contacts={paginatedContacts}
-        allFilteredIds={allFilteredIds}
         labels={userLabels}
         sortKey={sortKey}
         sortDir={sortDir}

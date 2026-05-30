@@ -3,7 +3,7 @@
 import { useRouter } from 'next/navigation'
 import { useCallback, useState, useEffect, useTransition } from 'react'
 import Link from 'next/link'
-import { X, SlidersHorizontal, Plus, Zap, ChevronDown, ChevronUp, Tag } from 'lucide-react'
+import { X, SlidersHorizontal, Zap, ChevronDown, ChevronUp, Tag } from 'lucide-react'
 import { PIPELINE_STATUSES } from '@/app/(app)/contacts/components/constants'
 import { getLabelColorClass, type Label } from '@/components/LabelManager'
 import { SearchInput } from '@/app/(app)/contacts/components/SearchInput'
@@ -519,15 +519,6 @@ export function ContactFilterBar({
             ))}
           </SelectContent>
         </Select>
-
-        {/* New contact */}
-        <Link
-          href="/contacts/new"
-          className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-[#4a7c59] text-white text-xs font-semibold hover:bg-[#3d6b4a] transition-all shadow-sm active:scale-95 shrink-0"
-        >
-          <Plus className="h-3.5 w-3.5" />
-          New contact
-        </Link>
       </div>
 
       {/* ── Active filter pill row — only when filters are active ── */}
