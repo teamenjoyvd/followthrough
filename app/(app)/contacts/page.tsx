@@ -5,6 +5,7 @@ import ContactsClient from './components/ContactsClient'
 import { PIPELINE_STATUSES } from './components/constants'
 import { ContactFilterBar } from '@/components/ContactFilterBar'
 import { MobileFilterBar } from '@/components/MobileFilterBar'
+import Link from 'next/link'
 import type { Database } from '@/types/supabase'
 
 type PipelineStatus = Database['public']['Enums']['pipeline_status']
@@ -316,7 +317,6 @@ export default async function ContactsPage({
 
       <ContactsClient
         contacts={paginatedContacts}
-        allFilteredIds={[]}
         labels={userLabels}
         sortKey={sortKey}
         sortDir={sortDir}
@@ -331,24 +331,24 @@ export default async function ContactsPage({
         <div className="flex items-center justify-between px-4 md:px-6 py-3.5 border-t border-[#e4e0d8] bg-[#faf6f0] shrink-0">
           <div className="flex items-center gap-2">
             {activePage > 1 ? (
-              <a
+              <Link
                 href={buildPaginationHref(params, activePage - 1)}
                 className="inline-flex items-center justify-center px-3.5 py-1.5 rounded-xl border border-[#e4e0d8] bg-[#f5f1ea] hover:bg-[#eae6de] text-xs font-semibold text-[#4a7c59] transition-all shadow-sm active:scale-95 duration-200"
               >
                 Previous
-              </a>
+              </Link>
             ) : (
               <span className="inline-flex items-center justify-center px-3.5 py-1.5 rounded-xl border border-[#e4e0d8]/50 bg-[#f5f1ea]/50 text-xs font-semibold text-[#74796e]/50 cursor-not-allowed">
                 Previous
               </span>
             )}
             {activePage < totalPages ? (
-              <a
+              <Link
                 href={buildPaginationHref(params, activePage + 1)}
                 className="inline-flex items-center justify-center px-3.5 py-1.5 rounded-xl border border-[#e4e0d8] bg-[#f5f1ea] hover:bg-[#eae6de] text-xs font-semibold text-[#4a7c59] transition-all shadow-sm active:scale-95 duration-200"
               >
                 Next
-              </a>
+              </Link>
             ) : (
               <span className="inline-flex items-center justify-center px-3.5 py-1.5 rounded-xl border border-[#e4e0d8]/50 bg-[#f5f1ea]/50 text-xs font-semibold text-[#74796e]/50 cursor-not-allowed">
                 Next

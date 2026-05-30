@@ -32,7 +32,6 @@ type ContactRow = Database['public']['Tables']['contacts']['Row'] & {
 
 interface ContactsClientProps {
   contacts: ContactRow[]
-  allFilteredIds: string[]
   labels: Label[]
   sortKey: any
   sortDir: any
@@ -45,7 +44,6 @@ interface ContactsClientProps {
 
 export default function ContactsClient({
   contacts,
-  allFilteredIds,
   labels,
   sortKey,
   sortDir,
@@ -211,8 +209,8 @@ export default function ContactsClient({
 
   const count = selectedIds.size
 
-  // ── Shared actions dropdown ──────────────────────────────────────────────────
-  const ActionsDropdown = () => (
+  // ── Shared actions dropdown (render function, not component) ────────────────
+  const renderActionsDropdown = () => (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <button
@@ -258,7 +256,7 @@ export default function ContactsClient({
       <div className="flex md:hidden items-center justify-between px-4 py-3 border-b border-[#e4e0d8] bg-[#faf6f0] shrink-0">
         <h1 className="font-headline text-2xl font-bold text-[#2e3230]">Contacts</h1>
         <div className="flex items-center gap-2">
-          <ActionsDropdown />
+          {renderActionsDropdown()}
           <Link
             href="/contacts/new"
             className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-[#4a7c59] text-white text-xs font-semibold hover:bg-[#3d6b4a] transition-all duration-200 shadow-sm active:scale-95"
@@ -273,7 +271,7 @@ export default function ContactsClient({
       <div className="hidden md:flex flex-row md:items-center justify-between px-4 md:px-6 py-4 border-b border-[#e4e0d8] bg-[#faf6f0] shrink-0 gap-3">
         <h1 className="font-headline text-2xl font-bold text-[#2e3230]">Contacts</h1>
         <div className="flex flex-wrap items-center gap-2.5">
-          <ActionsDropdown />
+          {renderActionsDropdown()}
           <Link
             href="/contacts/new"
             id="new-contact-btn"
