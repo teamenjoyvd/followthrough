@@ -1,3 +1,5 @@
+import Link from 'next/link'
+
 export default function PrivacyPage() {
   return (
     <main className="min-h-screen bg-white px-6 py-12">
@@ -30,7 +32,7 @@ export default function PrivacyPage() {
             <li><strong>How do we keep your information safe?</strong> We have organisational and technical processes in place to protect your personal information, though no electronic transmission can be guaranteed 100% secure.</li>
             <li><strong>What are your rights?</strong> Depending on where you are located, you may have certain rights regarding your personal information.</li>
             <li><strong>How do you exercise your rights?</strong> Visit{' '}
-              <a href="/data-request" className="text-blue-600 underline hover:text-blue-800">ft.teamenjoyvd.com/data-request</a>{' '}
+              <Link href="/data-request" className="text-blue-600 underline hover:text-blue-800">ft.teamenjoyvd.com/data-request</Link>{' '}
               or contact us. We will consider and act upon any request in accordance with applicable data protection laws.
             </li>
           </ul>
@@ -92,7 +94,7 @@ export default function PrivacyPage() {
           <h2 className="text-lg font-semibold text-gray-900 mb-3">4. Do We Use Cookies and Other Tracking Technologies?</h2>
           <p>We may use cookies and similar tracking technologies (like web beacons and pixels) to gather information when you interact with our Services. Some online tracking technologies help us maintain the security of our Services and your account, prevent crashes, fix bugs, save your preferences, and assist with basic site functions.</p>
           <p className="mt-2">Specific information about how we use such technologies and how you can refuse certain cookies is set out in our Cookie Notice:{' '}
-            <a href="/cookies" className="text-blue-600 underline hover:text-blue-800">https://ft.teamenjoyvd.com/cookies</a>.
+            <Link href="/cookies" className="text-blue-600 underline hover:text-blue-800">https://ft.teamenjoyvd.com/cookies</Link>.
           </p>
         </section>
 
@@ -132,7 +134,7 @@ export default function PrivacyPage() {
           </ul>
           <p className="mt-2">Upon your request to terminate your account, we will deactivate or delete your account and information from our active databases. However, we may retain some information in our files to prevent fraud, troubleshoot problems, assist with any investigations, enforce our legal terms and/or comply with applicable legal requirements.</p>
           <p className="mt-2"><strong>Cookies and similar technologies:</strong> Most web browsers are set to accept cookies by default. You can usually choose to set your browser to remove or reject cookies. For further information, please see our Cookie Notice:{' '}
-            <a href="/cookies" className="text-blue-600 underline hover:text-blue-800">https://ft.teamenjoyvd.com/cookies</a>.
+            <Link href="/cookies" className="text-blue-600 underline hover:text-blue-800">https://ft.teamenjoyvd.com/cookies</Link>.
           </p>
           <p className="mt-2">If you have questions or comments about your privacy rights, you may email us at{' '}
             <a href="mailto:ft@teamenjoyvd.com" className="text-blue-600 underline hover:text-blue-800">ft@teamenjoyvd.com</a>.
@@ -166,7 +168,7 @@ export default function PrivacyPage() {
           <h2 className="text-lg font-semibold text-gray-900 mb-3">13. How Can You Review, Update, or Delete the Data We Collect from You?</h2>
           <p>Based on the applicable laws of your country, you may have the right to request access to the personal information we collect from you, details about how we have processed it, correct inaccuracies, or delete your personal information. You may also have the right to withdraw your consent to our processing of your personal information. These rights may be limited in some circumstances by applicable law.</p>
           <p className="mt-2">To request to review, update, or delete your personal information, please visit:{' '}
-            <a href="/data-request" className="text-blue-600 underline hover:text-blue-800">ft.teamenjoyvd.com/data-request</a>.
+            <Link href="/data-request" className="text-blue-600 underline hover:text-blue-800">ft.teamenjoyvd.com/data-request</Link>.
           </p>
         </section>
 
