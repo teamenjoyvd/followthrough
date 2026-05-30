@@ -1,47 +1,23 @@
 import Link from 'next/link'
 import { ArrowRight, Users, History, RefreshCw, CheckCircle2 } from 'lucide-react'
-import { Logo } from '@/components/Logo'
+import { MarketingShell } from '@/components/marketing/MarketingShell'
 import { branding } from '@/config/branding'
 
 export default function HomePage() {
   return (
-    <div className="min-h-screen flex flex-col bg-background text-foreground font-body selection:bg-primary/10 selection:text-primary">
-      {/* Navigation Header */}
-      <header className="w-full border-b border-terra-surface-container-highest bg-background px-4 md:px-8 py-4 shrink-0">
-        <div className="max-w-7xl mx-auto flex items-center justify-between">
-          <Logo />
-          <div className="flex items-center gap-4">
-            <Link
-              href="/sign-in"
-              id="nav-sign-in"
-              className="text-sm font-semibold text-terra-on-surface-variant hover:text-primary transition-colors duration-200"
-            >
-              Sign in
-            </Link>
-            <Link
-              href="/sign-up"
-              id="nav-sign-up"
-              className="inline-flex items-center justify-center px-4 py-2 rounded-xl bg-primary text-white text-sm font-semibold hover:bg-primary/90 transition-all duration-200 hover:scale-[1.02] shadow-sm"
-            >
-              Start tracking
-            </Link>
-          </div>
-        </div>
-      </header>
-
-      {/* Main Hero Section */}
-      <main className="flex-1 flex flex-col justify-center px-4 md:px-8 py-12 md:py-20 max-w-7xl mx-auto w-full gap-16">
+    <MarketingShell>
+      <div className="flex flex-col px-4 md:px-8 py-12 md:py-20 max-w-7xl mx-auto w-full gap-16">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-16 items-center">
           {/* Hero Content */}
           <div className="lg:col-span-7 space-y-6">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-terra-tertiary-container/30 bg-terra-tertiary-fixed/20 text-terra-on-tertiary-container text-xs font-semibold">
               <span>Cozy Relationship Manager</span>
             </div>
-            
+
             <h1 className="font-headline text-4xl md:text-5xl lg:text-6xl font-bold text-foreground leading-[1.1] tracking-tight">
               Stay connected with the people who <span className="text-primary italic">matter most</span>.
             </h1>
-            
+
             <p className="text-base md:text-lg text-terra-on-surface-variant leading-relaxed max-w-xl">
               {branding.appDescription} Followthrough simplifies keeping in touch, tracking outcomes, and maintaining consistent connection patterns.
             </p>
@@ -109,7 +85,6 @@ export default function HomePage() {
                   <span className="text-terra-outline font-semibold uppercase tracking-wider">Relationship Health</span>
                   <span className="text-primary font-bold">Needs attention</span>
                 </div>
-                {/* Health indicator bar */}
                 <div className="w-full bg-terra-surface-container-high h-2 rounded-full overflow-hidden">
                   <div className="bg-destructive h-full w-[35%] rounded-full animate-pulse" />
                 </div>
@@ -138,7 +113,6 @@ export default function HomePage() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {/* Health Card */}
             <div className="p-6 rounded-2xl border border-terra-surface-container-highest bg-terra-surface-container-low shadow-[0_4px_20px_rgba(46,50,48,0.03)] space-y-4 hover:bg-terra-surface-container-high transition-colors duration-200">
               <div className="h-10 w-10 rounded-full bg-primary/10 text-primary flex items-center justify-center shrink-0">
                 <Users className="h-5 w-5" />
@@ -149,7 +123,6 @@ export default function HomePage() {
               </p>
             </div>
 
-            {/* Timeline Card */}
             <div className="p-6 rounded-2xl border border-terra-surface-container-highest bg-terra-surface-container-low shadow-[0_4px_20px_rgba(46,50,48,0.03)] space-y-4 hover:bg-terra-surface-container-high transition-colors duration-200">
               <div className="h-10 w-10 rounded-full bg-terra-tertiary-fixed/30 text-terra-on-tertiary-container flex items-center justify-center shrink-0">
                 <History className="h-5 w-5 text-terra-tertiary-container" />
@@ -160,7 +133,6 @@ export default function HomePage() {
               </p>
             </div>
 
-            {/* Sync Card */}
             <div className="p-6 rounded-2xl border border-terra-surface-container-highest bg-terra-surface-container-low shadow-[0_4px_20px_rgba(46,50,48,0.03)] space-y-4 hover:bg-terra-surface-container-high transition-colors duration-200">
               <div className="h-10 w-10 rounded-full bg-primary/10 text-primary flex items-center justify-center shrink-0">
                 <RefreshCw className="h-5 w-5" />
@@ -172,22 +144,7 @@ export default function HomePage() {
             </div>
           </div>
         </section>
-      </main>
-
-      {/* Footer Branding */}
-      <footer className="w-full border-t border-terra-surface-container-highest bg-terra-surface-container-low px-4 md:px-8 py-8 shrink-0">
-        <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
-          <div className="flex flex-col items-center md:items-start gap-1">
-            <Logo iconOnly={true} className="opacity-80" />
-            <p className="text-xs text-terra-outline mt-1 text-center md:text-left">
-              © {new Date().getFullYear()} {branding.appName}. All rights reserved.
-            </p>
-          </div>
-          <p className="text-xs text-terra-outline text-center md:text-right">
-            Stay connected on <a href={branding.supportUrl} target="_blank" rel="noopener noreferrer" className="font-semibold text-primary hover:underline">GitHub</a>
-          </p>
-        </div>
-      </footer>
-    </div>
+      </div>
+    </MarketingShell>
   )
 }
