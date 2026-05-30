@@ -1,4 +1,3 @@
-import { auth } from '@clerk/nextjs/server'
 import { formatDistanceToNow } from 'date-fns'
 import { Phone, Mail, FileText, Calendar } from 'lucide-react'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
