@@ -1,3 +1,4 @@
+import { Suspense } from 'react'
 import { auth } from '@clerk/nextjs/server'
 import { redirect, notFound } from 'next/navigation'
 import Link from 'next/link'
@@ -6,8 +7,8 @@ import { createSupabaseServerClient } from '@/lib/supabase/server'
 import ContactDetailDesktop from './components/ContactDetailDesktop'
 import ContactDetailMobile from './components/ContactDetailMobile'
 import DeleteContactButton from './components/DeleteContactButton'
+import InteractionTimeline from './components/InteractionTimeline'
 import { getContactForUser } from '@/lib/contacts-data'
-import type { InteractionWithDetails } from './components/types'
 
 interface Props {
   params: Promise<{ id: string }>
@@ -28,6 +29,16 @@ export async function generateMetadata({ params }: Props) {
   }
 }
 
+function TimelineSkeleton() {
+  return (
+    <div className="space-y-3 pl-6">
+      {Array.from({ length: 5 }).map((_, i) => (
+        <div key={i} className="animate-pulse bg-[#e4e0d8] rounded-xl h-12" />
+      ))}
+    </div>
+  )
+}
+
 export default async function ContactDetailPage({ params }: Props) {
   const { userId } = await auth()
   if (!userId) redirect('/sign-in')
@@ -37,7 +48,6 @@ export default async function ContactDetailPage({ params }: Props) {
 
   if (!contact) notFound()
 
-  // Resolve profileId for server actions in child components
   const supabase = await createSupabaseServerClient()
   const { data: profile } = await (supabase as any)
     .from('profiles')
@@ -47,23 +57,16 @@ export default async function ContactDetailPage({ params }: Props) {
 
   const profileId = profile?.id ?? ''
 
-  const { data: interactions } = await (supabase as any)
-    .from('interactions')
-    .select(`
-      id, type, occurred_at,
-      call_details ( outcome, duration_seconds, summary ),
-      email_details ( subject, body ),
-      note_details ( body ),
-      meeting_details ( body )
-    `)
-    .eq('contact_id', id)
-    .eq('profile_id', profileId)
-    .order('occurred_at', { ascending: false })
+  const timelineSlot = (
+    <Suspense fallback={<TimelineSkeleton />}>
+      <InteractionTimeline contactId={id} profileId={profileId} />
+    </Suspense>
+  )
 
   const props = {
     contact,
-    interactions: (interactions ?? []) as InteractionWithDetails[],
     profileId,
+    timelineSlot,
   }
 
   return (

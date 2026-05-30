@@ -14,7 +14,6 @@ import {
   setPrimary,
 } from '@/lib/actions/phone-numbers'
 import { addSocialLink, updateSocialLink, deleteSocialLink } from '@/lib/actions/social-links'
-import InteractionTimeline from './InteractionTimeline'
 import LogInteractionSheet from '@/components/LogInteractionSheet'
 import type { ContactDetailProps } from './types'
 
@@ -427,8 +426,8 @@ function SocialLinksMobile({
 // ---------------------------------------------------------------------------
 export default function ContactDetailMobile({
   contact,
-  interactions,
   profileId,
+  timelineSlot,
 }: ContactDetailProps) {
   const displayName = [contact.first_name, contact.last_name].filter(Boolean).join(' ')
 
@@ -511,7 +510,7 @@ export default function ContactDetailMobile({
         {/* Timeline feed card */}
         <div className="p-4 bg-[#f5f1ea] rounded-[20px] border border-[#e4e0d8] shadow-[0_4px_20px_rgba(46,50,48,0.04)]">
           <p className="text-[10px] font-bold text-[#74796e] uppercase tracking-wider mb-4">Interactions Timeline</p>
-          <InteractionTimeline interactions={interactions} contactId={contact.id} />
+          {timelineSlot}
         </div>
       </div>
 

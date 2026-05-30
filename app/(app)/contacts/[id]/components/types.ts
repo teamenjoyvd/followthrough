@@ -24,6 +24,6 @@ import type { ContactDetail } from '@/lib/contacts-data'
 
 export interface ContactDetailProps {
   contact: ContactDetail
-  interactions: InteractionWithDetails[]
   profileId: string
+  timelineSlot: React.ReactNode
 }
