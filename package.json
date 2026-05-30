@@ -13,7 +13,8 @@
     "check-types": "tsc --noEmit",
     "agentic:validate": "node scripts/validate-rules.js",
     "agentic:handoff": "node scripts/handoff.js",
-    "agentic:smoke": "node scripts/smoke.js"
+    "agentic:smoke": "node scripts/smoke.js",
+    "agentic:bootstrap": "node scripts/bootstrap.js"
   },
   "dependencies": {
     "@clerk/nextjs": "^6",
