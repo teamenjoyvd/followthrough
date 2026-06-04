@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import { useClerk } from '@clerk/nextjs'
 import { Switch } from '@/components/ui/switch'
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 import { SyncConflictList } from './SyncConflictList'
@@ -448,6 +449,8 @@ function GoogleSyncSection({
 // ── Danger Zone ───────────────────────────────────────────────────────────────────────
 
 function DangerZoneSection() {
+  const { signOut } = useClerk()
+
   return (
     <section className="space-y-4">
       <h2 className="font-headline text-lg font-bold text-terra-on-surface">Danger zone</h2>
@@ -455,12 +458,12 @@ function DangerZoneSection() {
         <p className="text-sm text-terra-outline">
           Sign out of your account on this device.
         </p>
-        <Link
-          href="/sign-out"
+        <button
+          onClick={() => signOut({ redirectUrl: '/' })}
           className="inline-flex items-center text-sm font-bold text-destructive hover:opacity-80 transition-opacity"
         >
           Sign out
-        </Link>
+        </button>
       </div>
     </section>
   )

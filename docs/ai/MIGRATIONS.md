@@ -54,4 +54,4 @@ supabase migration up
 
 | Date | File | Description | Status |
 |:---|:---|:---|:---|
-| — | — | No migrations applied yet | — |
+| 2026-06-04 | 20260604_015_google_sync_delete_policy.sql | Add RLS delete policy for google_sync_state | Applied |
