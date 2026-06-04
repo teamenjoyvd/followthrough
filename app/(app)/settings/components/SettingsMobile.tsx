@@ -1,6 +1,5 @@
 'use client'
 
-import Link from 'next/link'
 import { useClerk } from '@clerk/nextjs'
 import { Switch } from '@/components/ui/switch'
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
@@ -441,6 +440,7 @@ function DangerZoneSectionMobile() {
       <div className="bg-terra-surface border border-destructive/30 rounded-[20px] p-4 shadow-[0_4px_20px_rgba(46,50,48,0.04)]">
         <p className="text-sm text-terra-outline mb-3">Sign out of your account on this device.</p>
         <button
+          type="button"
           onClick={() => signOut({ redirectUrl: '/' })}
           className="inline-flex items-center text-sm font-bold text-destructive hover:opacity-80 transition-opacity"
         >
