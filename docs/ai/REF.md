@@ -139,5 +139,5 @@ Detail tables (`call_details`, `email_details`, `note_details`) have no `profile
 
 | Date | File | Description | Applied By |
 |:---|:---|:---|:---|
-| — | — | No migrations logged yet | — |
+| 2026-06-04 | 20260604_015_google_sync_delete_policy.sql | Add RLS delete policy for google_sync_state | Antigravity |
 
