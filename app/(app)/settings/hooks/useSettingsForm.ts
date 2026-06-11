@@ -3,6 +3,7 @@
 import { useState, useTransition, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { updateProfile, updatePreferences, updateLabelFollowupRules } from '@/lib/actions/settings'
+import { toast } from '@/components/ui/toast'
 
 export function useSettingsForm(initialProfile: {
   display_name: string | null
@@ -23,8 +24,10 @@ export function useSettingsForm(initialProfile: {
       const result = await updateProfile(profileName)
       if ('error' in result) {
         setProfileFeedback({ ok: false, msg: result.error })
+        toast(result.error, 'error')
       } else {
         setProfileFeedback({ ok: true, msg: 'Saved.' })
+        toast('Profile updated successfully')
         router.refresh()
       }
     })
@@ -49,8 +52,10 @@ export function useSettingsForm(initialProfile: {
       })
       if ('error' in result) {
         setPreferencesFeedback({ ok: false, msg: result.error })
+        toast(result.error, 'error')
       } else {
         setPreferencesFeedback({ ok: true, msg: 'Saved.' })
+        toast('Preferences saved successfully')
         router.refresh()
       }
     })
@@ -71,8 +76,10 @@ export function useSettingsForm(initialProfile: {
       const result = await updateLabelFollowupRules(followupRules)
       if ('error' in result) {
         setRulesFeedback({ ok: false, msg: result.error })
+        toast(result.error, 'error')
       } else {
         setRulesFeedback({ ok: true, msg: 'Saved.' })
+        toast('Follow-up rules saved successfully')
         router.refresh()
       }
     })

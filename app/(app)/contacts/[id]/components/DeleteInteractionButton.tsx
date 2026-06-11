@@ -2,7 +2,7 @@
 
 import { useTransition } from 'react'
 import { Trash2 } from 'lucide-react'
-import { toast } from 'sonner'
+import { toast } from '@/components/ui/toast'
 import { deleteInteraction } from '@/lib/actions/interactions'
 import { ConfirmDialog } from '@/components/ConfirmDialog'
 
@@ -19,7 +19,9 @@ export function DeleteInteractionButton({
     startTransition(async () => {
       const result = await deleteInteraction(interactionId, contactId)
       if (result?.error) {
-        toast.error(result.error)
+        toast(result.error, 'error')
+      } else {
+        toast('Interaction log deleted')
       }
     })
   }

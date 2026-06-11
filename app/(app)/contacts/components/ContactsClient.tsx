@@ -21,6 +21,7 @@ import type { Label } from '@/components/LabelManager'
 import type { Database } from '@/types/supabase'
 import { bulkUpdateContacts, bulkDeleteContacts, bulkManageContactLabels } from '@/lib/actions/contacts'
 import { toggleFocus } from '../actions/toggleFocus'
+import { toast } from '@/components/ui/toast'
 
 type ContactRow = Database['public']['Tables']['contacts']['Row'] & {
   phone_numbers?: { number: string }[]
@@ -105,7 +106,8 @@ export default function ContactsClient({
   const startBatchProcess = async (
     message: string,
     idsToProcess: string[],
-    actionFn: (batch: string[]) => Promise<{ success: true } | { error: string }>
+    actionFn: (batch: string[]) => Promise<{ success: true } | { error: string }>,
+    successMessage: string
   ) => {
     setIsProcessing(true)
     setProcessedCount(0)
@@ -124,9 +126,10 @@ export default function ContactsClient({
       }
       setSelectedIds(new Set())
       setIsProcessing(false)
+      toast(successMessage)
       router.refresh()
     } catch (err: any) {
-      alert(`Batch operation failed: ${err.message}`)
+      toast(`Batch operation failed: ${err.message}`, 'error')
       setIsProcessing(false)
     }
   }
@@ -139,7 +142,8 @@ export default function ContactsClient({
       Array.from(selectedIds),
       async (batch) => {
         return await bulkManageContactLabels(batch, [labelId], action)
-      }
+      },
+      action === 'assign' ? 'Tag labels assigned successfully' : 'Tag labels cleared successfully'
     )
   }
 
@@ -151,15 +155,25 @@ export default function ContactsClient({
       snoozeDate = d.toISOString()
     }
     const finalDate = snoozeDate
-    startBatchProcess('Scheduling snooze follow-ups...', Array.from(selectedIds), async (batch) => {
-      return await bulkUpdateContacts(batch, { snooze_until: finalDate })
-    })
+    startBatchProcess(
+      'Scheduling snooze follow-ups...',
+      Array.from(selectedIds),
+      async (batch) => {
+        return await bulkUpdateContacts(batch, { snooze_until: finalDate })
+      },
+      days !== null ? `Snooze follow-ups scheduled for ${days} days` : 'Snoozes cleared successfully'
+    )
   }
 
   const executeBulkDelete = () => {
-    startBatchProcess('Cascade deleting selected contacts...', Array.from(selectedIds), async (batch) => {
-      return await bulkDeleteContacts(batch)
-    })
+    startBatchProcess(
+      'Cascade deleting selected contacts...',
+      Array.from(selectedIds),
+      async (batch) => {
+        return await bulkDeleteContacts(batch)
+      },
+      'Selected contacts deleted successfully'
+    )
   }
 
   const handleExportCSV = () => {

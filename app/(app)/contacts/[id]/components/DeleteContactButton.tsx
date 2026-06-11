@@ -4,6 +4,7 @@ import { useTransition } from 'react'
 import { Trash2 } from 'lucide-react'
 import { deleteContact } from '@/lib/actions/contacts'
 import { ConfirmDialog } from '@/components/ConfirmDialog'
+import { toast } from '@/components/ui/toast'
 
 interface Props {
   contactId: string
@@ -15,8 +16,12 @@ export default function DeleteContactButton({ contactId, contactName }: Props) {
 
   const handleDelete = () => {
     startTransition(async () => {
-      await deleteContact(contactId)
-      // On success, revalidatePath in the action navigates away automatically.
+      const res = await deleteContact(contactId)
+      if (res && 'error' in res) {
+        toast(res.error, 'error')
+      } else {
+        toast(`Contact "${contactName}" deleted successfully`)
+      }
     })
   }
 

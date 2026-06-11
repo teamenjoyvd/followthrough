@@ -15,6 +15,7 @@ import {
 } from 'lucide-react'
 import { markInboxItemRead } from '@/lib/actions/inbox'
 import type { InboxItem } from '@/types/inbox'
+import { toast } from '@/components/ui/toast'
 
 interface Props {
   items: InboxItem[]
@@ -42,7 +43,7 @@ export default function InboxDesktop({ items }: Props) {
     startTransition(async () => {
       const res = await markInboxItemRead(itemId)
       if ('error' in res) {
-        alert(res.error)
+        toast(res.error, 'error')
       } else {
         router.refresh()
       }
