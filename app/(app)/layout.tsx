@@ -73,12 +73,12 @@ export default async function AppLayout({
       </div>
 
       {/* ── Mobile layout ── */}
-      <div className="flex md:hidden flex-col min-h-screen bg-background">
+      <div className="flex md:hidden flex-col h-screen overflow-hidden bg-background">
         <AppNavMobile
           inboxUnreadCount={unreadInboxCount}
           displayName={displayName}
         />
-        <main className="flex-1 bg-background">{children}</main>
+        <main className="flex-1 overflow-y-auto bg-background pb-16">{children}</main>
       </div>
     </>
   )
