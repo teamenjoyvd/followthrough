@@ -1,6 +1,5 @@
 import Link from 'next/link'
 import { ChevronRight, Bookmark } from 'lucide-react'
-import { PIPELINE_STATUSES } from './constants'
 import type { Database } from '@/types/supabase'
 import { getLabelColorClass, type Label } from '@/components/LabelManager'
 
@@ -21,14 +20,7 @@ interface Props {
   labels: Label[]
 }
 
-function statusStyle(status: Database['public']['Enums']['pipeline_status']) {
-  const found = PIPELINE_STATUSES.find(s => s.value === status)
-  return found ? found.color : 'bg-[#eae6de] text-[#4a4e4a] border-[#e4e0d8]'
-}
 
-function statusLabel(status: Database['public']['Enums']['pipeline_status']) {
-  return PIPELINE_STATUSES.find(s => s.value === status)?.label ?? status
-}
 
 function sourceBadge(source: string) {
   if (source === 'google_sync') {
@@ -113,9 +105,7 @@ export default function ContactsMobile({ contacts, selectedIds, onToggleSelect, 
                       >
                         {c.first_name} {c.last_name}
                       </Link>
-                      <span className={`shrink-0 inline-flex items-center px-1.5 py-0.5 rounded-full text-[9px] font-medium border ${statusStyle(c.pipeline_status)}`}>
-                        {statusLabel(c.pipeline_status)}
-                      </span>
+
                       {sourceBadge(c.created_by_source || 'manual')}
                     </div>
 

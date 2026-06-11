@@ -2,14 +2,12 @@
 
 import { useState } from 'react'
 import { Trash2, Tag, Calendar, X, ArrowRightLeft } from 'lucide-react'
-import { PIPELINE_STATUSES } from '@/app/(app)/contacts/components/constants'
 import { getLabelColorClass, type Label } from '@/components/LabelManager'
 
 interface BulkActionsToolbarProps {
   selectedIds: Set<string>
   onClearSelection: () => void
   labels: Label[]
-  onStatusChange: (status: any) => void
   onLabelManage: (labelId: string, action: 'assign' | 'clear') => void
   onSnoozeChange: (days: number | null) => void
   onDelete: () => void
@@ -21,7 +19,6 @@ export default function BulkActionsToolbar({
   selectedIds,
   onClearSelection,
   labels,
-  onStatusChange,
   onLabelManage,
   onSnoozeChange,
   onDelete,
@@ -54,37 +51,7 @@ export default function BulkActionsToolbar({
       </div>
 
       <div className="flex flex-wrap items-center gap-1.5 border-t border-[#4a4e4a] pt-3">
-        {/* Bulk Pipeline Change */}
-        <div className="relative">
-          <button
-            onClick={() => setActiveMenu(activeMenu === 'status' ? null : 'status')}
-            className={`inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold border transition-all ${
-              activeMenu === 'status'
-                ? 'bg-[#4a7c59] text-white border-[#4a7c59]'
-                : 'bg-transparent text-[#eae6de] border-[#4a4e4a] hover:bg-[#4a4e4a]'
-            }`}
-          >
-            <ArrowRightLeft className="h-3.5 w-3.5" />
-            <span>Update Status</span>
-          </button>
 
-          {activeMenu === 'status' && (
-            <div className="absolute bottom-11 left-0 z-50 w-44 bg-[#2e3230] border border-[#4a4e4a] rounded-xl py-1.5 shadow-xl animate-in fade-in duration-100">
-              {PIPELINE_STATUSES.map((st) => (
-                <button
-                  key={st.value}
-                  onClick={() => {
-                    onStatusChange(st.value)
-                    setActiveMenu(null)
-                  }}
-                  className="w-full text-left px-3.5 py-2 text-xs font-semibold text-[#eae6de] hover:bg-[#4a7c59] hover:text-white transition-colors"
-                >
-                  {st.label}
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
 
         {/* Bulk Labels Change */}
         <div className="relative">

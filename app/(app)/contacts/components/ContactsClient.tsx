@@ -36,7 +36,6 @@ interface ContactsClientProps {
   sortKey: any
   sortDir: any
   currentQuery: string
-  currentStatus: string
   currentLastContacted: string
   currentCompany: string
   currentFocused?: string
@@ -49,7 +48,6 @@ export default function ContactsClient({
   sortKey,
   sortDir,
   currentQuery,
-  currentStatus,
   currentLastContacted,
   currentCompany,
   currentFocused = '',
@@ -133,11 +131,7 @@ export default function ContactsClient({
     }
   }
 
-  const handleStatusChange = (status: any) => {
-    startBatchProcess('Updating pipeline statuses...', Array.from(selectedIds), async (batch) => {
-      return await bulkUpdateContacts(batch, { pipeline_status: status })
-    })
-  }
+
 
   const handleLabelManage = (labelId: string, action: 'assign' | 'clear') => {
     startBatchProcess(
@@ -171,7 +165,7 @@ export default function ContactsClient({
   const handleExportCSV = () => {
     const headers = [
       'First Name', 'Last Name', 'Email', 'Phone', 'Company',
-      'Job Title', 'Status', 'Created Source', 'Last Changed', 'Labels',
+      'Job Title', 'Created Source', 'Last Changed', 'Labels',
     ]
     const csvRows = [headers.join(',')]
 
@@ -194,7 +188,6 @@ export default function ContactsClient({
         `"${(primaryPhone || '').replace(/"/g, '""')}"`,
         `"${(c.company || '').replace(/"/g, '""')}"`,
         `"${(c.job_title || '').replace(/"/g, '""')}"`,
-        `"${(c.pipeline_status || '').replace(/"/g, '""')}"`,
         `"${(c.created_by_source || '').replace(/"/g, '""')}"`,
         `"${(c.last_updated_by_source || '').replace(/"/g, '""')}"`,
         `"${labelNames.replace(/"/g, '""')}"`,
@@ -304,7 +297,6 @@ export default function ContactsClient({
           sortKey={sortKey}
           sortDir={sortDir}
           currentQuery={currentQuery}
-          currentStatus={currentStatus}
           currentLastContacted={currentLastContacted}
           currentCompany={currentCompany}
           currentFocused={currentFocused}
@@ -323,7 +315,6 @@ export default function ContactsClient({
         selectedIds={selectedIds}
         onClearSelection={handleClearSelection}
         labels={labels}
-        onStatusChange={handleStatusChange}
         onLabelManage={handleLabelManage}
         onSnoozeChange={handleSnoozeChange}
         onDelete={() => { /* no-op: replaced by deleteOverride */ }}

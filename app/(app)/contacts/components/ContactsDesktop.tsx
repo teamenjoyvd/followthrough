@@ -1,10 +1,9 @@
 import Link from 'next/link'
 import { ChevronUp, ChevronDown, ChevronsUpDown, Bookmark } from 'lucide-react'
-import { PIPELINE_STATUSES } from './constants'
 import type { Database } from '@/types/supabase'
 import { getLabelColorClass, type Label } from '@/components/LabelManager'
 
-type SortKey = 'first_name' | 'company' | 'pipeline_status' | 'last_contacted_at'
+type SortKey = 'first_name' | 'company' | 'last_contacted_at'
 type SortDir = 'asc' | 'desc'
 
 type ContactRow = Database['public']['Tables']['contacts']['Row'] & {
@@ -25,7 +24,6 @@ interface Props {
   sortKey: SortKey
   sortDir: SortDir
   currentQuery: string
-  currentStatus: string
   currentLastContacted: string
   currentCompany: string
   currentFocused?: string
@@ -38,12 +36,7 @@ function SortIcon({ column, sortKey, sortDir }: { column: SortKey; sortKey: Sort
     : <ChevronDown className="h-3.5 w-3.5 text-[#2e3230]" />
 }
 
-function statusBadge(status: Database['public']['Enums']['pipeline_status']) {
-  const found = PIPELINE_STATUSES.find((s: { value: string }) => s.value === status)
-  return found
-    ? <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold border ${found.color}`}>{found.label}</span>
-    : null
-}
+
 
 function sourceBadge(source: string, detail: string | null) {
   if (source === 'google_sync') {
@@ -82,7 +75,6 @@ function formatDate(iso: string | null) {
 const COLUMNS: { key: SortKey; label: string }[] = [
   { key: 'first_name', label: 'Name' },
   { key: 'company', label: 'Company' },
-  { key: 'pipeline_status', label: 'Status' },
   { key: 'last_contacted_at', label: 'Last contacted' },
 ]
 
@@ -96,7 +88,6 @@ export default function ContactsDesktop({
   sortKey,
   sortDir,
   currentQuery,
-  currentStatus,
   currentLastContacted,
   currentCompany,
   currentFocused = '',
@@ -107,7 +98,6 @@ export default function ContactsDesktop({
     const nextDir = col === sortKey && sortDir === 'asc' ? 'desc' : 'asc'
     const params = new URLSearchParams()
     if (currentQuery) params.set('q', currentQuery)
-    if (currentStatus) params.set('status', currentStatus)
     if (currentLastContacted) params.set('last_contacted', currentLastContacted)
     if (currentCompany) params.set('company', currentCompany)
     if (currentFocused) params.set('focused', currentFocused)
@@ -120,8 +110,8 @@ export default function ContactsDesktop({
 
   return (
     <div role="table" aria-label="Contacts list" className="hidden md:block px-6 py-4 space-y-2">
-      {/* Column headers — grid: [40px_36px_2fr_2fr_1.5fr_1.5fr_80px] */}
-      <div role="row" className="grid grid-cols-[40px_36px_2fr_2fr_1.5fr_1.5fr_80px] gap-4 px-4 mb-1 items-center">
+      {/* Column headers — grid: [40px_36px_2fr_2fr_1.5fr_80px] */}
+      <div role="row" className="grid grid-cols-[40px_36px_2fr_2fr_1.5fr_80px] gap-4 px-4 mb-1 items-center">
         {/* Bulk select checkbox */}
         <div className="flex items-center justify-center">
           <input
@@ -168,7 +158,7 @@ export default function ContactsDesktop({
             <div
               key={c.id}
               role="row"
-              className={`grid grid-cols-[40px_36px_2fr_2fr_1.5fr_1.5fr_80px] gap-4 items-center px-4 py-3.5 rounded-[20px] transition-all duration-200 shadow-[0_4px_20px_rgba(46,50,48,0.04)] group ${
+              className={`grid grid-cols-[40px_36px_2fr_2fr_1.5fr_80px] gap-4 items-center px-4 py-3.5 rounded-[20px] transition-all duration-200 shadow-[0_4px_20px_rgba(46,50,48,0.04)] group ${
                 isRowChecked
                   ? 'bg-[#eae6de] border-2 border-[#4a7c59]/40 scale-[1.002]'
                   : 'bg-[#f5f1ea] hover:bg-[#eae6de] hover:scale-[1.005]'
@@ -244,9 +234,7 @@ export default function ContactsDesktop({
                 {c.job_title && <div className="text-xs text-[#74796e] mt-0.5 font-body">{c.job_title}</div>}
               </div>
 
-              <div role="cell">
-                {statusBadge(c.pipeline_status)}
-              </div>
+
 
               <div role="cell" className="text-sm text-[#4a4e4a] font-body">
                 {formatDate(c.last_contacted_at)}

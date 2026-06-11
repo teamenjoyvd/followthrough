@@ -7,7 +7,6 @@ import { useClerk } from '@clerk/nextjs'
 import {
   LayoutDashboard,
   Users,
-  GitBranch,
   Inbox,
   History,
   Settings,
@@ -28,7 +27,6 @@ import { cn } from '@/lib/utils'
 const NAV_ITEMS = [
   { href: '/workspace', label: 'Workspace', icon: LayoutDashboard },
   { href: '/contacts', label: 'Contacts', icon: Users },
-  { href: '/pipeline', label: 'Pipeline', icon: GitBranch },
   { href: '/inbox', label: 'Inbox', icon: Inbox },
   { href: '/history', label: 'History', icon: History },
   { href: '/settings', label: 'Settings', icon: Settings },

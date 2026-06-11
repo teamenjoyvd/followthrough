@@ -4,7 +4,6 @@ import { useRouter } from 'next/navigation'
 import { useCallback, useState, useEffect, useTransition } from 'react'
 import Link from 'next/link'
 import { X, SlidersHorizontal, Zap, ChevronDown, ChevronUp, Tag } from 'lucide-react'
-import { PIPELINE_STATUSES } from '@/app/(app)/contacts/components/constants'
 import { getLabelColorClass, type Label } from '@/components/LabelManager'
 import { SearchInput } from '@/app/(app)/contacts/components/SearchInput'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
@@ -29,19 +28,17 @@ const LAST_CONTACTED_OPTIONS = [
 const SORT_OPTIONS = [
   { value: 'first_name', label: 'Name' },
   { value: 'company', label: 'Company' },
-  { value: 'pipeline_status', label: 'Stage' },
   { value: 'last_contacted_at', label: 'Last contacted' },
 ]
 
 const SHORTCUTS = [
-  { label: "This week's overdue", href: '/contacts?last_contacted=7d&status=lead' },
-  { label: 'Leads not contacted in 14d', href: '/contacts?last_contacted=14d&status=lead' },
+  { label: "This week's overdue", href: '/contacts?last_contacted=7d' },
+  { label: 'Not contacted in 14d', href: '/contacts?last_contacted=14d' },
 ]
 
 // ─── Props ────────────────────────────────────────────────────────────────────
 
 interface Props {
-  currentStatus: string
   currentLastContacted: string
   currentCompany: string
   currentQuery: string
@@ -65,7 +62,6 @@ interface Props {
 type ActivePill = { key: string; label: string; clearOverride: Record<string, string> }
 
 function buildActivePills({
-  currentStatus,
   currentLastContacted,
   currentCompany,
   currentFirstName,
@@ -83,10 +79,6 @@ function buildActivePills({
 
   if (currentFocused === '1') {
     pills.push({ key: 'focused', label: 'Focused', clearOverride: { focused: '' } })
-  }
-  if (currentStatus) {
-    const found = PIPELINE_STATUSES.find(s => s.value === currentStatus)
-    pills.push({ key: 'status', label: `Stage: ${found?.label ?? currentStatus}`, clearOverride: { status: '' } })
   }
   if (currentLastContacted) {
     const found = LAST_CONTACTED_OPTIONS.find(o => o.value === currentLastContacted)
@@ -135,7 +127,6 @@ function buildActivePills({
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export function ContactFilterBar({
-  currentStatus,
   currentLastContacted,
   currentCompany,
   currentQuery,
@@ -184,7 +175,6 @@ export function ContactFilterBar({
       const params = new URLSearchParams()
       const merged = {
         q: currentQuery,
-        status: currentStatus,
         last_contacted: currentLastContacted,
         company: currentCompany,
         sort: currentSort,
@@ -207,7 +197,7 @@ export function ContactFilterBar({
       return qs ? `${basePath}?${qs}` : basePath
     },
     [
-      currentQuery, currentStatus, currentLastContacted, currentCompany,
+      currentQuery, currentLastContacted, currentCompany,
       currentSort, currentDir, basePath, currentFirstName, currentLastName,
       currentPhone, currentEmail, currentHasEmail, currentHasPhone,
       currentSource, currentLabels, currentFocused,
@@ -247,13 +237,13 @@ export function ContactFilterBar({
   }
 
   const clearAllHref = buildHref({
-    status: '', last_contacted: '', company: '', first_name: '',
+    last_contacted: '', company: '', first_name: '',
     last_name: '', phone: '', email: '', has_email: '', has_phone: '',
     source: '', labels: '', focused: '',
   })
 
   const activePills = buildActivePills({
-    currentStatus, currentLastContacted, currentCompany, currentFirstName,
+    currentLastContacted, currentCompany, currentFirstName,
     currentLastName, currentEmail, currentPhone, currentHasEmail, currentHasPhone,
     currentSource, currentFocused, currentLabels, availableLabels,
   })
@@ -261,7 +251,7 @@ export function ContactFilterBar({
   const hasActiveFilters = activePills.length > 0
 
   const activeFilterCount = [
-    currentStatus, currentLastContacted, currentCompany, currentFirstName,
+    currentLastContacted, currentCompany, currentFirstName,
     currentLastName, currentPhone, currentEmail, currentHasEmail, currentHasPhone,
     currentSource, currentFocused === '1' ? '1' : '',
     activeLabelIds.length > 0 ? 'labels' : '',
@@ -308,45 +298,20 @@ export function ContactFilterBar({
           >
             <div className="p-4 space-y-5">
 
-              {/* Stage */}
-              <div>
-                <p className="text-[10px] font-bold text-[#74796e] uppercase tracking-wider mb-2">Stage</p>
-                <div className="flex flex-wrap gap-1.5">
-                  <button
-                    type="button"
-                    onClick={() => startTransition(() => router.replace(buildHref({ status: '', focused: '' })))}
-                    className={`px-3 py-1 rounded-full text-xs font-semibold border transition-colors ${
-                      !currentStatus && currentFocused !== '1'
-                        ? 'bg-[#4a7c59] text-white border-[#4a7c59]'
-                        : 'bg-[#f5f1ea] text-[#74796e] border-[#e4e0d8] hover:bg-[#eae6de]'
-                    }`}
-                  >
-                    All
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => startTransition(() => router.replace(buildHref({ focused: currentFocused === '1' ? '' : '1', status: '' })))}
-                    className={`px-3 py-1 rounded-full text-xs font-semibold border transition-colors ${
-                      currentFocused === '1'
-                        ? 'bg-[#4a7c59] text-white border-[#4a7c59]'
-                        : 'bg-[#f5f1ea] text-[#74796e] border-[#e4e0d8] hover:bg-[#eae6de]'
-                    }`}
-                  >
-                    Focused
-                  </button>
-                  {PIPELINE_STATUSES.map(({ value, label, color }) => (
-                    <button
-                      key={value}
-                      type="button"
-                      onClick={() => startTransition(() => router.replace(buildHref({ status: currentStatus === value ? '' : value, focused: '' })))}
-                      className={`px-3 py-1 rounded-full text-xs font-semibold border transition-colors ${
-                        currentStatus === value ? color : 'bg-[#f5f1ea] text-[#74796e] border-[#e4e0d8] hover:bg-[#eae6de]'
-                      }`}
-                    >
-                      {label}
-                    </button>
-                  ))}
-                </div>
+              {/* Focused Filter */}
+              <div className="flex items-center justify-between pb-1">
+                <span className="text-[10px] font-bold text-[#74796e] uppercase tracking-wider">Show focused only</span>
+                <button
+                  type="button"
+                  onClick={() => startTransition(() => router.replace(buildHref({ focused: currentFocused === '1' ? '' : '1' })))}
+                  className={`px-3.5 py-1.5 rounded-full text-xs font-semibold border transition-colors ${
+                    currentFocused === '1'
+                      ? 'bg-[#4a7c59] text-white border-[#4a7c59]'
+                      : 'bg-[#f5f1ea] text-[#74796e] border-[#e4e0d8] hover:bg-[#eae6de]'
+                  }`}
+                >
+                  Focused
+                </button>
               </div>
 
               {/* Time */}

@@ -3,7 +3,7 @@ import { redirect } from 'next/navigation'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { getUnreadInboxCount, getInboxItems } from '@/lib/actions/inbox'
 import { ensureProfile } from '@/lib/profile'
-import { DEFAULT_FOLLOWUP_RULES } from '@/lib/constants/followup'
+
 import WorkspaceDesktop from './components/WorkspaceDesktop'
 import WorkspaceMobile from './components/WorkspaceMobile'
 import ResurfaceTrigger from './components/ResurfaceTrigger'
@@ -27,13 +27,12 @@ export default async function WorkspacePage() {
   interface ProfileResult {
     id: string
     display_name: string | null
-    followup_rules: any
     undo_window_seconds: number | null
   }
 
   const { data: profileResult, error: profileError } = await supabase
     .from('profiles')
-    .select('id, display_name, followup_rules, undo_window_seconds')
+    .select('id, display_name, undo_window_seconds')
     .eq('clerk_id', userId)
     .maybeSingle() as { data: ProfileResult | null; error: any }
 
@@ -117,12 +116,11 @@ export default async function WorkspacePage() {
     totalContactsCount,
   }
 
-  const followupRules = (profile.followup_rules as Record<string, number> | null) || DEFAULT_FOLLOWUP_RULES
   let overdueCount = 0
-
+ 
   for (const contact of contactsList) {
     if (contact.pipeline_status === 'snoozed') continue
-    const thresholdDays = followupRules[contact.pipeline_status] ?? 14
+    const thresholdDays = 14
     const referenceDateStr = contact.last_contacted_at || contact.created_at
     if (referenceDateStr) {
       const referenceDate = new Date(referenceDateStr)

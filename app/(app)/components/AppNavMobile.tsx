@@ -4,7 +4,7 @@ import * as React from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useClerk } from '@clerk/nextjs'
-import { Menu, LogOut, LayoutDashboard, Users, GitBranch, Inbox, History, Settings, X } from 'lucide-react'
+import { Menu, LogOut, LayoutDashboard, Users, Inbox, History, Settings, X } from 'lucide-react'
 import { Logo } from '@/components/Logo'
 import {
   Sheet,
@@ -18,7 +18,6 @@ import { cn } from '@/lib/utils'
 const NAV_ITEMS = [
   { href: '/workspace', label: 'Workspace', icon: LayoutDashboard },
   { href: '/contacts', label: 'Contacts', icon: Users },
-  { href: '/pipeline', label: 'Pipeline', icon: GitBranch },
   { href: '/inbox', label: 'Inbox', icon: Inbox },
   { href: '/history', label: 'History', icon: History },
   { href: '/settings', label: 'Settings', icon: Settings },

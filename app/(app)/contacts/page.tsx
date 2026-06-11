@@ -2,17 +2,14 @@ import { auth } from '@clerk/nextjs/server'
 import { redirect } from 'next/navigation'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import ContactsClient from './components/ContactsClient'
-import { PIPELINE_STATUSES } from './components/constants'
 import { ContactFilterBar } from '@/components/ContactFilterBar'
 import { MobileFilterBar } from '@/components/MobileFilterBar'
 import Link from 'next/link'
 import type { Database } from '@/types/supabase'
-
-type PipelineStatus = Database['public']['Enums']['pipeline_status']
-type SortKey = 'first_name' | 'company' | 'pipeline_status' | 'last_contacted_at'
+type SortKey = 'first_name' | 'company' | 'last_contacted_at'
 type SortDir = 'asc' | 'desc'
 
-const VALID_SORT_KEYS: SortKey[] = ['first_name', 'company', 'pipeline_status', 'last_contacted_at']
+const VALID_SORT_KEYS: SortKey[] = ['first_name', 'company', 'last_contacted_at']
 
 const LAST_CONTACTED_DAYS: Record<string, number> = {
   '7d': 7,
@@ -21,17 +18,11 @@ const LAST_CONTACTED_DAYS: Record<string, number> = {
   '90d': 90,
 }
 
-const PIPELINE_STATUS_WEIGHTS: Record<string, number> = {
-  lead: 1,
-  qualified: 2,
-  bought: 3,
-  snoozed: 4,
-  leave_alone: 5,
-}
+
 
 interface SearchParams {
   q?: string
-  status?: string
+
   sort?: string
   dir?: string
   last_contacted?: string
@@ -72,7 +63,6 @@ function buildPaginationHref(params: SearchParams, newPage: number) {
 }
 
 function applyActiveFilters(query: any, filters: {
-  statusFilter: string
   companyFilter: string
   lastContactedFilter: string
   sourceFilter: string
@@ -87,7 +77,6 @@ function applyActiveFilters(query: any, filters: {
   focusedFilter: string
 }) {
   const {
-    statusFilter,
     companyFilter,
     lastContactedFilter,
     sourceFilter,
@@ -102,7 +91,6 @@ function applyActiveFilters(query: any, filters: {
     focusedFilter,
   } = filters
 
-  if (statusFilter) query = query.eq('pipeline_status', statusFilter)
   if (companyFilter) query = query.ilike('company', `%${companyFilter}%`)
 
   if (lastContactedFilter && LAST_CONTACTED_DAYS[lastContactedFilter]) {
@@ -170,7 +158,6 @@ export default async function ContactsPage({
 
   const params = await searchParams
   const query = (params.q ?? '').trim()
-  const statusFilter = (PIPELINE_STATUSES.some(s => s.value === params.status) ? params.status : '') as PipelineStatus | ''
   const lastContactedFilter = params.last_contacted ?? ''
   const companyFilter = (params.company ?? '').trim()
   const focused = params.focused ?? ''
@@ -213,7 +200,6 @@ export default async function ContactsPage({
   let activePage = isNaN(pageParam) || pageParam < 1 ? 1 : pageParam
 
   const filterArgs = {
-    statusFilter,
     companyFilter,
     lastContactedFilter,
     sourceFilter,
@@ -235,11 +221,7 @@ export default async function ContactsPage({
 
   dbQuery = applyActiveFilters(dbQuery, filterArgs)
 
-  if (sortKey === 'pipeline_status') {
-    dbQuery = dbQuery.order('pipeline_status', { ascending: sortDir === 'asc' })
-  } else {
-    dbQuery = dbQuery.order(sortKey, { ascending: sortDir === 'asc', nullsFirst: false })
-  }
+  dbQuery = dbQuery.order(sortKey, { ascending: sortDir === 'asc', nullsFirst: false })
 
   const { data: contactsData, count, error: fetchError } = await dbQuery
     .range((activePage - 1) * PAGE_SIZE, activePage * PAGE_SIZE - 1)
@@ -252,7 +234,6 @@ export default async function ContactsPage({
   activePage = Math.min(totalPages, activePage)
 
   const activeFilterCount = [
-    statusFilter,
     lastContactedFilter,
     companyFilter,
     firstNameFilter,
@@ -273,7 +254,6 @@ export default async function ContactsPage({
       <div className="md:hidden">
         <MobileFilterBar
           currentQuery={query}
-          currentStatus={statusFilter}
           currentLastContacted={lastContactedFilter}
           currentCompany={companyFilter}
           currentSort={sortKey}
@@ -298,13 +278,11 @@ export default async function ContactsPage({
         sortKey={sortKey}
         sortDir={sortDir}
         currentQuery={query}
-        currentStatus={statusFilter}
         currentLastContacted={lastContactedFilter}
         currentCompany={companyFilter}
         currentFocused={focused}
         desktopFilterBar={
           <ContactFilterBar
-            currentStatus={statusFilter}
             currentLastContacted={lastContactedFilter}
             currentCompany={companyFilter}
             currentQuery={query}
@@ -362,7 +340,6 @@ export default async function ContactsPage({
       <div className="px-4 md:px-6 py-3 border-t border-[#e4e0d8] bg-[#faf6f0] shrink-0">
         <p className="text-xs text-[#74796e] font-body">
           {totalContacts} contact{totalContacts !== 1 ? 's' : ''}
-          {statusFilter ? ` · ${PIPELINE_STATUSES.find(s => s.value === statusFilter)?.label}` : ''}
           {lastContactedFilter ? ` · not contacted in ${lastContactedFilter}` : ''}
           {companyFilter ? ` · company "${companyFilter}"` : ''}
           {firstNameFilter ? ` · first name "${firstNameFilter}"` : ''}

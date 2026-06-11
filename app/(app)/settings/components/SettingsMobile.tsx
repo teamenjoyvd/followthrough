@@ -2,8 +2,6 @@
 
 import { useClerk } from '@clerk/nextjs'
 import { Switch } from '@/components/ui/switch'
-import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
-import type { FollowupRules } from '@/lib/actions/settings'
 import type { useSettingsForm } from '../hooks/useSettingsForm'
 import { cn } from '@/lib/utils'
 
@@ -13,8 +11,6 @@ interface Props {
     email: string
     display_name: string | null
     confirmation_enabled: boolean
-    pipeline_view: string
-    followup_rules: FollowupRules
     undo_window_seconds: number
   }
   settingsForm: ReturnType<typeof useSettingsForm>
@@ -39,22 +35,11 @@ export default function SettingsMobile({
       <PreferencesSectionMobile
         confirmation={settingsForm.confirmation}
         setConfirmation={settingsForm.setConfirmation}
-        view={settingsForm.view}
-        setView={settingsForm.setView}
         undoWindowSeconds={settingsForm.undoWindowSeconds}
         setUndoWindowSeconds={settingsForm.setUndoWindowSeconds}
         isPending={settingsForm.isPreferencesPending}
         feedback={settingsForm.preferencesFeedback}
         onSave={settingsForm.handlePreferencesSave}
-      />
-      <FollowupRulesSectionMobile
-        values={settingsForm.rawRuleInputs}
-        onChange={settingsForm.handleRuleChange}
-        isPending={settingsForm.isRulesPending}
-        feedback={settingsForm.rulesFeedback}
-        validationErrors={settingsForm.validationErrors}
-        hasValidationErrors={settingsForm.hasValidationErrors}
-        onSave={settingsForm.handleRulesSave}
       />
       <DangerZoneSectionMobile />
     </div>
@@ -122,8 +107,6 @@ const UNDO_WINDOW_OPTIONS: { label: string; value: 5 | 10 | 30 }[] = [
 function PreferencesSectionMobile({
   confirmation,
   setConfirmation,
-  view,
-  setView,
   undoWindowSeconds,
   setUndoWindowSeconds,
   isPending,
@@ -132,8 +115,6 @@ function PreferencesSectionMobile({
 }: {
   confirmation: boolean
   setConfirmation: (v: boolean) => void
-  view: string
-  setView: (v: string) => void
   undoWindowSeconds: 5 | 10 | 30
   setUndoWindowSeconds: (v: 5 | 10 | 30) => void
   isPending: boolean
@@ -150,13 +131,6 @@ function PreferencesSectionMobile({
             <p className="text-xs text-terra-outline mt-0.5 leading-snug">Show confirm dialogs before destructive actions</p>
           </div>
           <Switch checked={confirmation} onCheckedChange={setConfirmation} />
-        </div>
-        <div className="space-y-2">
-          <p className="text-sm font-medium text-terra-on-surface">Pipeline view</p>
-          <ToggleGroup type="single" value={view} onValueChange={v => v && setView(v)} size="sm" className="w-full">
-            <ToggleGroupItem value="board" className="flex-1">Board</ToggleGroupItem>
-            <ToggleGroupItem value="list" className="flex-1">List</ToggleGroupItem>
-          </ToggleGroup>
         </div>
         <div className="space-y-2">
           <p className="text-sm font-medium text-terra-on-surface">Undo window</p>
@@ -195,80 +169,6 @@ function PreferencesSectionMobile({
   )
 }
 
-// ── Follow-up Rules ───────────────────────────────────────────────────────────────────
-
-const RULE_LABELS: Record<keyof FollowupRules, string> = {
-  lead: 'Lead',
-  qualified: 'Qualified',
-  bought: 'Bought',
-  leave_alone: 'Leave alone',
-}
-
-function FollowupRulesSectionMobile({
-  values,
-  onChange,
-  isPending,
-  feedback,
-  validationErrors,
-  hasValidationErrors,
-  onSave,
-}: {
-  values: Record<keyof FollowupRules, string>
-  onChange: (field: keyof FollowupRules, raw: string) => void
-  isPending: boolean
-  feedback: { ok: boolean; msg: string } | null
-  validationErrors: Record<keyof FollowupRules, string | null>
-  hasValidationErrors: boolean
-  onSave: () => void
-}) {
-  return (
-    <section className="space-y-3">
-      <h2 className="font-headline text-base font-bold text-terra-on-surface">Follow-up rules</h2>
-      <p className="text-xs text-terra-outline">Days before a contact is considered overdue per pipeline stage.</p>
-      <div className="bg-terra-surface border border-terra-surface-container-highest rounded-[20px] p-4 space-y-4 shadow-[0_4px_20px_rgba(46,50,48,0.04)]">
-        <div className="grid grid-cols-2 gap-3">
-          {(Object.keys(RULE_LABELS) as (keyof FollowupRules)[]).map(field => (
-            <div key={field} className="space-y-1.5">
-              <label className="text-[10px] font-bold text-terra-outline uppercase tracking-wide">
-                {RULE_LABELS[field]}
-              </label>
-              <div className="flex items-center gap-1.5">
-                <input
-                  type="number"
-                  min={1}
-                  max={365}
-                  value={values[field]}
-                  onChange={e => onChange(field, e.target.value)}
-                  className={`w-16 rounded-xl border bg-terra-surface-container-low px-2 py-1.5 text-sm text-terra-on-surface focus:outline-none focus:ring-2 focus:ring-terra-primary ${
-                    validationErrors[field] ? 'border-destructive focus:ring-destructive' : 'border-terra-surface-container-highest'
-                  }`}
-                />
-                <span className="text-xs text-terra-outline">d</span>
-              </div>
-              {validationErrors[field] && (
-                <p className="text-[10px] font-medium text-destructive mt-1">
-                  {validationErrors[field]}
-                </p>
-              )}
-            </div>
-          ))}
-        </div>
-        <button
-          onClick={onSave}
-          disabled={isPending || hasValidationErrors}
-          className="w-full bg-terra-primary text-white text-sm font-bold py-2.5 rounded-xl hover:opacity-90 transition-opacity disabled:opacity-50"
-        >
-          {isPending ? 'Saving…' : 'Save rules'}
-        </button>
-        {feedback && (
-          <p className={`text-xs font-medium text-center ${feedback.ok ? 'text-terra-primary' : 'text-destructive'}`}>
-            {feedback.msg}
-          </p>
-        )}
-      </div>
-    </section>
-  )
-}
 
 // ── Danger Zone ───────────────────────────────────────────────────────────────────────
 

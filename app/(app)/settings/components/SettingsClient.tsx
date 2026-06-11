@@ -3,7 +3,6 @@
 import SettingsDesktop from './SettingsDesktop'
 import SettingsMobile from './SettingsMobile'
 import { useSettingsForm } from '../hooks/useSettingsForm'
-import type { FollowupRules } from '@/lib/actions/settings'
 
 export interface SettingsClientProps {
   profile: {
@@ -11,8 +10,6 @@ export interface SettingsClientProps {
     email: string
     display_name: string | null
     confirmation_enabled: boolean
-    pipeline_view: string
-    followup_rules: FollowupRules
     undo_window_seconds: number
   }
 }
@@ -23,8 +20,6 @@ export default function SettingsClient({
   const settingsForm = useSettingsForm({
     display_name: profile.display_name,
     confirmation_enabled: profile.confirmation_enabled,
-    pipeline_view: profile.pipeline_view,
-    followup_rules: profile.followup_rules,
     undo_window_seconds: profile.undo_window_seconds,
   })
 

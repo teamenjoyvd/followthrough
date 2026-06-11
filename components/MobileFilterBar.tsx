@@ -4,7 +4,7 @@ import { useRouter, useSearchParams, usePathname } from 'next/navigation'
 import { useCallback, useState, useEffect, useTransition } from 'react'
 import Link from 'next/link'
 import { SlidersHorizontal, X, ChevronDown } from 'lucide-react'
-import { PIPELINE_STATUSES } from '@/app/(app)/contacts/components/constants'
+
 
 const LAST_CONTACTED_OPTIONS = [
   { value: '', label: 'Any time' },
@@ -17,7 +17,7 @@ const LAST_CONTACTED_OPTIONS = [
 const SORT_OPTIONS = [
   { value: 'first_name', label: 'Name' },
   { value: 'company', label: 'Company' },
-  { value: 'pipeline_status', label: 'Stage' },
+
   { value: 'last_contacted_at', label: 'Last contacted' },
 ]
 
@@ -28,7 +28,7 @@ interface Label {
 
 interface Props {
   currentQuery: string
-  currentStatus: string
+
   currentLastContacted: string
   currentCompany: string
   currentSort: string
@@ -48,7 +48,7 @@ interface Props {
 
 export function MobileFilterBar({
   currentQuery,
-  currentStatus,
+
   currentLastContacted,
   currentCompany,
   currentSort,
@@ -146,7 +146,6 @@ export function MobileFilterBar({
       const params = new URLSearchParams()
       const merged = {
         q: currentQuery,
-        status: currentStatus,
         last_contacted: currentLastContacted,
         company: currentCompany,
         sort: currentSort,
@@ -169,7 +168,7 @@ export function MobileFilterBar({
       return qs ? `/contacts?${qs}` : '/contacts'
     },
     [
-      currentQuery, currentStatus, currentLastContacted, currentCompany,
+      currentQuery, currentLastContacted, currentCompany,
       currentSort, currentDir, currentFirstName, currentLastName,
       currentPhone, currentEmail, currentHasEmail, currentHasPhone,
       currentSource, currentLabels, currentFocused,
@@ -287,9 +286,9 @@ export function MobileFilterBar({
         style={{ scrollbarWidth: 'none' }}
       >
         <Link
-          href={buildHref({ status: '' })}
+          href={buildHref({ focused: '' })}
           className={`shrink-0 px-3 py-1 rounded-full text-[11px] font-semibold border transition-colors ${
-            !currentStatus && !isFocused
+            !isFocused
               ? 'bg-[#4a7c59] text-white border-[#4a7c59]'
               : 'bg-[#faf6f0] text-[#74796e] border-[#e4e0d8]'
           }`}
@@ -297,23 +296,9 @@ export function MobileFilterBar({
           All
         </Link>
 
-        {PIPELINE_STATUSES.map(({ value, label, color }) => (
-          <Link
-            key={value}
-            href={buildHref({ status: value, focused: '' })}
-            className={`shrink-0 px-3 py-1 rounded-full text-[11px] font-semibold border transition-colors ${
-              currentStatus === value
-                ? color
-                : 'bg-[#faf6f0] text-[#74796e] border-[#e4e0d8]'
-            }`}
-          >
-            {label}
-          </Link>
-        ))}
-
-        {/* Focused chip — after pipeline statuses, before labels */}
+        {/* Focused chip */}
         <Link
-          href={buildHref({ focused: isFocused ? '' : '1', status: '' })}
+          href={buildHref({ focused: isFocused ? '' : '1' })}
           className={`shrink-0 px-3 py-1 rounded-full text-[11px] font-semibold border transition-colors ${
             isFocused
               ? 'bg-[#4a7c59] text-white border-[#4a7c59]'
