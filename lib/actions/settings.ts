@@ -92,3 +92,33 @@ export async function updatePreferences({
   return { success: true }
 }
 
+export async function updateLabelFollowupRules(
+  rules: Record<string, number>
+): Promise<{ success: true } | { error: string }> {
+  const { userId } = await auth()
+  if (!userId) return { error: 'Unauthorized' }
+
+  for (const [labelId, val] of Object.entries(rules)) {
+    if (!Number.isInteger(val) || val < 1 || val > 365) {
+      return { error: 'Follow-up threshold must be between 1 and 365 days' }
+    }
+  }
+
+  const supabase = await createSupabaseServerClient()
+  const profile = await getProfile(supabase, userId)
+  if (!profile) return { error: 'Profile not found' }
+
+  const { error } = await supabase
+    .from('profiles')
+    .update({ followup_rules: rules as any })
+    .eq('id', profile.id)
+
+  if (error) {
+    console.error('updateLabelFollowupRules error:', error)
+    return { error: 'Failed to update follow-up rules. Please try again.' }
+  }
+
+  revalidatePath('/settings')
+  return { success: true }
+}
+

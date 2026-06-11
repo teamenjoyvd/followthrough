@@ -2,12 +2,13 @@
 
 import { useState, useTransition, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
-import { updateProfile, updatePreferences } from '@/lib/actions/settings'
+import { updateProfile, updatePreferences, updateLabelFollowupRules } from '@/lib/actions/settings'
 
 export function useSettingsForm(initialProfile: {
   display_name: string | null
   confirmation_enabled: boolean
   undo_window_seconds: number
+  followup_rules: any
 }) {
   const router = useRouter()
 
@@ -55,6 +56,28 @@ export function useSettingsForm(initialProfile: {
     })
   }, [confirmation, undoWindowSeconds, router])
 
+  // ── Label Rules Form ──────────────────────────────────────────────────────
+  const [followupRules, setFollowupRules] = useState<Record<string, number>>(initialProfile.followup_rules || {})
+  const [isRulesPending, startRulesTransition] = useTransition()
+  const [rulesFeedback, setRulesFeedback] = useState<{ ok: boolean; msg: string } | null>(null)
+
+  const handleLabelRuleChange = useCallback((labelId: string, val: number) => {
+    setFollowupRules(prev => ({ ...prev, [labelId]: val }))
+  }, [])
+
+  const handleRulesSave = useCallback(() => {
+    setRulesFeedback(null)
+    startRulesTransition(async () => {
+      const result = await updateLabelFollowupRules(followupRules)
+      if ('error' in result) {
+        setRulesFeedback({ ok: false, msg: result.error })
+      } else {
+        setRulesFeedback({ ok: true, msg: 'Saved.' })
+        router.refresh()
+      }
+    })
+  }, [followupRules, router])
+
   return {
     // Profile
     profileName,
@@ -71,5 +94,12 @@ export function useSettingsForm(initialProfile: {
     isPreferencesPending,
     preferencesFeedback,
     handlePreferencesSave,
+
+    // Label Rules
+    followupRules,
+    handleLabelRuleChange,
+    isRulesPending,
+    rulesFeedback,
+    handleRulesSave,
   }
 }

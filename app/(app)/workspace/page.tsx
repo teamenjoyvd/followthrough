@@ -28,11 +28,12 @@ export default async function WorkspacePage() {
     id: string
     display_name: string | null
     undo_window_seconds: number | null
+    followup_rules: any
   }
 
   const { data: profileResult, error: profileError } = await supabase
     .from('profiles')
-    .select('id, display_name, undo_window_seconds')
+    .select('id, display_name, undo_window_seconds, followup_rules')
     .eq('clerk_id', userId)
     .maybeSingle() as { data: ProfileResult | null; error: any }
 
@@ -70,7 +71,7 @@ export default async function WorkspacePage() {
 
   const { data: allContacts, error: allContactsError } = await supabase
     .from('contacts')
-    .select('*')
+    .select('*, contact_labels(*)')
     .eq('profile_id', profile.id) as { data: Contact[] | null; error: any }
 
   if (allContactsError) {
@@ -116,11 +117,28 @@ export default async function WorkspacePage() {
     totalContactsCount,
   }
 
+  const followupRules = (profile.followup_rules as Record<string, number> | null) || {}
   let overdueCount = 0
  
   for (const contact of contactsList) {
     if (contact.pipeline_status === 'snoozed') continue
-    const thresholdDays = 14
+    
+    let thresholdDays = 14
+    const labelIds = (contact as any).contact_labels?.map((cl: any) => cl.label_id) || []
+    
+    if (labelIds.length > 0) {
+      let minThreshold = Infinity
+      labelIds.forEach((lid: string) => {
+        const val = followupRules[lid]
+        if (val !== undefined && val < minThreshold) {
+          minThreshold = val
+        }
+      })
+      if (minThreshold !== Infinity) {
+        thresholdDays = minThreshold
+      }
+    }
+
     const referenceDateStr = contact.last_contacted_at || contact.created_at
     if (referenceDateStr) {
       const referenceDate = new Date(referenceDateStr)

@@ -5,6 +5,7 @@ import { getUnreadInboxCount } from '@/lib/actions/inbox'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { AppNavDesktop } from './components/AppNavDesktop'
 import { AppNavMobile } from './components/AppNavMobile'
+import { ToastContainer } from '@/components/ui/toast'
 
 // ---------------------------------------------------------------------------
 // AppLayout — dual layout shell (dual layout law: two complete separate layouts)
@@ -80,6 +81,7 @@ export default async function AppLayout({
         />
         <main className="flex-1 overflow-y-auto bg-background pb-16">{children}</main>
       </div>
+      <ToastContainer />
     </>
   )
 }

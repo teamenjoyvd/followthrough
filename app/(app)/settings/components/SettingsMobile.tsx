@@ -4,6 +4,7 @@ import { useClerk } from '@clerk/nextjs'
 import { Switch } from '@/components/ui/switch'
 import type { useSettingsForm } from '../hooks/useSettingsForm'
 import { cn } from '@/lib/utils'
+import { getLabelColorClass } from '@/components/LabelManager'
 
 interface Props {
   profile: {
@@ -13,11 +14,13 @@ interface Props {
     confirmation_enabled: boolean
     undo_window_seconds: number
   }
+  labels: { id: string; name: string; color: string }[]
   settingsForm: ReturnType<typeof useSettingsForm>
 }
 
 export default function SettingsMobile({
   profile,
+  labels,
   settingsForm,
 }: Props) {
   return (
@@ -32,6 +35,16 @@ export default function SettingsMobile({
         feedback={settingsForm.profileFeedback}
         onSave={settingsForm.handleProfileSave}
       />
+      
+      <FollowupRulesSectionMobile
+        labels={labels}
+        followupRules={settingsForm.followupRules}
+        onChange={settingsForm.handleLabelRuleChange}
+        isPending={settingsForm.isRulesPending}
+        feedback={settingsForm.rulesFeedback}
+        onSave={settingsForm.handleRulesSave}
+      />
+
       <PreferencesSectionMobile
         confirmation={settingsForm.confirmation}
         setConfirmation={settingsForm.setConfirmation}
@@ -85,6 +98,85 @@ function ProfileSectionMobile({
           className="w-full bg-terra-primary text-white text-sm font-bold py-2.5 rounded-xl hover:opacity-90 transition-opacity disabled:opacity-50"
         >
           {isPending ? 'Saving…' : 'Save'}
+        </button>
+        {feedback && (
+          <p className={`text-xs font-medium text-center ${feedback.ok ? 'text-terra-primary' : 'text-destructive'}`}>
+            {feedback.msg}
+          </p>
+        )}
+      </div>
+    </section>
+  )
+}
+
+// ── Follow-up Rules ─────────────────────────────────────────────────────────────────
+
+function FollowupRulesSectionMobile({
+  labels,
+  followupRules,
+  onChange,
+  isPending,
+  feedback,
+  onSave,
+}: {
+  labels: { id: string; name: string; color: string }[]
+  followupRules: Record<string, number>
+  onChange: (labelId: string, value: number) => void
+  isPending: boolean
+  feedback: { ok: boolean; msg: string } | null
+  onSave: () => void
+}) {
+  return (
+    <section className="space-y-3">
+      <h2 className="font-headline text-base font-bold text-terra-on-surface">Follow-up Rules</h2>
+      <div className="bg-terra-surface border border-terra-surface-container-highest rounded-[20px] p-4 space-y-4 shadow-[0_4px_20px_rgba(46,50,48,0.04)]">
+        {/* Agenda Explainer */}
+        <div className="p-3 bg-terra-surface-container-low border border-terra-surface-container-highest rounded-xl text-xs text-terra-outline font-body flex items-start gap-2">
+          <svg className="h-4 w-4 shrink-0 mt-0.5 text-terra-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          <span className="leading-relaxed">
+            Contacts are flagged as overdue based on the labels assigned to them. If a contact has multiple labels, the shortest duration is used. Unlabeled contacts default to 14 days.
+          </span>
+        </div>
+
+        {labels.length === 0 ? (
+          <p className="text-sm text-terra-outline italic">No labels created yet. Add labels to contacts to customize rules.</p>
+        ) : (
+          <div className="space-y-3 max-h-[260px] overflow-y-auto pr-1">
+            {labels.map((lbl) => {
+              const currentVal = followupRules[lbl.id] !== undefined ? followupRules[lbl.id] : 14
+              return (
+                <div key={lbl.id} className="flex items-center justify-between gap-2 p-2.5 rounded-xl bg-terra-surface-container-low border border-terra-surface-container-highest/80">
+                  <span className={`inline-flex px-1.5 py-0.5 rounded text-[10px] font-bold border ${getLabelColorClass(lbl.color)}`}>
+                    {lbl.name}
+                  </span>
+                  <div className="flex items-center gap-1">
+                    <input
+                      type="number"
+                      min={1}
+                      max={365}
+                      value={currentVal}
+                      onChange={(e) => {
+                        const val = parseInt(e.target.value) || 14
+                        onChange(lbl.id, val)
+                      }}
+                      className="w-12 text-center text-xs border border-terra-surface-container-highest rounded-lg px-1.5 py-1 bg-white text-terra-on-surface font-medium focus:outline-none focus:ring-1 focus:ring-terra-primary"
+                    />
+                    <span className="text-[11px] text-terra-outline font-medium">days</span>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        )}
+
+        <button
+          onClick={onSave}
+          disabled={isPending || labels.length === 0}
+          className="w-full bg-terra-primary text-white text-sm font-bold py-2.5 rounded-xl hover:opacity-90 transition-opacity disabled:opacity-50"
+        >
+          {isPending ? 'Saving…' : 'Save rules'}
         </button>
         {feedback && (
           <p className={`text-xs font-medium text-center ${feedback.ok ? 'text-terra-primary' : 'text-destructive'}`}>
@@ -168,7 +260,6 @@ function PreferencesSectionMobile({
     </section>
   )
 }
-
 
 // ── Danger Zone ───────────────────────────────────────────────────────────────────────
 
