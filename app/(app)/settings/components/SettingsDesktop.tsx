@@ -152,11 +152,12 @@ function FollowupRulesSection({
               const currentVal = followupRules[lbl.id] !== undefined ? followupRules[lbl.id] : 14
               return (
                 <div key={lbl.id} className="flex items-center justify-between gap-3 p-2.5 rounded-xl bg-terra-surface-container-low border border-terra-surface-container-highest/80">
-                  <span className={`inline-flex px-2 py-0.5 rounded text-xs font-bold border ${getLabelColorClass(lbl.color)}`}>
+                  <label htmlFor={`followup-input-${lbl.id}`} className={`inline-flex px-2 py-0.5 rounded text-xs font-bold border ${getLabelColorClass(lbl.color)} cursor-pointer`}>
                     {lbl.name}
-                  </span>
+                  </label>
                   <div className="flex items-center gap-1.5">
                     <input
+                      id={`followup-input-${lbl.id}`}
                       type="number"
                       min={1}
                       max={365}

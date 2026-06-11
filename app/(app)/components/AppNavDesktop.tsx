@@ -24,11 +24,9 @@ const NAV_ITEMS = [
 
 interface Props {
   inboxUnreadCount: number
-  displayName: string
-  avatarUrl: string | null
 }
 
-export function AppNavDesktop({ inboxUnreadCount, displayName, avatarUrl }: Props) {
+export function AppNavDesktop({ inboxUnreadCount }: Props) {
   const pathname = usePathname()
 
   return (
@@ -79,6 +77,7 @@ export function AppNavDesktop({ inboxUnreadCount, displayName, avatarUrl }: Prop
       <div className="px-3 py-4 border-t border-terra-outline-variant">
         <ClientUserButton
           showName
+          placeholderClassName="w-7 h-7 rounded-xl bg-terra-surface-container-high animate-pulse border border-terra-outline-variant shrink-0"
           appearance={{
             elements: {
               rootBox: "w-full",

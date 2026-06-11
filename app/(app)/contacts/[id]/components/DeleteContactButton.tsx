@@ -1,6 +1,7 @@
 'use client'
 
 import { useTransition } from 'react'
+import { useRouter } from 'next/navigation'
 import { Trash2 } from 'lucide-react'
 import { deleteContact } from '@/lib/actions/contacts'
 import { ConfirmDialog } from '@/components/ConfirmDialog'
@@ -12,6 +13,7 @@ interface Props {
 }
 
 export default function DeleteContactButton({ contactId, contactName }: Props) {
+  const router = useRouter()
   const [isPending, startTransition] = useTransition()
 
   const handleDelete = () => {
@@ -21,6 +23,7 @@ export default function DeleteContactButton({ contactId, contactName }: Props) {
         toast(res.error, 'error')
       } else {
         toast(`Contact "${contactName}" deleted successfully`)
+        router.replace('/contacts')
       }
     })
   }

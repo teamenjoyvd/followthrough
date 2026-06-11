@@ -123,7 +123,7 @@ function HistoryRow({ item, onUndone }: { item: HistoryItem; onUndone: () => voi
   const [archiveStatus, setArchiveStatus] = React.useState<'idle' | 'loading' | 'done'>('idle')
 
   const handleUndo = async () => {
-    if (undoStatus !== 'idle') return
+    if (undoStatus !== 'idle' || archiveStatus !== 'idle') return
     setUndoStatus('loading')
     setErrorMsg(null)
     const res = await undoAction(item.id)
@@ -138,7 +138,7 @@ function HistoryRow({ item, onUndone }: { item: HistoryItem; onUndone: () => voi
   }
 
   const handleArchive = async () => {
-    if (archiveStatus !== 'idle') return
+    if (archiveStatus !== 'idle' || undoStatus !== 'idle') return
     setArchiveStatus('loading')
     const res = await archiveAction(item.id)
     if ('error' in res) {

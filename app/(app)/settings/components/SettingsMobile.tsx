@@ -148,11 +148,12 @@ function FollowupRulesSectionMobile({
               const currentVal = followupRules[lbl.id] !== undefined ? followupRules[lbl.id] : 14
               return (
                 <div key={lbl.id} className="flex items-center justify-between gap-2 p-2.5 rounded-xl bg-terra-surface-container-low border border-terra-surface-container-highest/80">
-                  <span className={`inline-flex px-1.5 py-0.5 rounded text-[10px] font-bold border ${getLabelColorClass(lbl.color)}`}>
+                  <label htmlFor={`followup-input-mobile-${lbl.id}`} className={`inline-flex px-1.5 py-0.5 rounded text-[10px] font-bold border ${getLabelColorClass(lbl.color)} cursor-pointer`}>
                     {lbl.name}
-                  </span>
+                  </label>
                   <div className="flex items-center gap-1">
                     <input
+                      id={`followup-input-mobile-${lbl.id}`}
                       type="number"
                       min={1}
                       max={365}

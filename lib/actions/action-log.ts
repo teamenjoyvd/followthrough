@@ -294,15 +294,20 @@ export async function archiveAction(
     const profile = await getProfile(supabase, userId)
     if (!profile) return { error: 'Profile not found' }
 
-    const { error } = await db
+    const { data, error } = await db
       .from('action_log')
       .update({ is_archived: true })
       .eq('id', logId)
       .eq('profile_id', profile.id)
+      .select('id')
 
     if (error) {
       console.error('archiveAction error:', error)
       return { error: 'Failed to archive history log' }
+    }
+
+    if (!data || data.length === 0) {
+      return { error: 'History log not found' }
     }
 
     return { success: true }

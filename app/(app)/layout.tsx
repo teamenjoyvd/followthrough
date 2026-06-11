@@ -67,8 +67,6 @@ export default async function AppLayout({
       <div className="hidden md:flex h-screen overflow-hidden bg-background">
         <AppNavDesktop
           inboxUnreadCount={unreadInboxCount}
-          displayName={displayName}
-          avatarUrl={avatarUrl}
         />
         <main className="flex-1 overflow-y-auto bg-background min-w-0">{children}</main>
       </div>

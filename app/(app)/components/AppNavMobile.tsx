@@ -55,6 +55,7 @@ export function AppNavMobile({ inboxUnreadCount, displayName }: Props) {
             <Link
               key={href}
               href={href}
+              aria-current={active ? 'page' : undefined}
               className={cn(
                 'flex flex-col items-center justify-center gap-0.5 w-14 h-12 rounded-xl transition-all relative font-body',
                 active ? 'text-[#4a7c59]' : 'text-[#74796e] hover:text-[#2e3230]'
@@ -65,8 +66,8 @@ export function AppNavMobile({ inboxUnreadCount, displayName }: Props) {
                 {label}
               </span>
               {showBadge && (
-                <span className="absolute top-1 right-2 inline-flex items-center justify-center bg-[#b83230] text-white font-extrabold text-[8px] rounded-full h-4 w-4 leading-none">
-                  {inboxUnreadCount}
+                <span className="absolute top-1 right-1.5 inline-flex items-center justify-center bg-[#b83230] text-white font-extrabold text-[8px] rounded-full h-4 min-w-4 px-1 leading-none">
+                  {inboxUnreadCount > 99 ? '99+' : inboxUnreadCount}
                 </span>
               )}
             </Link>

@@ -108,9 +108,30 @@ export async function updateLabelFollowupRules(
   const profile = await getProfile(supabase, userId)
   if (!profile) return { error: 'Profile not found' }
 
+  // Fetch caller's valid label IDs to validate
+  const { data: userLabels, error: labelsError } = await supabase
+    .from('labels')
+    .select('id')
+    .eq('profile_id', profile.id)
+
+  if (labelsError) {
+    console.error('validate labels error:', labelsError)
+    return { error: 'Failed to validate labels' }
+  }
+
+  const validLabelIds = new Set((userLabels || []).map(l => l.id))
+  const filteredRules: Record<string, number> = {}
+
+  for (const [labelId, val] of Object.entries(rules)) {
+    if (!validLabelIds.has(labelId)) {
+      return { error: 'Invalid label ID provided' }
+    }
+    filteredRules[labelId] = val
+  }
+
   const { error } = await supabase
     .from('profiles')
-    .update({ followup_rules: rules as any })
+    .update({ followup_rules: filteredRules as any })
     .eq('id', profile.id)
 
   if (error) {

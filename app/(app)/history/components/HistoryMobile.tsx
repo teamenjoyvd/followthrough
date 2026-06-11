@@ -121,7 +121,7 @@ function MobileHistoryRow({ item, onUndone }: { item: HistoryItem; onUndone: () 
   const [archiveStatus, setArchiveStatus] = React.useState<'idle' | 'loading' | 'done'>('idle')
 
   const handleUndo = async () => {
-    if (undoStatus !== 'idle') return
+    if (undoStatus !== 'idle' || archiveStatus !== 'idle') return
     setUndoStatus('loading')
     setErrorMsg(null)
     const res = await undoAction(item.id)
@@ -136,7 +136,7 @@ function MobileHistoryRow({ item, onUndone }: { item: HistoryItem; onUndone: () 
   }
 
   const handleArchive = async () => {
-    if (archiveStatus !== 'idle') return
+    if (archiveStatus !== 'idle' || undoStatus !== 'idle') return
     setArchiveStatus('loading')
     const res = await archiveAction(item.id)
     if ('error' in res) {
@@ -190,6 +190,7 @@ function MobileHistoryRow({ item, onUndone }: { item: HistoryItem; onUndone: () 
                 disabled={archiveStatus === 'loading' || undoStatus === 'loading'}
                 className="flex items-center gap-1 px-2 py-1.5 text-[10px] font-bold font-sans bg-transparent text-[#74796e] hover:text-[#b83230] rounded-xl active:scale-95 disabled:opacity-50 transition-transform"
                 title="Archive item"
+                aria-label="Archive item"
               >
                 <Archive className="h-3.5 w-3.5" />
               </button>

@@ -40,7 +40,7 @@ export default async function HistoryPage({
   let countQuery = db
     .from('action_log')
     .select('id', { count: 'exact', head: true })
-    .eq('is_archived', false)
+    .or('is_archived.eq.false,is_archived.is.null')
 
   if (entityTypes) {
     countQuery = countQuery.in('entity_type', entityTypes)
@@ -55,7 +55,7 @@ export default async function HistoryPage({
   let dataQuery = db
     .from('action_log')
     .select('id, action_type, entity_type, entity_id, created_at, undo_expires_at, undone_at')
-    .eq('is_archived', false)
+    .or('is_archived.eq.false,is_archived.is.null')
     .order('created_at', { ascending: false })
     .range(page * PAGE_SIZE, page * PAGE_SIZE + PAGE_SIZE - 1)
 

@@ -109,6 +109,11 @@ export default function ContactsClient({
     actionFn: (batch: string[]) => Promise<{ success: true } | { error: string }>,
     successMessage: string
   ) => {
+    if (idsToProcess.length === 0) {
+      toast('Select at least one contact first.', 'info')
+      return
+    }
+
     setIsProcessing(true)
     setProcessedCount(0)
     setTotalToProcess(idsToProcess.length)
@@ -176,6 +181,15 @@ export default function ContactsClient({
     )
   }
 
+  const sanitizeCsvField = (value: string): string => {
+    const escaped = value.replace(/"/g, '""')
+    const trimmed = value.trim()
+    if (/^[=+\-@]/.test(trimmed)) {
+      return `'${escaped}`
+    }
+    return escaped
+  }
+
   const handleExportCSV = () => {
     const headers = [
       'First Name', 'Last Name', 'Email', 'Phone', 'Company',
@@ -196,15 +210,15 @@ export default function ContactsClient({
       const primaryPhone = c.phone_numbers?.[0]?.number || ''
 
       const row = [
-        `"${(c.first_name || '').replace(/"/g, '""')}"`,
-        `"${(c.last_name || '').replace(/"/g, '""')}"`,
-        `"${(c.email || '').replace(/"/g, '""')}"`,
-        `"${(primaryPhone || '').replace(/"/g, '""')}"`,
-        `"${(c.company || '').replace(/"/g, '""')}"`,
-        `"${(c.job_title || '').replace(/"/g, '""')}"`,
-        `"${(c.created_by_source || '').replace(/"/g, '""')}"`,
-        `"${(c.last_updated_by_source || '').replace(/"/g, '""')}"`,
-        `"${labelNames.replace(/"/g, '""')}"`,
+        `"${sanitizeCsvField(c.first_name || '')}"`,
+        `"${sanitizeCsvField(c.last_name || '')}"`,
+        `"${sanitizeCsvField(c.email || '')}"`,
+        `"${sanitizeCsvField(primaryPhone || '')}"`,
+        `"${sanitizeCsvField(c.company || '')}"`,
+        `"${sanitizeCsvField(c.job_title || '')}"`,
+        `"${sanitizeCsvField(c.created_by_source || '')}"`,
+        `"${sanitizeCsvField(c.last_updated_by_source || '')}"`,
+        `"${sanitizeCsvField(labelNames)}"`,
       ]
       csvRows.push(row.join(','))
     })
