@@ -7,6 +7,8 @@ import { LayoutDashboard, Users, Inbox, History, Settings } from 'lucide-react'
 import { Logo } from '@/components/Logo'
 import { cn } from '@/lib/utils'
 
+import ClientUserButton from '@/components/ClientUserButton'
+
 const NAV_ITEMS = [
   { href: '/workspace', label: 'Workspace', icon: LayoutDashboard },
   { href: '/contacts', label: 'Contacts', icon: Users },
@@ -32,10 +34,13 @@ export function AppNavMobile({ inboxUnreadCount, displayName }: Props) {
             <Logo iconOnly />
           </Link>
           <div className="flex items-center gap-2">
-            <span className="text-xs text-muted-foreground font-semibold max-w-[120px] truncate">{displayName.split(' ')[0]}</span>
-            <Link href="/settings" className="p-1.5 rounded-lg hover:bg-muted text-muted-foreground transition-colors" aria-label="Settings">
-              <Settings className="h-5 w-5" />
-            </Link>
+            <ClientUserButton
+              appearance={{
+                elements: {
+                  avatarBox: "w-9 h-9 rounded-xl ring-2 ring-terra-primary/20 border border-terra-outline-variant"
+                }
+              }}
+            />
           </div>
         </div>
       </header>

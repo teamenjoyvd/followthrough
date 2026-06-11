@@ -280,3 +280,34 @@ export async function undoAction(
     return { error: err.message ?? 'Failed to undo action' }
   }
 }
+
+export async function archiveAction(
+  logId: string,
+): Promise<{ success: true } | { error: string }> {
+  const { userId } = await auth()
+  if (!userId) return { error: 'Unauthorized' }
+
+  try {
+    const supabase = await createSupabaseServerClient()
+    const db = supabase as any
+
+    const profile = await getProfile(supabase, userId)
+    if (!profile) return { error: 'Profile not found' }
+
+    const { error } = await db
+      .from('action_log')
+      .update({ is_archived: true })
+      .eq('id', logId)
+      .eq('profile_id', profile.id)
+
+    if (error) {
+      console.error('archiveAction error:', error)
+      return { error: 'Failed to archive history log' }
+    }
+
+    return { success: true }
+  } catch (err: any) {
+    console.error('[archiveAction] unexpected error:', err)
+    return { error: err.message ?? 'Failed to archive action' }
+  }
+}
