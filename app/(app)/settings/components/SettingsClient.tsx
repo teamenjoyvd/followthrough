@@ -1,12 +1,8 @@
 'use client'
 
-import { useEffect, useRef } from 'react'
 import SettingsDesktop from './SettingsDesktop'
 import SettingsMobile from './SettingsMobile'
-import { useGoogleSync } from '../hooks/useGoogleSync'
 import { useSettingsForm } from '../hooks/useSettingsForm'
-import type { SyncConflictWithContact } from './SyncConflictList'
-import type { FollowupRules } from '@/lib/actions/settings'
 
 export interface SettingsClientProps {
   profile: {
@@ -14,58 +10,26 @@ export interface SettingsClientProps {
     email: string
     display_name: string | null
     confirmation_enabled: boolean
-    pipeline_view: string
-    followup_rules: FollowupRules
     undo_window_seconds: number
+    followup_rules: any
   }
-  isConnected: boolean
-  syncState: { last_synced_at: string | null } | null
-  conflicts: SyncConflictWithContact[]
-  conflictCount: number
-  flashConnected: boolean
-  flashError: string | undefined
+  labels: { id: string; name: string; color: string }[]
 }
 
 export default function SettingsClient({
   profile,
-  isConnected,
-  syncState,
-  conflicts,
-  conflictCount,
-  flashConnected,
-  flashError,
+  labels,
 }: SettingsClientProps) {
-  const googleSync = useGoogleSync({ syncSuccessPrefix: 'Synced successfully' })
   const settingsForm = useSettingsForm({
     display_name: profile.display_name,
     confirmation_enabled: profile.confirmation_enabled,
-    pipeline_view: profile.pipeline_view,
-    followup_rules: profile.followup_rules,
     undo_window_seconds: profile.undo_window_seconds,
+    followup_rules: profile.followup_rules,
   })
-
-  const hasAutoSynced = useRef(false)
-  const handleSync = googleSync.handleSync
-
-  useEffect(() => {
-    if (flashConnected && !hasAutoSynced.current) {
-      hasAutoSynced.current = true
-      const url = new URL(window.location.href)
-      url.searchParams.delete('google_connected')
-      window.history.replaceState({}, '', url.toString())
-      handleSync()
-    }
-  }, [flashConnected, handleSync])
 
   const sharedProps = {
     profile,
-    isConnected,
-    syncState,
-    conflicts,
-    conflictCount,
-    flashConnected,
-    flashError,
-    googleSync,
+    labels,
     settingsForm,
   }
 

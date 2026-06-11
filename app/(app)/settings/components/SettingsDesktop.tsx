@@ -2,15 +2,9 @@
 
 import { useClerk } from '@clerk/nextjs'
 import { Switch } from '@/components/ui/switch'
-import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
-import { SyncConflictList } from './SyncConflictList'
-import type { SyncConflictWithContact } from './SyncConflictList'
-import type { FollowupRules } from '@/lib/actions/settings'
-import type { useGoogleSync } from '../hooks/useGoogleSync'
 import type { useSettingsForm } from '../hooks/useSettingsForm'
-import { ConfirmDialog } from '@/components/ConfirmDialog'
-import { SyncStepLog } from '@/components/SyncStepLog'
 import { cn } from '@/lib/utils'
+import { getLabelColorClass } from '@/components/LabelManager'
 
 interface Props {
   profile: {
@@ -18,29 +12,15 @@ interface Props {
     email: string
     display_name: string | null
     confirmation_enabled: boolean
-    pipeline_view: string
-    followup_rules: FollowupRules
     undo_window_seconds: number
   }
-  isConnected: boolean
-  syncState: { last_synced_at: string | null } | null
-  conflicts: SyncConflictWithContact[]
-  conflictCount: number
-  flashConnected: boolean
-  flashError: string | undefined
-  googleSync: ReturnType<typeof useGoogleSync>
+  labels: { id: string; name: string; color: string }[]
   settingsForm: ReturnType<typeof useSettingsForm>
 }
 
 export default function SettingsDesktop({
   profile,
-  isConnected,
-  syncState,
-  conflicts,
-  conflictCount,
-  flashConnected,
-  flashError,
-  googleSync,
+  labels,
   settingsForm,
 }: Props) {
   return (
@@ -56,35 +36,24 @@ export default function SettingsDesktop({
           feedback={settingsForm.profileFeedback}
           onSave={settingsForm.handleProfileSave}
         />
+        
+        <FollowupRulesSection
+          labels={labels}
+          followupRules={settingsForm.followupRules}
+          onChange={settingsForm.handleLabelRuleChange}
+          isPending={settingsForm.isRulesPending}
+          feedback={settingsForm.rulesFeedback}
+          onSave={settingsForm.handleRulesSave}
+        />
+
         <PreferencesSection
           confirmation={settingsForm.confirmation}
           setConfirmation={settingsForm.setConfirmation}
-          view={settingsForm.view}
-          setView={settingsForm.setView}
           undoWindowSeconds={settingsForm.undoWindowSeconds}
           setUndoWindowSeconds={settingsForm.setUndoWindowSeconds}
           isPending={settingsForm.isPreferencesPending}
           feedback={settingsForm.preferencesFeedback}
           onSave={settingsForm.handlePreferencesSave}
-        />
-        <FollowupRulesSection
-          values={settingsForm.rawRuleInputs}
-          onChange={settingsForm.handleRuleChange}
-          isPending={settingsForm.isRulesPending}
-          feedback={settingsForm.rulesFeedback}
-          validationErrors={settingsForm.validationErrors}
-          hasValidationErrors={settingsForm.hasValidationErrors}
-          onSave={settingsForm.handleRulesSave}
-        />
-        <GoogleSyncSection
-          isConnected={isConnected}
-          syncState={syncState}
-          conflicts={conflicts}
-          conflictCount={conflictCount}
-          profileId={profile.id}
-          flashConnected={flashConnected}
-          flashError={flashError}
-          googleSync={googleSync}
         />
         <DangerZoneSection />
       </div>
@@ -144,6 +113,88 @@ function ProfileSection({
   )
 }
 
+// ── Follow-up Rules ─────────────────────────────────────────────────────────────────
+
+function FollowupRulesSection({
+  labels,
+  followupRules,
+  onChange,
+  isPending,
+  feedback,
+  onSave,
+}: {
+  labels: { id: string; name: string; color: string }[]
+  followupRules: Record<string, number>
+  onChange: (labelId: string, value: number) => void
+  isPending: boolean
+  feedback: { ok: boolean; msg: string } | null
+  onSave: () => void
+}) {
+  return (
+    <section className="space-y-4">
+      <h2 className="font-headline text-lg font-bold text-terra-on-surface">Follow-up Rules</h2>
+      <div className="bg-terra-surface border border-terra-surface-container-highest rounded-[20px] p-6 space-y-5 shadow-[0_4px_20px_rgba(46,50,48,0.04)]">
+        {/* Agenda Explainer */}
+        <div className="p-3 bg-terra-surface-container-low border border-terra-surface-container-highest rounded-xl text-xs text-terra-outline font-body flex items-start gap-2.5">
+          <svg className="h-4 w-4 shrink-0 mt-0.5 text-terra-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          <span className="leading-relaxed">
+            Contacts are flagged as overdue based on the labels assigned to them. If a contact has multiple labels, the shortest duration is used. Unlabeled contacts default to 14 days.
+          </span>
+        </div>
+
+        {labels.length === 0 ? (
+          <p className="text-sm text-terra-outline italic">No labels created yet. Add labels to contacts to customize rules.</p>
+        ) : (
+          <div className="space-y-3.5 max-h-[300px] overflow-y-auto pr-1">
+            {labels.map((lbl) => {
+              const currentVal = followupRules[lbl.id] !== undefined ? followupRules[lbl.id] : 14
+              return (
+                <div key={lbl.id} className="flex items-center justify-between gap-3 p-2.5 rounded-xl bg-terra-surface-container-low border border-terra-surface-container-highest/80">
+                  <label htmlFor={`followup-input-${lbl.id}`} className={`inline-flex px-2 py-0.5 rounded text-xs font-bold border ${getLabelColorClass(lbl.color)} cursor-pointer`}>
+                    {lbl.name}
+                  </label>
+                  <div className="flex items-center gap-1.5">
+                    <input
+                      id={`followup-input-${lbl.id}`}
+                      type="number"
+                      min={1}
+                      max={365}
+                      value={currentVal}
+                      onChange={(e) => {
+                        const val = parseInt(e.target.value) || 14
+                        onChange(lbl.id, val)
+                      }}
+                      className="w-16 text-center text-xs border border-terra-surface-container-highest rounded-lg px-2 py-1 bg-white text-terra-on-surface font-medium focus:outline-none focus:ring-2 focus:ring-terra-primary"
+                    />
+                    <span className="text-xs text-terra-outline font-medium">days</span>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        )}
+
+        <div className="flex items-center gap-3 pt-1">
+          <button
+            onClick={onSave}
+            disabled={isPending || labels.length === 0}
+            className="bg-terra-primary text-white text-sm font-bold px-4 py-2 rounded-xl hover:opacity-90 transition-opacity disabled:opacity-50"
+          >
+            {isPending ? 'Saving…' : 'Save rules'}
+          </button>
+          {feedback && (
+            <span className={`text-xs font-medium ${feedback.ok ? 'text-terra-primary' : 'text-destructive'}`}>
+              {feedback.msg}
+            </span>
+          )}
+        </div>
+      </div>
+    </section>
+  )
+}
+
 // ── Preferences ─────────────────────────────────────────────────────────────────────
 
 const UNDO_WINDOW_OPTIONS: { label: string; value: 5 | 10 | 30 }[] = [
@@ -155,8 +206,6 @@ const UNDO_WINDOW_OPTIONS: { label: string; value: 5 | 10 | 30 }[] = [
 function PreferencesSection({
   confirmation,
   setConfirmation,
-  view,
-  setView,
   undoWindowSeconds,
   setUndoWindowSeconds,
   isPending,
@@ -165,8 +214,6 @@ function PreferencesSection({
 }: {
   confirmation: boolean
   setConfirmation: (v: boolean) => void
-  view: string
-  setView: (v: string) => void
   undoWindowSeconds: 5 | 10 | 30
   setUndoWindowSeconds: (v: 5 | 10 | 30) => void
   isPending: boolean
@@ -183,16 +230,6 @@ function PreferencesSection({
             <p className="text-xs text-terra-outline mt-0.5">Show confirm dialogs before destructive actions</p>
           </div>
           <Switch checked={confirmation} onCheckedChange={setConfirmation} />
-        </div>
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="text-sm font-medium text-terra-on-surface">Pipeline view</p>
-            <p className="text-xs text-terra-outline mt-0.5">Default layout for the pipeline page</p>
-          </div>
-          <ToggleGroup type="single" value={view} onValueChange={v => v && setView(v)} size="sm">
-            <ToggleGroupItem value="board">Board</ToggleGroupItem>
-            <ToggleGroupItem value="list">List</ToggleGroupItem>
-          </ToggleGroup>
         </div>
         <div className="flex items-center justify-between">
           <div>
@@ -230,216 +267,6 @@ function PreferencesSection({
             </span>
           )}
         </div>
-      </div>
-    </section>
-  )
-}
-
-// ── Follow-up Rules ───────────────────────────────────────────────────────────────────
-
-const RULE_LABELS: Record<keyof FollowupRules, string> = {
-  lead: 'Lead',
-  qualified: 'Qualified',
-  bought: 'Bought',
-  leave_alone: 'Leave alone',
-}
-
-function FollowupRulesSection({
-  values,
-  onChange,
-  isPending,
-  feedback,
-  validationErrors,
-  hasValidationErrors,
-  onSave,
-}: {
-  values: Record<keyof FollowupRules, string>
-  onChange: (field: keyof FollowupRules, raw: string) => void
-  isPending: boolean
-  feedback: { ok: boolean; msg: string } | null
-  validationErrors: Record<keyof FollowupRules, string | null>
-  hasValidationErrors: boolean
-  onSave: () => void
-}) {
-  return (
-    <section className="space-y-4">
-      <h2 className="font-headline text-lg font-bold text-terra-on-surface">Follow-up rules</h2>
-      <p className="text-sm text-terra-outline">Days before a contact is considered overdue per pipeline stage.</p>
-      <div className="bg-terra-surface border border-terra-surface-container-highest rounded-[20px] p-6 space-y-4 shadow-[0_4px_20px_rgba(46,50,48,0.04)]">
-        <div className="grid grid-cols-2 gap-4">
-          {(Object.keys(RULE_LABELS) as (keyof FollowupRules)[]).map(field => (
-            <div key={field} className="space-y-1.5">
-              <label className="text-xs font-semibold text-terra-outline uppercase tracking-wide">
-                {RULE_LABELS[field]}
-              </label>
-              <div className="flex items-center gap-2">
-                <input
-                  type="number"
-                  min={1}
-                  max={365}
-                  value={values[field]}
-                  onChange={e => onChange(field, e.target.value)}
-                  className={`w-20 rounded-xl border bg-terra-surface-container-low px-3 py-2 text-sm text-terra-on-surface focus:outline-none focus:ring-2 focus:ring-terra-primary ${
-                    validationErrors[field] ? 'border-destructive focus:ring-destructive' : 'border-terra-surface-container-highest'
-                  }`}
-                />
-                <span className="text-xs text-terra-outline">days</span>
-              </div>
-              {validationErrors[field] && (
-                <p className="text-[10px] font-medium text-destructive mt-1">
-                  {validationErrors[field]}
-                </p>
-              )}
-            </div>
-          ))}
-        </div>
-        <div className="flex items-center gap-3 pt-1">
-          <button
-            onClick={onSave}
-            disabled={isPending || hasValidationErrors}
-            className="bg-terra-primary text-white text-sm font-bold px-4 py-2 rounded-xl hover:opacity-90 transition-opacity disabled:opacity-50"
-          >
-            {isPending ? 'Saving…' : 'Save rules'}
-          </button>
-          {feedback && (
-            <span className={`text-xs font-medium ${feedback.ok ? 'text-terra-primary' : 'text-destructive'}`}>
-              {feedback.msg}
-            </span>
-          )}
-        </div>
-      </div>
-    </section>
-  )
-}
-
-// ── Google Sync ──────────────────────────────────────────────────────────────────────
-
-function GoogleSyncSection({
-  isConnected,
-  syncState,
-  conflicts,
-  conflictCount,
-  profileId,
-  flashConnected,
-  flashError,
-  googleSync,
-}: {
-  isConnected: boolean
-  syncState: { last_synced_at: string | null } | null
-  conflicts: SyncConflictWithContact[]
-  conflictCount: number
-  profileId: string
-  flashConnected: boolean
-  flashError: string | undefined
-  googleSync: ReturnType<typeof useGoogleSync>
-}) {
-  const {
-    isSyncing,
-    syncResult,
-    syncSteps,
-    isDisconnecting,
-    disconnectError,
-    handleSync,
-    handleDisconnect,
-  } = googleSync
-
-  return (
-    <section className="space-y-4">
-      <h2 className="font-headline text-lg font-bold text-terra-on-surface">Google Contacts</h2>
-      <div className="bg-terra-surface border border-terra-surface-container-highest rounded-[20px] p-6 space-y-4 shadow-[0_4px_20px_rgba(46,50,48,0.04)]">
-        {isSyncing && (
-          <div className="rounded-xl border border-terra-primary/20 bg-terra-on-primary-container/30 px-4 py-3 text-sm text-terra-on-surface font-medium flex items-center gap-3">
-            <span className="relative flex h-3 w-3">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-terra-primary opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-3 w-3 bg-terra-primary"></span>
-            </span>
-            <span className="animate-pulse">Syncing Google Contacts in real-time...</span>
-          </div>
-        )}
-        {flashConnected && (
-          <div className="rounded-xl bg-terra-on-primary-container border border-terra-primary/20 px-4 py-2 text-sm text-terra-on-surface font-medium">
-            Google Contacts connected successfully.
-          </div>
-        )}
-        {flashError && (
-          <div className="rounded-xl bg-destructive/10 border border-destructive/20 px-4 py-2 text-sm text-destructive">
-            {flashError === 'access_denied' && 'Google access was denied. Please try again.'}
-            {flashError === 'token_exchange' && 'Failed to exchange OAuth token. Please try again.'}
-            {flashError === 'save_failed' && 'Failed to save connection. Please try again.'}
-            {flashError === 'profile_not_found' && 'Profile not found. Please sign out and back in.'}
-            {!['access_denied', 'token_exchange', 'save_failed', 'profile_not_found'].includes(flashError) && 'An error occurred. Please try again.'}
-          </div>
-        )}
-        {syncResult && (
-          <div className={`rounded-xl px-4 py-2 text-sm font-medium border ${
-            syncResult.startsWith('Sync failed')
-              ? 'bg-destructive/10 border-destructive/20 text-destructive'
-              : 'bg-terra-on-primary-container border border-terra-primary/20 text-terra-on-surface'
-          }`}>
-            {syncResult}
-          </div>
-        )}
-        <SyncStepLog steps={syncSteps} />
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="text-sm font-medium text-terra-on-surface">{isConnected ? 'Connected' : 'Not connected'}</p>
-            {syncState?.last_synced_at && (
-              <p className="text-xs text-terra-outline mt-0.5" suppressHydrationWarning>
-                Last synced {new Date(syncState.last_synced_at).toLocaleString()}
-              </p>
-            )}
-          </div>
-          <div className="flex items-center gap-2">
-            {isConnected && (
-              <button
-                onClick={handleSync}
-                disabled={isSyncing}
-                className="text-sm px-3 py-1.5 rounded-xl border border-terra-surface-container-highest bg-terra-surface-container-low text-terra-on-surface hover:bg-terra-surface-container-high transition-colors disabled:opacity-50"
-              >
-                {isSyncing ? 'Syncing…' : 'Sync now'}
-              </button>
-            )}
-            <a
-              href="/api/google/oauth"
-              className="text-sm px-3 py-1.5 rounded-xl bg-terra-primary text-white hover:opacity-90 transition-opacity font-medium"
-            >
-              {isConnected ? 'Reconnect' : 'Connect Google'}
-            </a>
-          </div>
-        </div>
-        {isConnected && (
-          <>
-            <div className="space-y-3 pt-2 border-t border-terra-surface-container-highest">
-              <p className="text-xs font-semibold text-terra-outline uppercase tracking-wide">
-                Sync conflicts{conflictCount > 0 && (
-                  <span className="ml-2 inline-flex items-center justify-center w-5 h-5 rounded-full bg-destructive/10 text-destructive text-[10px] font-bold">
-                    {conflictCount}
-                  </span>
-                )}
-              </p>
-              <SyncConflictList conflicts={conflicts} profileId={profileId} />
-            </div>
-            <div className="pt-2 border-t border-terra-surface-container-highest">
-              {disconnectError && (
-                <p className="text-xs text-destructive mb-2">{disconnectError}</p>
-              )}
-              <ConfirmDialog
-                title="Disconnect Google?"
-                description="This will remove your Google Contacts sync. Existing contacts will not be deleted."
-                confirmLabel="Disconnect Google"
-                destructive
-                onConfirm={handleDisconnect}
-              >
-                <button
-                  disabled={isDisconnecting}
-                  className="text-sm font-medium text-destructive hover:opacity-80 transition-opacity disabled:opacity-50"
-                >
-                  {isDisconnecting ? 'Disconnecting…' : 'Disconnect Google'}
-                </button>
-              </ConfirmDialog>
-            </div>
-          </>
-        )}
       </div>
     </section>
   )

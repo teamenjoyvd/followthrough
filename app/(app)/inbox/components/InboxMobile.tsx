@@ -14,6 +14,7 @@ import {
 } from 'lucide-react'
 import { markInboxItemRead } from '@/lib/actions/inbox'
 import type { InboxItem } from '@/types/inbox'
+import { toast } from '@/components/ui/toast'
 
 interface Props {
   items: InboxItem[]
@@ -41,14 +42,13 @@ export default function InboxMobile({ items }: Props) {
     startTransition(async () => {
       const res = await markInboxItemRead(itemId)
       if ('error' in res) {
-        alert(res.error)
+        toast(res.error, 'error')
       } else {
         router.refresh()
       }
     })
   }
 
-  // Template generators for notifications
   function renderNotificationContent(item: InboxItem) {
     const contactName = item.contacts 
       ? `${item.contacts.first_name} ${item.contacts.last_name || ''}`.trim()
@@ -69,13 +69,6 @@ export default function InboxMobile({ items }: Props) {
           description: `${contactName} was ${action} your focus list.`,
           icon: TrendingUp,
           iconBg: 'bg-terra-primary-fixed/30 text-terra-primary border-terra-primary-container/30',
-        }
-      case 'sync_conflict':
-        return {
-          title: 'Sync Conflict',
-          description: `Conflict identified on ${contactName}'s data sync: ${Object.keys(item.payload.conflicts || {}).join(', ') || 'conflicting fields'}.`,
-          icon: AlertTriangle,
-          iconBg: 'bg-rose-50/70 text-rose-700 border-rose-200/50',
         }
       default:
         return {

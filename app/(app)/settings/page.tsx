@@ -1,38 +1,24 @@
 import { auth } from '@clerk/nextjs/server'
 import { redirect } from 'next/navigation'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
-import type { SyncConflictWithContact } from './components/SyncConflictList'
 import SettingsClient from './components/SettingsClient'
-import type { FollowupRules } from '@/lib/actions/settings'
 
 export const dynamic = 'force-dynamic'
 
 export const metadata = {
   title: 'Settings — Followthrough',
-  description: 'Manage your Followthrough settings and integrations.',
+  description: 'Manage your Followthrough settings.',
 }
 
-const DEFAULT_FOLLOWUP_RULES: FollowupRules = {
-  lead: 14,
-  qualified: 7,
-  bought: 30,
-  leave_alone: 90,
-}
-
-export default async function SettingsPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ google_connected?: string; google_error?: string }>
-}) {
+export default async function SettingsPage() {
   const { userId } = await auth()
   if (!userId) redirect('/sign-in')
 
-  const params = await searchParams
   const supabase = await createSupabaseServerClient()
 
   const { data: rawProfile } = (await supabase
     .from('profiles')
-    .select('*')
+    .select('id, email, display_name, confirmation_enabled, undo_window_seconds, followup_rules')
     .eq('clerk_id', userId)
     .maybeSingle()) as unknown as {
       data: {
@@ -40,67 +26,33 @@ export default async function SettingsPage({
         email: string
         display_name: string | null
         confirmation_enabled: boolean
-        pipeline_view: string
-        followup_rules: any
         undo_window_seconds: number | null
+        followup_rules: any
       } | null
     }
 
   if (!rawProfile) redirect('/sign-in')
 
-  const followupRules = (rawProfile.followup_rules as unknown as FollowupRules) ?? DEFAULT_FOLLOWUP_RULES
+  const { data: rawLabels } = await supabase
+    .from('labels')
+    .select('*')
+    .eq('profile_id', rawProfile.id)
+    .order('name', { ascending: true })
+
+  const labels = (rawLabels as any[]) || []
 
   const profile = {
     id: rawProfile.id,
     email: rawProfile.email,
     display_name: rawProfile.display_name,
     confirmation_enabled: rawProfile.confirmation_enabled,
-    pipeline_view: rawProfile.pipeline_view,
-    followup_rules: followupRules,
     undo_window_seconds: rawProfile.undo_window_seconds ?? 10,
+    followup_rules: rawProfile.followup_rules || {},
   }
-
-  const { data: rawSyncState } = (await supabase
-    .from('google_sync_state')
-    .select('*')
-    .eq('profile_id', profile.id)
-    .maybeSingle()) as unknown as {
-      data: {
-        last_synced_at: string | null
-        access_token: string | null
-      } | null
-    }
-
-  const syncState = rawSyncState
-    ? {
-        last_synced_at: rawSyncState.last_synced_at,
-        access_token: rawSyncState.access_token,
-      }
-    : null
-
-  const isConnected = !!syncState?.access_token
-
-  const { data: rawConflicts } = (await supabase
-    .from('sync_conflicts')
-    .select('*, contacts(first_name, last_name)')
-    .eq('profile_id', profile.id)
-    .eq('resolved', false)
-    .order('created_at', { ascending: false })) as unknown as {
-      data: SyncConflictWithContact[] | null
-    }
-
-  const conflicts = rawConflicts ?? []
-
-  const conflictCount = conflicts.length
 
   const sharedProps = {
     profile,
-    isConnected,
-    syncState,
-    conflicts,
-    conflictCount,
-    flashConnected: params.google_connected === '1',
-    flashError: params.google_error,
+    labels,
   }
 
   return <SettingsClient {...sharedProps} />

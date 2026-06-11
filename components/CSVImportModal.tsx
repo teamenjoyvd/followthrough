@@ -11,6 +11,7 @@ import {
   DialogDescription,
 } from '@/components/ui/dialog'
 import { importContactsFromCSV } from '@/lib/actions/contacts'
+import { toast } from '@/components/ui/toast'
 
 interface CSVImportModalProps {
   isOpen: boolean
@@ -166,7 +167,7 @@ export default function CSVImportModal({ isOpen, onClose }: CSVImportModalProps)
       if ('error' in res) {
         setError(res.error)
       } else {
-        alert(`Successfully imported ${res.imported} contacts!`)
+        toast(`Successfully imported ${res.imported} contacts!`, 'success')
         onClose()
         resetState()
       }

@@ -21,6 +21,7 @@ import type { Label } from '@/components/LabelManager'
 import type { Database } from '@/types/supabase'
 import { bulkUpdateContacts, bulkDeleteContacts, bulkManageContactLabels } from '@/lib/actions/contacts'
 import { toggleFocus } from '../actions/toggleFocus'
+import { toast } from '@/components/ui/toast'
 
 type ContactRow = Database['public']['Tables']['contacts']['Row'] & {
   phone_numbers?: { number: string }[]
@@ -36,7 +37,6 @@ interface ContactsClientProps {
   sortKey: any
   sortDir: any
   currentQuery: string
-  currentStatus: string
   currentLastContacted: string
   currentCompany: string
   currentFocused?: string
@@ -49,7 +49,6 @@ export default function ContactsClient({
   sortKey,
   sortDir,
   currentQuery,
-  currentStatus,
   currentLastContacted,
   currentCompany,
   currentFocused = '',
@@ -107,8 +106,14 @@ export default function ContactsClient({
   const startBatchProcess = async (
     message: string,
     idsToProcess: string[],
-    actionFn: (batch: string[]) => Promise<{ success: true } | { error: string }>
+    actionFn: (batch: string[]) => Promise<{ success: true } | { error: string }>,
+    successMessage: string
   ) => {
+    if (idsToProcess.length === 0) {
+      toast('Select at least one contact first.', 'info')
+      return
+    }
+
     setIsProcessing(true)
     setProcessedCount(0)
     setTotalToProcess(idsToProcess.length)
@@ -126,18 +131,15 @@ export default function ContactsClient({
       }
       setSelectedIds(new Set())
       setIsProcessing(false)
+      toast(successMessage)
       router.refresh()
     } catch (err: any) {
-      alert(`Batch operation failed: ${err.message}`)
+      toast(`Batch operation failed: ${err.message}`, 'error')
       setIsProcessing(false)
     }
   }
 
-  const handleStatusChange = (status: any) => {
-    startBatchProcess('Updating pipeline statuses...', Array.from(selectedIds), async (batch) => {
-      return await bulkUpdateContacts(batch, { pipeline_status: status })
-    })
-  }
+
 
   const handleLabelManage = (labelId: string, action: 'assign' | 'clear') => {
     startBatchProcess(
@@ -145,7 +147,8 @@ export default function ContactsClient({
       Array.from(selectedIds),
       async (batch) => {
         return await bulkManageContactLabels(batch, [labelId], action)
-      }
+      },
+      action === 'assign' ? 'Tag labels assigned successfully' : 'Tag labels cleared successfully'
     )
   }
 
@@ -157,21 +160,40 @@ export default function ContactsClient({
       snoozeDate = d.toISOString()
     }
     const finalDate = snoozeDate
-    startBatchProcess('Scheduling snooze follow-ups...', Array.from(selectedIds), async (batch) => {
-      return await bulkUpdateContacts(batch, { snooze_until: finalDate })
-    })
+    startBatchProcess(
+      'Scheduling snooze follow-ups...',
+      Array.from(selectedIds),
+      async (batch) => {
+        return await bulkUpdateContacts(batch, { snooze_until: finalDate })
+      },
+      days !== null ? `Snooze follow-ups scheduled for ${days} days` : 'Snoozes cleared successfully'
+    )
   }
 
   const executeBulkDelete = () => {
-    startBatchProcess('Cascade deleting selected contacts...', Array.from(selectedIds), async (batch) => {
-      return await bulkDeleteContacts(batch)
-    })
+    startBatchProcess(
+      'Cascade deleting selected contacts...',
+      Array.from(selectedIds),
+      async (batch) => {
+        return await bulkDeleteContacts(batch)
+      },
+      'Selected contacts deleted successfully'
+    )
+  }
+
+  const sanitizeCsvField = (value: string): string => {
+    const escaped = value.replace(/"/g, '""')
+    const trimmed = value.trim()
+    if (/^[=+\-@]/.test(trimmed)) {
+      return `'${escaped}`
+    }
+    return escaped
   }
 
   const handleExportCSV = () => {
     const headers = [
       'First Name', 'Last Name', 'Email', 'Phone', 'Company',
-      'Job Title', 'Status', 'Created Source', 'Last Changed', 'Labels',
+      'Job Title', 'Created Source', 'Last Changed', 'Labels',
     ]
     const csvRows = [headers.join(',')]
 
@@ -188,16 +210,15 @@ export default function ContactsClient({
       const primaryPhone = c.phone_numbers?.[0]?.number || ''
 
       const row = [
-        `"${(c.first_name || '').replace(/"/g, '""')}"`,
-        `"${(c.last_name || '').replace(/"/g, '""')}"`,
-        `"${(c.email || '').replace(/"/g, '""')}"`,
-        `"${(primaryPhone || '').replace(/"/g, '""')}"`,
-        `"${(c.company || '').replace(/"/g, '""')}"`,
-        `"${(c.job_title || '').replace(/"/g, '""')}"`,
-        `"${(c.pipeline_status || '').replace(/"/g, '""')}"`,
-        `"${(c.created_by_source || '').replace(/"/g, '""')}"`,
-        `"${(c.last_updated_by_source || '').replace(/"/g, '""')}"`,
-        `"${labelNames.replace(/"/g, '""')}"`,
+        `"${sanitizeCsvField(c.first_name || '')}"`,
+        `"${sanitizeCsvField(c.last_name || '')}"`,
+        `"${sanitizeCsvField(c.email || '')}"`,
+        `"${sanitizeCsvField(primaryPhone || '')}"`,
+        `"${sanitizeCsvField(c.company || '')}"`,
+        `"${sanitizeCsvField(c.job_title || '')}"`,
+        `"${sanitizeCsvField(c.created_by_source || '')}"`,
+        `"${sanitizeCsvField(c.last_updated_by_source || '')}"`,
+        `"${sanitizeCsvField(labelNames)}"`,
       ]
       csvRows.push(row.join(','))
     })
@@ -304,7 +325,6 @@ export default function ContactsClient({
           sortKey={sortKey}
           sortDir={sortDir}
           currentQuery={currentQuery}
-          currentStatus={currentStatus}
           currentLastContacted={currentLastContacted}
           currentCompany={currentCompany}
           currentFocused={currentFocused}
@@ -323,7 +343,6 @@ export default function ContactsClient({
         selectedIds={selectedIds}
         onClearSelection={handleClearSelection}
         labels={labels}
-        onStatusChange={handleStatusChange}
         onLabelManage={handleLabelManage}
         onSnoozeChange={handleSnoozeChange}
         onDelete={() => { /* no-op: replaced by deleteOverride */ }}

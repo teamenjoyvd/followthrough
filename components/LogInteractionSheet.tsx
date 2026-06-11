@@ -14,6 +14,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { cn } from '@/lib/utils'
 import { logCall, logEmail, logNote, logMeeting } from '@/lib/actions/interactions'
 import type { Database } from '@/types/supabase'
+import { toast } from '@/components/ui/toast'
 
 type CallOutcome = Database['public']['Enums']['call_outcome']
 
@@ -63,6 +64,7 @@ function CallForm({
     if (result.error) {
       setError(result.error)
     } else {
+      toast('Call logged successfully')
       onSuccess()
     }
   }
@@ -154,6 +156,7 @@ function EmailForm({
     if (result.error) {
       setError(result.error)
     } else {
+      toast('Email logged successfully')
       onSuccess()
     }
   }
@@ -219,6 +222,7 @@ function MeetingForm({
     if (result.error) {
       setError(result.error)
     } else {
+      toast('Meeting notes logged successfully')
       onSuccess()
     }
   }
@@ -274,6 +278,7 @@ function NoteForm({
     if (result.error) {
       setError(result.error)
     } else {
+      toast('Note saved successfully')
       onSuccess()
     }
   }

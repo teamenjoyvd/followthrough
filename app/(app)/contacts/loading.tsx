@@ -1,82 +1,65 @@
 export default function ContactsLoading() {
   return (
-    <div className="flex flex-col h-full bg-[#faf6f0]">
-
-      {/* ── Mobile header skeleton ── */}
-      <div className="flex md:hidden items-center justify-between px-4 py-3 border-b border-[#e4e0d8] bg-[#faf6f0] shrink-0">
-        <div className="animate-pulse bg-[#e4e0d8] rounded-lg h-7 w-24" />
-        <div className="flex items-center gap-2">
-          <div className="animate-pulse bg-[#e4e0d8] rounded-xl h-9 w-9" />
-          <div className="animate-pulse bg-[#e4e0d8] rounded-xl h-9 w-28" />
+    <div className="min-h-screen bg-[#faf6f0] p-4 md:p-6 space-y-6 animate-pulse font-body flex flex-col h-full overflow-hidden">
+      {/* Header Row Skeleton */}
+      <div className="flex items-center justify-between pb-4 border-b border-[#e4e0d8]">
+        <div className="h-8 w-36 bg-[#eae6de] rounded-xl" />
+        <div className="flex gap-2">
+          <div className="h-9 w-9 bg-[#eae6de] rounded-xl" />
+          <div className="h-9 w-28 bg-[#eae6de] rounded-xl" />
         </div>
       </div>
 
-      {/* ── Desktop header + filter bar skeleton ── */}
-      <div className="hidden md:flex items-start justify-between gap-4 px-4 md:px-6 py-3 border-b border-[#e4e0d8] bg-[#faf6f0] shrink-0">
-        <div className="animate-pulse bg-[#e4e0d8] rounded-lg h-8 w-28 shrink-0 mt-0.5" />
-        <div className="flex-1 min-w-0 flex items-center gap-2 flex-wrap">
-          <div className="animate-pulse bg-[#e4e0d8] rounded-full h-7 w-20" />
-          <div className="animate-pulse bg-[#e4e0d8] rounded-full h-7 w-28" />
-          <div className="animate-pulse bg-[#e4e0d8] rounded-full h-7 w-24" />
-          <div className="animate-pulse bg-[#e4e0d8] rounded-full h-7 w-32" />
-        </div>
-        <div className="flex items-center gap-2 shrink-0 mt-0.5">
-          <div className="animate-pulse bg-[#e4e0d8] rounded-xl h-9 w-9" />
-          <div className="animate-pulse bg-[#e4e0d8] rounded-xl h-9 w-32" />
-        </div>
+      {/* Filters Bar Skeleton */}
+      <div className="flex flex-wrap gap-2 items-center">
+        <div className="h-8 flex-1 min-w-[200px] bg-[#eae6de] rounded-xl" />
+        <div className="h-8 w-24 bg-[#eae6de] rounded-xl" />
+        <div className="h-8 w-24 bg-[#eae6de] rounded-xl" />
+        <div className="h-8 w-9 bg-[#eae6de] rounded-xl" />
       </div>
 
-      {/* ── Contact row skeletons ── */}
-      {/* Outer wrapper matches ContactsDesktop: px-6 py-4 */}
-      <div className="flex-1 overflow-hidden hidden md:block px-6 py-4 space-y-2">
-        {/* Desktop column header — matches grid-cols-[40px_36px_2fr_2fr_1.5fr_1.5fr_80px] gap-4 px-4 */}
-        <div className="grid grid-cols-[40px_36px_2fr_2fr_1.5fr_1.5fr_80px] gap-4 px-4 mb-1 items-center">
-          <div className="animate-pulse bg-[#e4e0d8] rounded h-3.5 w-4 justify-self-center" />
-          <div className="sr-only">Focused</div>
-          <div className="animate-pulse bg-[#e4e0d8] rounded h-3.5 w-20" />
-          <div className="animate-pulse bg-[#e4e0d8] rounded h-3.5 w-20" />
-          <div className="animate-pulse bg-[#e4e0d8] rounded h-3.5 w-14" />
-          <div className="animate-pulse bg-[#e4e0d8] rounded h-3.5 w-24" />
-          <div className="sr-only">Actions</div>
-        </div>
-        {/* Desktop rows — match grid-cols-[40px_36px_2fr_2fr_1.5fr_1.5fr_80px] gap-4 px-4 py-3.5 rounded-[20px] */}
-        {Array.from({ length: 8 }).map((_, i) => (
-          <div
-            key={i}
-            className="grid grid-cols-[40px_36px_2fr_2fr_1.5fr_1.5fr_80px] gap-4 items-center px-4 py-3.5 rounded-[20px] bg-[#f5f1ea]"
-          >
-            <div className="animate-pulse bg-[#e4e0d8] rounded h-4 w-4 justify-self-center" />
-            <div className="animate-pulse bg-[#e4e0d8] rounded-xl h-9 w-9 justify-self-center" />
-            <div className="space-y-2">
-              <div className="animate-pulse bg-[#e4e0d8] rounded h-3.5 w-36" />
-              <div className="animate-pulse bg-[#e4e0d8] rounded h-3 w-24" />
+      {/* Row list table items skeleton */}
+      <div className="space-y-3.5 flex-1 overflow-y-auto">
+        {[...Array(6)].map((_, i) => (
+          <div key={i} className="h-16 bg-[#f5f1ea] border border-[#e4e0d8] rounded-[20px] p-4 flex items-center">
+            {/* Desktop: columns (similar to table layout) */}
+            <div className="hidden md:flex items-center gap-6 w-full h-full">
+              {/* Checkbox placeholder */}
+              <div className="h-4 w-4 bg-[#eae6de] rounded shrink-0" />
+              {/* Avatar + Name */}
+              <div className="flex items-center gap-2.5 w-1/4 shrink-0">
+                <div className="h-7 w-7 rounded-xl bg-[#eae6de] shrink-0" />
+                <div className="h-4 w-28 bg-[#eae6de] rounded" />
+              </div>
+              {/* Company */}
+              <div className="h-4 w-1/5 bg-[#eae6de] rounded shrink-0" />
+              {/* Email */}
+              <div className="h-4 flex-1 bg-[#eae6de] rounded min-w-0" />
+              {/* Phone */}
+              <div className="h-4 w-32 bg-[#eae6de] rounded shrink-0" />
+              {/* Labels */}
+              <div className="flex gap-1.5 w-24 shrink-0 justify-end">
+                <div className="h-4 w-10 bg-[#eae6de] rounded-md" />
+                <div className="h-4 w-10 bg-[#eae6de] rounded-md" />
+              </div>
+              {/* Action trigger */}
+              <div className="h-7 w-7 rounded-xl bg-[#eae6de] shrink-0 ml-2" />
             </div>
-            <div className="animate-pulse bg-[#e4e0d8] rounded h-3.5 w-28" />
-            <div className="animate-pulse bg-[#e4e0d8] rounded-full h-5 w-16" />
-            <div className="animate-pulse bg-[#e4e0d8] rounded h-3.5 w-20" />
-            <div className="animate-pulse bg-[#e4e0d8] rounded-lg h-5 w-6 justify-self-end" />
+            {/* Mobile: card layout */}
+            <div className="md:hidden flex items-center justify-between w-full h-full">
+              <div className="flex items-center gap-2.5 overflow-hidden">
+                {/* Avatar */}
+                <div className="h-9 w-9 rounded-full bg-[#eae6de] shrink-0" />
+                <div className="space-y-1.5">
+                  <div className="h-4 w-32 bg-[#eae6de] rounded" />
+                  <div className="h-3.5 w-20 bg-[#eae6de] rounded" />
+                </div>
+              </div>
+              <div className="h-7 w-7 rounded-xl bg-[#eae6de] shrink-0" />
+            </div>
           </div>
         ))}
       </div>
-
-      {/* Mobile rows */}
-      <div className="flex-1 overflow-hidden md:hidden">
-        {Array.from({ length: 8 }).map((_, i) => (
-          <div
-            key={i}
-            className="flex items-center px-4 py-3.5 border-b border-[#e4e0d8] gap-3"
-          >
-            <div className="animate-pulse bg-[#e4e0d8] rounded h-4 w-4 shrink-0" />
-            <div className="animate-pulse bg-[#e4e0d8] rounded-full h-9 w-9 shrink-0" />
-            <div className="flex-1 min-w-0 space-y-2">
-              <div className="animate-pulse bg-[#e4e0d8] rounded h-3.5 w-36" />
-              <div className="animate-pulse bg-[#e4e0d8] rounded h-3 w-24" />
-            </div>
-            <div className="animate-pulse bg-[#e4e0d8] rounded-lg h-7 w-7 shrink-0" />
-          </div>
-        ))}
-      </div>
-
     </div>
   )
 }

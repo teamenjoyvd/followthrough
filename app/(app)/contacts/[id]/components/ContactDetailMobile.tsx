@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { useState, useTransition } from 'react'
 import { Pencil, Mail, Phone, Globe, Plus, Star, Trash2 } from 'lucide-react'
-import { PipelineStatusControl } from '../../components/PipelineStatusControl'
+
 import { Sheet, SheetTrigger, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet'
 import type { Database } from '@/types/supabase'
 import type { ContactDetail } from '@/lib/contacts-data'
@@ -472,11 +472,7 @@ export default function ContactDetailMobile({
 
       {/* Content stream */}
       <div className="p-4 space-y-4">
-        {/* Pipeline status card */}
-        <div className="p-4 bg-[#f5f1ea] rounded-[20px] border border-[#e4e0d8] shadow-[0_4px_20px_rgba(46,50,48,0.04)]">
-          <p className="text-[10px] font-bold text-[#74796e] uppercase tracking-wider mb-2.5">Pipeline status</p>
-          <PipelineStatusControl contact={contact} />
-        </div>
+
 
         {/* Details list card */}
         <div className="p-4 bg-[#f5f1ea] rounded-[20px] border border-[#e4e0d8] shadow-[0_4px_20px_rgba(46,50,48,0.04)] space-y-3.5">

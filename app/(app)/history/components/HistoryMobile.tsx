@@ -2,10 +2,10 @@
 
 import * as React from 'react'
 import { useRouter } from 'next/navigation'
-import { History, Undo2 } from 'lucide-react'
+import { History, Undo2, Archive } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { getActionLabel } from '@/lib/action-log-labels'
-import { undoAction } from '@/lib/actions/action-log'
+import { undoAction, archiveAction } from '@/lib/actions/action-log'
 import type { HistoryItem } from '../history-types'
 import { PAGE_SIZE, FILTER_TABS, isUndoable, formatRelativeTime } from '../history-utils'
 
@@ -118,8 +118,10 @@ function MobileHistoryRow({ item, onUndone }: { item: HistoryItem; onUndone: () 
     return () => clearInterval(interval)
   }, [item])
 
+  const [archiveStatus, setArchiveStatus] = React.useState<'idle' | 'loading' | 'done'>('idle')
+
   const handleUndo = async () => {
-    if (undoStatus !== 'idle') return
+    if (undoStatus !== 'idle' || archiveStatus !== 'idle') return
     setUndoStatus('loading')
     setErrorMsg(null)
     const res = await undoAction(item.id)
@@ -129,6 +131,19 @@ function MobileHistoryRow({ item, onUndone }: { item: HistoryItem; onUndone: () 
       setTimeout(() => setUndoStatus('idle'), 3000)
     } else {
       setUndoStatus('done')
+      onUndone()
+    }
+  }
+
+  const handleArchive = async () => {
+    if (archiveStatus !== 'idle' || undoStatus !== 'idle') return
+    setArchiveStatus('loading')
+    const res = await archiveAction(item.id)
+    if ('error' in res) {
+      setArchiveStatus('idle')
+      setErrorMsg(res.error)
+    } else {
+      setArchiveStatus('done')
       onUndone()
     }
   }
@@ -155,19 +170,32 @@ function MobileHistoryRow({ item, onUndone }: { item: HistoryItem; onUndone: () 
           </p>
           {errorMsg && <p className="text-[10px] text-[#b83230] mt-1">{errorMsg}</p>}
         </div>
-        <div className="shrink-0">
+        <div className="shrink-0 flex items-center gap-1.5">
           {isUndone ? (
             <span className="text-[10px] font-sans text-[#74796e] italic">Undone</span>
-          ) : canUndo ? (
-            <button
-              onClick={handleUndo}
-              disabled={undoStatus === 'loading'}
-              className="flex items-center gap-1 px-2.5 py-1.5 text-[10px] font-bold font-sans bg-[#eae6de] text-[#705c30] rounded-xl active:scale-95 disabled:opacity-50 transition-transform"
-            >
-              <Undo2 className="h-3 w-3" />
-              {undoStatus === 'loading' ? 'Undoing…' : 'Undo'}
-            </button>
-          ) : null}
+          ) : (
+            <>
+              {canUndo && (
+                <button
+                  onClick={handleUndo}
+                  disabled={undoStatus === 'loading' || archiveStatus === 'loading'}
+                  className="flex items-center gap-1.5 px-2.5 py-1.5 text-[10px] font-bold font-sans bg-[#eae6de] text-[#705c30] rounded-xl active:scale-95 disabled:opacity-50 transition-transform"
+                >
+                  <Undo2 className="h-3 w-3" />
+                  {undoStatus === 'loading' ? 'Undoing…' : 'Undo'}
+                </button>
+              )}
+              <button
+                onClick={handleArchive}
+                disabled={archiveStatus === 'loading' || undoStatus === 'loading'}
+                className="flex items-center gap-1 px-2 py-1.5 text-[10px] font-bold font-sans bg-transparent text-[#74796e] hover:text-[#b83230] rounded-xl active:scale-95 disabled:opacity-50 transition-transform"
+                title="Archive item"
+                aria-label="Archive item"
+              >
+                <Archive className="h-3.5 w-3.5" />
+              </button>
+            </>
+          )}
         </div>
       </div>
     </div>

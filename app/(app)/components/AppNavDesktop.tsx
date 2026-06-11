@@ -3,32 +3,20 @@
 import * as React from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { useClerk } from '@clerk/nextjs'
 import {
   LayoutDashboard,
   Users,
-  GitBranch,
   Inbox,
   History,
   Settings,
-  LogOut,
-  ChevronDown,
 } from 'lucide-react'
 import { Logo } from '@/components/Logo'
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
 import { cn } from '@/lib/utils'
+import ClientUserButton from '@/components/ClientUserButton'
 
 const NAV_ITEMS = [
   { href: '/workspace', label: 'Workspace', icon: LayoutDashboard },
   { href: '/contacts', label: 'Contacts', icon: Users },
-  { href: '/pipeline', label: 'Pipeline', icon: GitBranch },
   { href: '/inbox', label: 'Inbox', icon: Inbox },
   { href: '/history', label: 'History', icon: History },
   { href: '/settings', label: 'Settings', icon: Settings },
@@ -36,22 +24,10 @@ const NAV_ITEMS = [
 
 interface Props {
   inboxUnreadCount: number
-  displayName: string
-  avatarUrl: string | null
 }
 
-export function AppNavDesktop({ inboxUnreadCount, displayName, avatarUrl }: Props) {
+export function AppNavDesktop({ inboxUnreadCount }: Props) {
   const pathname = usePathname()
-  const { signOut } = useClerk()
-
-  const initials = displayName
-    .trim()
-    .split(/\s+/)
-    .map((n) => n[0])
-    .filter(Boolean)
-    .join('')
-    .toUpperCase()
-    .slice(0, 2)
 
   return (
     <nav
@@ -99,40 +75,18 @@ export function AppNavDesktop({ inboxUnreadCount, displayName, avatarUrl }: Prop
 
       {/* User block */}
       <div className="px-3 py-4 border-t border-terra-outline-variant">
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <button className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg hover:bg-muted transition-colors outline-none focus-visible:ring-2 focus-visible:ring-primary">
-              {avatarUrl ? (
-                <img
-                  src={avatarUrl}
-                  alt={displayName}
-                  className="h-7 w-7 rounded-full object-cover shrink-0"
-                />
-              ) : (
-                <span className="h-7 w-7 rounded-full bg-primary/10 text-primary flex items-center justify-center text-xs font-bold shrink-0">
-                  {initials}
-                </span>
-              )}
-              <span className="text-sm font-medium text-foreground truncate flex-1 text-left">
-                {displayName}
-              </span>
-              <ChevronDown className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-            </button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent side="top" align="start" className="w-48 mb-1">
-            <DropdownMenuLabel className="text-xs text-muted-foreground font-normal truncate">
-              {displayName}
-            </DropdownMenuLabel>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem
-              className="text-destructive focus:text-destructive focus:bg-destructive/10 cursor-pointer"
-              onClick={() => signOut({ redirectUrl: '/' })}
-            >
-              <LogOut className="h-4 w-4" />
-              Sign out
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+        <ClientUserButton
+          showName
+          placeholderClassName="w-7 h-7 rounded-xl bg-terra-surface-container-high animate-pulse border border-terra-outline-variant shrink-0"
+          appearance={{
+            elements: {
+              rootBox: "w-full",
+              userButtonTrigger: "w-full flex items-center gap-2.5 px-3 py-2 rounded-lg hover:bg-muted transition-colors outline-none focus-visible:ring-2 focus-visible:ring-primary !shadow-none",
+              avatarBox: "w-7 h-7 rounded-xl ring-2 ring-terra-primary/20 border border-terra-outline-variant shrink-0",
+              userButtonShowNameText: "text-sm font-medium text-foreground truncate flex-1 text-left"
+            }
+          }}
+        />
       </div>
     </nav>
   )

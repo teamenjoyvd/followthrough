@@ -3,8 +3,7 @@
 import Link from 'next/link'
 import { useState, useTransition } from 'react'
 import { Pencil, Phone, Plus, Star, Trash2, Globe } from 'lucide-react'
-import { PipelineStatusControl } from '../../components/PipelineStatusControl'
-import { PIPELINE_STATUSES } from '../../components/constants'
+
 import type { Database } from '@/types/supabase'
 import type { ContactDetail } from '@/lib/contacts-data'
 import {
@@ -447,25 +446,14 @@ export default function ContactDetailDesktop({
   profileId,
   timelineSlot,
 }: ContactDetailProps) {
-  const currentStatus = PIPELINE_STATUSES.find((s) => s.value === contact.pipeline_status)
+
   const displayName = [contact.first_name, contact.last_name].filter(Boolean).join(' ')
 
   return (
     <div className="hidden md:flex h-full overflow-hidden bg-[#faf6f0]">
       {/* Left panel: Info cards */}
       <div className="w-[380px] lg:w-[420px] border-r border-[#e4e0d8] bg-[#faf6f0] overflow-y-auto shrink-0 flex flex-col gap-5 p-6">
-        {/* Pipeline status card */}
-        <div className="p-5 rounded-[20px] border border-[#e4e0d8] bg-[#f5f1ea] shadow-[0_4px_20px_rgba(46,50,48,0.04)]">
-          <div className="mb-3 flex items-center justify-between">
-            <span className="text-[10px] font-bold text-[#74796e] uppercase tracking-wider">Pipeline status</span>
-            {currentStatus && (
-              <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wide border ${currentStatus.color}`}>
-                {currentStatus.label}
-              </span>
-            )}
-          </div>
-          <PipelineStatusControl contact={contact} />
-        </div>
+
 
         {/* Basic Details card */}
         <div className="p-5 rounded-[20px] border border-[#e4e0d8] bg-[#f5f1ea] shadow-[0_4px_20px_rgba(46,50,48,0.04)]">
