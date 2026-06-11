@@ -166,7 +166,6 @@ export default function CSVImportModal({ isOpen, onClose }: CSVImportModalProps)
       if ('error' in res) {
         setError(res.error)
       } else {
-        alert(`Successfully imported ${res.imported} contacts!`)
         onClose()
         resetState()
       }
