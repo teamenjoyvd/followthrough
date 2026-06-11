@@ -1,6 +1,6 @@
 export interface InboxItem {
   id: string
-  type: 'resurfaced' | 'working_list_changed' | 'sync_conflict'
+  type: 'resurfaced' | 'working_list_changed'
   contact_id: string | null
   payload: Record<string, any>
   read: boolean

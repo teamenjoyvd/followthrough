@@ -71,13 +71,6 @@ export default function InboxDesktop({ items }: Props) {
           icon: TrendingUp,
           iconBg: 'bg-terra-primary-fixed/30 text-terra-primary border-terra-primary-container/30',
         }
-      case 'sync_conflict':
-        return {
-          title: 'Google Sync Conflict',
-          description: `A data sync conflict was identified on ${contactName}. Fields: ${Object.keys(item.payload.conflicts || {}).join(', ') || 'multiple fields'}.`,
-          icon: AlertTriangle,
-          iconBg: 'bg-rose-50/70 text-rose-700 border-rose-200/50',
-        }
       default:
         return {
           title: 'System Alert',

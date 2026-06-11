@@ -484,7 +484,6 @@ export function ContactFilterBar({
                       <select value={currentSource} onChange={e => startTransition(() => router.replace(buildHref({ source: e.target.value })))}
                         className="w-full text-xs border border-[#e4e0d8] rounded-xl px-2.5 py-1.5 bg-[#f5f1ea] text-[#2e3230] focus:outline-none focus:ring-2 focus:ring-[#4a7c59] focus:border-transparent transition-all cursor-pointer">
                         <option value="">Any source</option>
-                        <option value="google">Synced from Google</option>
                         <option value="csv">Imported from CSV</option>
                         <option value="manual">Created manually</option>
                       </select>

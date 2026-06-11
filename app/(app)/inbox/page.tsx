@@ -9,7 +9,7 @@ export const dynamic = 'force-dynamic'
 
 export const metadata = {
   title: 'Inbox — Followthrough',
-  description: 'Review critical contact updates, resurfaced items, and Google sync conflicts.',
+  description: 'Review critical contact updates and resurfaced items.',
 }
 
 export default async function InboxPage() {

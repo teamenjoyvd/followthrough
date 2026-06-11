@@ -162,36 +162,3 @@ export async function updateFollowupRules(
   return { success: true }
 }
 
-export async function disconnectGoogle(): Promise<{ success: true } | { error: string }> {
-  const { userId } = await auth()
-  if (!userId) return { error: 'Unauthorized' }
-
-  const supabase = await createSupabaseServerClient()
-  const profile = await getProfile(supabase, userId)
-  if (!profile) return { error: 'Profile not found' }
-
-  const { error } = await supabase
-    .from('google_sync_state')
-    .delete()
-    .eq('profile_id', profile.id)
-
-  if (error) {
-    console.error('disconnectGoogle error:', error)
-    return { error: 'Failed to disconnect Google. Please try again.' }
-  }
-
-  try {
-    await appendActionLog({
-      profileId: profile.id,
-      actionType: 'disconnectGoogle',
-      entityType: 'google_sync',
-      payload: {},
-      undoWindowSeconds: null, // audit only — not undoable
-    })
-  } catch (e) {
-    console.error('[disconnectGoogle] appendActionLog failed:', e)
-  }
-
-  revalidatePath('/settings')
-  return { success: true }
-}

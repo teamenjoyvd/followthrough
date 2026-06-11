@@ -415,7 +415,6 @@ export function MobileFilterBar({
                 className="text-xs border border-[#e4e0d8] rounded-xl px-2.5 py-1.5 bg-[#f5f1ea] text-[#2e3230] focus:outline-none focus:ring-2 focus:ring-[#4a7c59] font-body"
               >
                 <option value="">Any source</option>
-                <option value="google">Google sync</option>
                 <option value="csv">CSV import</option>
                 <option value="manual">Manual</option>
               </select>

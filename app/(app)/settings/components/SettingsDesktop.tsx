@@ -3,13 +3,8 @@
 import { useClerk } from '@clerk/nextjs'
 import { Switch } from '@/components/ui/switch'
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
-import { SyncConflictList } from './SyncConflictList'
-import type { SyncConflictWithContact } from './SyncConflictList'
 import type { FollowupRules } from '@/lib/actions/settings'
-import type { useGoogleSync } from '../hooks/useGoogleSync'
 import type { useSettingsForm } from '../hooks/useSettingsForm'
-import { ConfirmDialog } from '@/components/ConfirmDialog'
-import { SyncStepLog } from '@/components/SyncStepLog'
 import { cn } from '@/lib/utils'
 
 interface Props {
@@ -22,25 +17,11 @@ interface Props {
     followup_rules: FollowupRules
     undo_window_seconds: number
   }
-  isConnected: boolean
-  syncState: { last_synced_at: string | null } | null
-  conflicts: SyncConflictWithContact[]
-  conflictCount: number
-  flashConnected: boolean
-  flashError: string | undefined
-  googleSync: ReturnType<typeof useGoogleSync>
   settingsForm: ReturnType<typeof useSettingsForm>
 }
 
 export default function SettingsDesktop({
   profile,
-  isConnected,
-  syncState,
-  conflicts,
-  conflictCount,
-  flashConnected,
-  flashError,
-  googleSync,
   settingsForm,
 }: Props) {
   return (
@@ -75,16 +56,6 @@ export default function SettingsDesktop({
           validationErrors={settingsForm.validationErrors}
           hasValidationErrors={settingsForm.hasValidationErrors}
           onSave={settingsForm.handleRulesSave}
-        />
-        <GoogleSyncSection
-          isConnected={isConnected}
-          syncState={syncState}
-          conflicts={conflicts}
-          conflictCount={conflictCount}
-          profileId={profile.id}
-          flashConnected={flashConnected}
-          flashError={flashError}
-          googleSync={googleSync}
         />
         <DangerZoneSection />
       </div>
@@ -307,139 +278,6 @@ function FollowupRulesSection({
             </span>
           )}
         </div>
-      </div>
-    </section>
-  )
-}
-
-// ── Google Sync ──────────────────────────────────────────────────────────────────────
-
-function GoogleSyncSection({
-  isConnected,
-  syncState,
-  conflicts,
-  conflictCount,
-  profileId,
-  flashConnected,
-  flashError,
-  googleSync,
-}: {
-  isConnected: boolean
-  syncState: { last_synced_at: string | null } | null
-  conflicts: SyncConflictWithContact[]
-  conflictCount: number
-  profileId: string
-  flashConnected: boolean
-  flashError: string | undefined
-  googleSync: ReturnType<typeof useGoogleSync>
-}) {
-  const {
-    isSyncing,
-    syncResult,
-    syncSteps,
-    isDisconnecting,
-    disconnectError,
-    handleSync,
-    handleDisconnect,
-  } = googleSync
-
-  return (
-    <section className="space-y-4">
-      <h2 className="font-headline text-lg font-bold text-terra-on-surface">Google Contacts</h2>
-      <div className="bg-terra-surface border border-terra-surface-container-highest rounded-[20px] p-6 space-y-4 shadow-[0_4px_20px_rgba(46,50,48,0.04)]">
-        {isSyncing && (
-          <div className="rounded-xl border border-terra-primary/20 bg-terra-on-primary-container/30 px-4 py-3 text-sm text-terra-on-surface font-medium flex items-center gap-3">
-            <span className="relative flex h-3 w-3">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-terra-primary opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-3 w-3 bg-terra-primary"></span>
-            </span>
-            <span className="animate-pulse">Syncing Google Contacts in real-time...</span>
-          </div>
-        )}
-        {flashConnected && (
-          <div className="rounded-xl bg-terra-on-primary-container border border-terra-primary/20 px-4 py-2 text-sm text-terra-on-surface font-medium">
-            Google Contacts connected successfully.
-          </div>
-        )}
-        {flashError && (
-          <div className="rounded-xl bg-destructive/10 border border-destructive/20 px-4 py-2 text-sm text-destructive">
-            {flashError === 'access_denied' && 'Google access was denied. Please try again.'}
-            {flashError === 'token_exchange' && 'Failed to exchange OAuth token. Please try again.'}
-            {flashError === 'save_failed' && 'Failed to save connection. Please try again.'}
-            {flashError === 'profile_not_found' && 'Profile not found. Please sign out and back in.'}
-            {!['access_denied', 'token_exchange', 'save_failed', 'profile_not_found'].includes(flashError) && 'An error occurred. Please try again.'}
-          </div>
-        )}
-        {syncResult && (
-          <div className={`rounded-xl px-4 py-2 text-sm font-medium border ${
-            syncResult.startsWith('Sync failed')
-              ? 'bg-destructive/10 border-destructive/20 text-destructive'
-              : 'bg-terra-on-primary-container border border-terra-primary/20 text-terra-on-surface'
-          }`}>
-            {syncResult}
-          </div>
-        )}
-        <SyncStepLog steps={syncSteps} />
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="text-sm font-medium text-terra-on-surface">{isConnected ? 'Connected' : 'Not connected'}</p>
-            {syncState?.last_synced_at && (
-              <p className="text-xs text-terra-outline mt-0.5" suppressHydrationWarning>
-                Last synced {new Date(syncState.last_synced_at).toLocaleString()}
-              </p>
-            )}
-          </div>
-          <div className="flex items-center gap-2">
-            {isConnected && (
-              <button
-                onClick={handleSync}
-                disabled={isSyncing}
-                className="text-sm px-3 py-1.5 rounded-xl border border-terra-surface-container-highest bg-terra-surface-container-low text-terra-on-surface hover:bg-terra-surface-container-high transition-colors disabled:opacity-50"
-              >
-                {isSyncing ? 'Syncing…' : 'Sync now'}
-              </button>
-            )}
-            <a
-              href="/api/google/oauth"
-              className="text-sm px-3 py-1.5 rounded-xl bg-terra-primary text-white hover:opacity-90 transition-opacity font-medium"
-            >
-              {isConnected ? 'Reconnect' : 'Connect Google'}
-            </a>
-          </div>
-        </div>
-        {isConnected && (
-          <>
-            <div className="space-y-3 pt-2 border-t border-terra-surface-container-highest">
-              <p className="text-xs font-semibold text-terra-outline uppercase tracking-wide">
-                Sync conflicts{conflictCount > 0 && (
-                  <span className="ml-2 inline-flex items-center justify-center w-5 h-5 rounded-full bg-destructive/10 text-destructive text-[10px] font-bold">
-                    {conflictCount}
-                  </span>
-                )}
-              </p>
-              <SyncConflictList conflicts={conflicts} profileId={profileId} />
-            </div>
-            <div className="pt-2 border-t border-terra-surface-container-highest">
-              {disconnectError && (
-                <p className="text-xs text-destructive mb-2">{disconnectError}</p>
-              )}
-              <ConfirmDialog
-                title="Disconnect Google?"
-                description="This will remove your Google Contacts sync. Existing contacts will not be deleted."
-                confirmLabel="Disconnect Google"
-                destructive
-                onConfirm={handleDisconnect}
-              >
-                <button
-                  disabled={isDisconnecting}
-                  className="text-sm font-medium text-destructive hover:opacity-80 transition-opacity disabled:opacity-50"
-                >
-                  {isDisconnecting ? 'Disconnecting…' : 'Disconnect Google'}
-                </button>
-              </ConfirmDialog>
-            </div>
-          </>
-        )}
       </div>
     </section>
   )
